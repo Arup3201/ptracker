@@ -1,176 +1,189 @@
-import React, { useState, useMemo } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import React, { useState, useEffect } from "react";
+import { useParams } from "react-router";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
-} from '@tanstack/react-table'
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Eye, 
-  UserPlus, 
-  Calendar,
+} from "@tanstack/react-table";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  UserPlus,
   User,
   Clock,
   CheckCircle2,
   Circle,
-  MoreHorizontal
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
 
-type TaskStatus = 'To Do' | 'In Progress' | 'Done';
+import { HttpGet, HttpPost, HttpPut } from "@/utils/http";
+import useAuth from "@/hooks/auth";
 
-interface Task {
-  id: string;
-  name: string;
-  description: string;
-  deadline: string;
-  assignee: string;
-  status: TaskStatus;
-}
-
-interface NewTaskData {
-  name: string;
-  description: string;
-  deadline: string;
-  assignee: string;
-  status: TaskStatus;
-}
-
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-}
+import type { ProjectRole, Project as ProjectType } from "@/types/project";
+import type { Task, TeamMember, NewTaskData, TaskStatus } from "@/types/task";
+import type { MemberResponse, TaskResponse } from "@/types/response";
 
 const Project: React.FC = () => {
-  // Sample project data
-  const projectName = "Website Redesign Project";
-  
-  // Sample team members - replace with your actual data
-  const [teamMembers] = useState<TeamMember[]>([
-    { id: '1', name: 'John Doe', email: 'john@example.com' },
-    { id: '2', name: 'Jane Smith', email: 'jane@example.com' },
-    { id: '3', name: 'Mike Johnson', email: 'mike@example.com' },
-    { id: '4', name: 'Sarah Wilson', email: 'sarah@example.com' }
-  ]);
+  const { id: project_id } = useParams();
+  const { user } = useAuth();
 
-  // Sample tasks data - replace with your actual data
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: '1',
-      name: 'Design Homepage Mockup',
-      description: 'Create wireframes and high-fidelity mockups for the new homepage design including header, hero section, and footer',
-      deadline: '2025-09-15',
-      assignee: 'John Doe',
-      status: 'In Progress'
-    },
-    {
-      id: '2',
-      name: 'Setup Development Environment',
-      description: 'Configure development server, install dependencies, and setup version control system',
-      deadline: '2025-09-10',
-      assignee: 'Jane Smith',
-      status: 'Done'
-    },
-    {
-      id: '3',
-      name: 'User Research Analysis',
-      description: 'Analyze user feedback from surveys and interviews to inform design decisions',
-      deadline: '2025-09-20',
-      assignee: 'Mike Johnson',
-      status: 'To Do'
-    },
-    {
-      id: '4',
-      name: 'Content Strategy',
-      description: 'Develop content strategy and copywriting guidelines for all website pages',
-      deadline: '2025-09-25',
-      assignee: 'Sarah Wilson',
-      status: 'To Do'
+  const [isLoading, setIsLoading] = useState(false);
+
+  const [project, setProject] = useState<ProjectType>({} as ProjectType);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+
+  const [projectRole, setProjectRole] = useState<ProjectRole>();
+
+  const getProject = async (projectId: string) => {
+    setIsLoading(true);
+    try {
+      const data = await HttpGet(`/projects/${projectId}`);
+      setProject({
+        id: data.project.id,
+        name: data.project.name,
+        description: data.project.description,
+        deadline: data.project.deadline,
+        code: data.project.code,
+      });
+      setProjectRole(data.project.role);
+      setTasks(() =>
+        data.tasks.map((task: TaskResponse) => ({
+          id: task.id,
+          name: task.name,
+          description: task.description,
+          status: task.status,
+          assignee: {
+            id: task.assignee,
+            name: task.assignee_name,
+            email: task.assignee_email,
+          },
+        }))
+      );
+    } catch (err) {
+      console.error(`getProject failed: ${err}`);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
+  const getMembers = async (projectId: string) => {
+    try {
+      const data = await HttpGet(`/projects/${projectId}/members`);
+      setTeamMembers(() =>
+        data.members.map((member: MemberResponse) => ({
+          id: member.user_id,
+          email: member.email,
+          name: member.name,
+          joinedAt: member.joined_at,
+          role: member.role,
+        }))
+      );
+    } catch (err) {
+      console.error(`getMembers failed: ${err}`);
+    }
+  };
+  useEffect(() => {
+    if (project_id) {
+      getProject(project_id);
+      getMembers(project_id);
+    }
+  }, [project_id]);
 
   const [newTask, setNewTask] = useState<NewTaskData>({
-    name: '',
-    description: '',
-    deadline: '',
-    assignee: '',
-    status: 'To Do'
+    name: "",
+    description: "",
+    assignee: "",
+    status: "To Do",
   });
-  
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [createError, setCreateError] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState<{ [key: string]: boolean }>({});
+  const [editTask, setEditTask] = useState<NewTaskData>({
+    name: "",
+    description: "",
+    assignee: "",
+    status: "To Do",
+  });
 
-  const toggleDropdown = (taskId: string) => {
-    setIsDropdownOpen(prev => ({
-      ...prev,
-      [taskId]: !prev[taskId]
-    }));
-  };
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [editingDialogOpen, setEditingDialogOpen] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
 
   const handleCreateTask = async () => {
-    setCreateError('');
-    
-    if (!newTask.name.trim() || !newTask.description.trim() || !newTask.deadline || !newTask.assignee) {
-      setCreateError('All fields are required');
-      return;
-    }
+    setCreateError("");
 
-    // Check if deadline is in the future
-    const selectedDate = new Date(newTask.deadline);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    if (selectedDate < today) {
-      setCreateError('Deadline must be in the future');
+    if (
+      !newTask.name.trim() ||
+      !newTask.description.trim() ||
+      !newTask.assignee
+    ) {
+      setCreateError("All fields are required");
       return;
     }
 
     setIsCreating(true);
 
     try {
-      // TODO: Replace with your actual create task API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      console.log('Creating task:', newTask);
-      
-      // Add new task to the list
-      const createdTask: Task = {
-        id: Date.now().toString(),
+      const data = await HttpPost(`/projects/${project_id}/tasks/`, {
         name: newTask.name,
         description: newTask.description,
-        deadline: newTask.deadline,
         assignee: newTask.assignee,
-        status: newTask.status
-      };
-      
-      setTasks(prev => [...prev, createdTask]);
-      
+        status: newTask.status,
+      });
+
+      console.log("Creating task:", newTask);
+
+      setTasks((prev) => [
+        ...prev,
+        {
+          id: data.task.id,
+          name: data.task.name,
+          description: data.task.description,
+          assignee: {
+            id: data.task.assignee,
+            name: data.task.assignee_name,
+            email: data.task.assignee_email,
+          },
+          status: data.task.status,
+        },
+      ]);
+
       // Reset form and close dialog
       setNewTask({
-        name: '',
-        description: '',
-        deadline: '',
-        assignee: '',
-        status: 'To Do'
+        name: "",
+        description: "",
+        assignee: "",
+        status: "To Do",
       });
       setIsCreateDialogOpen(false);
-      
     } catch (err) {
-      setCreateError('Failed to create task. Please try again.');
+      setCreateError("Failed to create task. Please try again.");
     } finally {
       setIsCreating(false);
     }
@@ -179,43 +192,96 @@ const Project: React.FC = () => {
   const handleDeleteTask = async (taskId: string) => {
     try {
       // TODO: Replace with your actual delete task API call
-      console.log('Deleting task:', taskId);
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      console.log("Deleting task:", taskId);
+      setTasks((prev) => prev.filter((task) => task.id !== taskId));
     } catch (err) {
-      console.error('Failed to delete task');
+      console.error("Failed to delete task");
     }
   };
 
-  const handleEditTask = (taskId: string) => {
-    // TODO: Implement edit task functionality
-    console.log('Edit task:', taskId);
+  const openEditTaskModal = (taskId: string) => {
+    setEditingDialogOpen(true);
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    setEditTask({
+      name: task.name,
+      description: task.description,
+      status: task.status,
+      assignee: task.assignee.id,
+    });
   };
+
+  const handleEditTask = async () => {
+    setEditError("");
+
+    if (
+      !editTask.name.trim() ||
+      !editTask.description.trim() ||
+      !editTask.assignee
+    ) {
+      setEditError("All fields are required");
+      return;
+    }
+
+    setIsEditing(true);
+
+    try {
+      const data = await HttpPut(`/projects/${project_id}/tasks/`, {
+        name: editTask.name,
+        description: editTask.description,
+      });
+
+      console.log("Creating task:", editTask);
+
+      // Reset form and close dialog
+      setEditTask({
+        name: "",
+        description: "",
+        assignee: "",
+        status: "To Do",
+      });
+      setEditingDialogOpen(false);
+    } catch (err) {
+      setEditError("Failed to create task. Please try again.");
+    } finally {
+      setIsEditing(false);
+    }
+  }
 
   const handleViewTask = (taskId: string) => {
     // TODO: Implement view task details functionality
-    console.log('View task:', taskId);
+    console.log("View task:", taskId);
   };
 
   const handleAssignTask = (taskId: string) => {
     // TODO: Implement assign task functionality
-    console.log('Assign task:', taskId);
+    console.log("Assign task:", taskId);
   };
 
   const truncateDescription = (description: string, maxLength: number = 50) => {
-    return description.length > maxLength 
-      ? description.substring(0, maxLength) + '...'
+    return description.length > maxLength
+      ? description.substring(0, maxLength) + "..."
       : description;
   };
 
   const getStatusBadge = (status: TaskStatus) => {
-    const statusConfig = {
-      'To Do': { color: 'bg-gray-100 text-gray-800', icon: <Circle className="w-3 h-3" /> },
-      'In Progress': { color: 'bg-blue-100 text-blue-800', icon: <Clock className="w-3 h-3" /> },
-      'Done': { color: 'bg-green-100 text-green-800', icon: <CheckCircle2 className="w-3 h-3" /> }
+    const statusConfig: any = {
+      "To Do": {
+        color: "bg-gray-100 text-gray-800",
+        icon: <Circle className="w-3 h-3" />,
+      },
+      "In Progress": {
+        color: "bg-blue-100 text-blue-800",
+        icon: <Clock className="w-3 h-3" />,
+      },
+      Completed: {
+        color: "bg-green-100 text-green-800",
+        icon: <CheckCircle2 className="w-3 h-3" />,
+      },
     };
 
     const config = statusConfig[status];
-    
+
     return (
       <Badge className={`${config.color} flex items-center gap-1`}>
         {config.icon}
@@ -224,124 +290,208 @@ const Project: React.FC = () => {
     );
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const isOverdue = (deadline: string, status: TaskStatus) => {
-    const deadlineDate = new Date(deadline);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return deadlineDate < today && status !== 'Done';
-  };
-
   // TanStack Table setup
   const columnHelper = createColumnHelper<Task>();
 
-  const columns = useMemo(() => [
-    columnHelper.accessor('name', {
-      header: 'Task Name',
-      cell: info => (
-        <div className="font-medium">{info.getValue()}</div>
-      )
+  const columns = [
+    columnHelper.accessor("name", {
+      header: "Task Name",
+      cell: (info) => <div className="font-medium">{info.getValue()}</div>,
     }),
-    columnHelper.accessor('description', {
-      header: 'Description',
-      cell: info => (
+    columnHelper.accessor("description", {
+      header: "Description",
+      cell: (info) => (
         <span className="text-stone-600" title={info.getValue()}>
           {truncateDescription(info.getValue())}
         </span>
-      )
+      ),
     }),
-    columnHelper.accessor('deadline', {
-      header: 'Deadline',
-      cell: info => (
-        <div className="flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-stone-400" />
-          <span className={isOverdue(info.getValue(), info.row.original.status) ? 'text-red-600 font-medium' : ''}>
-            {formatDate(info.getValue())}
-          </span>
-        </div>
-      )
-    }),
-    columnHelper.accessor('assignee', {
-      header: 'Assignee',
-      cell: info => (
+    columnHelper.accessor("assignee", {
+      header: "Assignee",
+      cell: (info) => (
         <div className="flex items-center gap-2">
           <User className="w-4 h-4 text-stone-400" />
-          {info.getValue()}
+          {info.getValue().name}
         </div>
-      )
+      ),
     }),
-    columnHelper.accessor('status', {
-      header: 'Status',
-      cell: info => getStatusBadge(info.getValue())
+    columnHelper.accessor("status", {
+      header: "Status",
+      cell: (info) => getStatusBadge(info.getValue()),
     }),
     columnHelper.display({
-      id: 'actions',
-      header: 'Actions',
-      cell: info => (
-        <div className="relative text-right">
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={() => toggleDropdown(info.row.original.id)}
+      id: "actions",
+      header: "Actions",
+      cell: (info) => (
+        <div className="flex justify-center gap-1">
+          <Button
+                variant="ghost"
+                onClick={() => {
+                  if (
+                    projectRole !== "Owner" &&
+                    user?.id !== info.row.original.assignee.id
+                  ) {
+                    // user is not the owner or the assignee
+                    return;
+                  }
+                  openEditTaskModal(info.row.original.id);
+                }}
+                disabled={
+                  projectRole !== "Owner" &&
+                  user?.id !== info.row.original.assignee.id
+                }
+                className="cursor-pointer"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+          <Dialog open={editingDialogOpen} onOpenChange={setEditingDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Edit Task</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to edit this task
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {editError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{editError}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="taskName">Task Name</Label>
+                  <Input
+                    id="taskName"
+                    placeholder="Enter task name"
+                    value={editTask.name}
+                    onChange={(e) =>
+                      setEditTask((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    disabled={isEditing}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="taskDescription">Description</Label>
+                  <Textarea
+                    id="taskDescription"
+                    placeholder="Enter task description"
+                    value={editTask.description}
+                    onChange={(e) =>
+                      setEditTask((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    disabled={isEditing}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="taskAssignee">Assignee</Label>
+                  <Select
+                    value={editTask.assignee}
+                    onValueChange={(value) =>
+                      setEditTask((prev) => ({ ...prev, assignee: value }))
+                    }
+                    disabled={isEditing}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          <div className="flex items-center gap-2">
+                            <User className="w-4 h-4" />
+                            {member.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="taskStatus">Status</Label>
+                  <Select
+                    value={editTask.status}
+                    onValueChange={(value: TaskStatus) =>
+                      setEditTask((prev) => ({ ...prev, status: value }))
+                    }
+                    disabled={isEditing}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="To Do">To Do</SelectItem>
+                      <SelectItem value="In Progress">In Progress</SelectItem>
+                      <SelectItem value="Done">Done</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <DialogFooter className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateDialogOpen(false)}
+                  disabled={isEditing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleEditTask}
+                  disabled={
+                    isEditing ||
+                    projectRole !== "Owner" ||
+                    user?.id !== editTask.assignee
+                  }
+                >
+                  {isEditing ? "Editing..." : "Edit Task"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (projectRole !== "Owner") {
+                // user is not the owner
+                return;
+              }
+              handleAssignTask(info.row.original.id);
+            }}
+            className="cursor-pointer"
+            disabled={projectRole !== "Owner"}
           >
-            <MoreHorizontal className="w-4 h-4" />
+            <UserPlus className="w-4 h-4" />
           </Button>
-          
-          {isDropdownOpen[info.row.original.id] && (
-            <div className="top-full right-0 z-50 absolute bg-white shadow-lg mt-1 border border-stone-200 rounded-md min-w-32">
-              <div 
-                onClick={() => {
-                  handleViewTask(info.row.original.id);
-                  setIsDropdownOpen(prev => ({ ...prev, [info.row.original.id]: false }));
-                }}
-                className="flex items-center hover:bg-stone-100 px-2 py-2 text-sm cursor-pointer"
-              >
-                <Eye className="mr-2 w-4 h-4" />
-                View Task
-              </div>
-              <div 
-                onClick={() => {
-                  handleEditTask(info.row.original.id);
-                  setIsDropdownOpen(prev => ({ ...prev, [info.row.original.id]: false }));
-                }}
-                className="flex items-center hover:bg-stone-100 px-2 py-2 text-sm cursor-pointer"
-              >
-                <Edit className="mr-2 w-4 h-4" />
-                Edit
-              </div>
-              <div 
-                onClick={() => {
-                  handleAssignTask(info.row.original.id);
-                  setIsDropdownOpen(prev => ({ ...prev, [info.row.original.id]: false }));
-                }}
-                className="flex items-center hover:bg-stone-100 px-2 py-2 text-sm cursor-pointer"
-              >
-                <UserPlus className="mr-2 w-4 h-4" />
-                Assign
-              </div>
-              <div 
-                onClick={() => {
-                  handleDeleteTask(info.row.original.id);
-                  setIsDropdownOpen(prev => ({ ...prev, [info.row.original.id]: false }));
-                }}
-                className="flex items-center hover:bg-stone-100 px-2 py-2 text-red-600 text-sm cursor-pointer"
-              >
-                <Trash2 className="mr-2 w-4 h-4" />
-                Delete
-              </div>
-            </div>
-          )}
+          <Button
+            variant="ghost"
+            onClick={() => {
+              if (projectRole !== "Owner") {
+                // user is not the owner
+                return;
+              }
+              handleDeleteTask(info.row.original.id);
+            }}
+            className="text-destructive hover:text-red-600 cursor-pointer"
+            disabled={projectRole !== "Owner"}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
-      )
-    })
-  ], [isDropdownOpen]);
+      ),
+    }),
+  ];
 
   const table = useReactTable({
     data: tasks,
@@ -354,7 +504,9 @@ const Project: React.FC = () => {
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="mb-2 font-bold text-stone-900 text-3xl">{projectName}</h1>
+          <h1 className="mb-2 font-bold text-stone-900 text-3xl">
+            {project.name}
+          </h1>
           <p className="text-stone-600">Manage tasks and track progress</p>
         </div>
 
@@ -362,16 +514,19 @@ const Project: React.FC = () => {
         <Card>
           <CardHeader className="flex flex-row justify-between items-center">
             <CardTitle className="text-xl">Tasks</CardTitle>
-            
+
             {/* Create New Task Button - moved to the right */}
-            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <Dialog
+              open={isCreateDialogOpen}
+              onOpenChange={setIsCreateDialogOpen}
+            >
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
                   <Plus className="w-4 h-4" />
                   Create New Task
                 </Button>
               </DialogTrigger>
-              
+
               <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>Create New Task</DialogTitle>
@@ -379,53 +534,54 @@ const Project: React.FC = () => {
                     Fill in the details below to create a new task
                   </DialogDescription>
                 </DialogHeader>
-                
+
                 <div className="space-y-4">
                   {createError && (
                     <Alert variant="destructive">
                       <AlertDescription>{createError}</AlertDescription>
                     </Alert>
                   )}
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="taskName">Task Name</Label>
                     <Input
                       id="taskName"
                       placeholder="Enter task name"
                       value={newTask.name}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) =>
+                        setNewTask((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
                       disabled={isCreating}
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="taskDescription">Description</Label>
                     <Textarea
                       id="taskDescription"
                       placeholder="Enter task description"
                       value={newTask.description}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) =>
+                        setNewTask((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
                       disabled={isCreating}
                       rows={3}
                     />
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="taskDeadline">Deadline</Label>
-                    <Input
-                      id="taskDeadline"
-                      type="date"
-                      value={newTask.deadline}
-                      onChange={(e) => setNewTask(prev => ({ ...prev, deadline: e.target.value }))}
-                      disabled={isCreating}
-                    />
-                  </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="taskAssignee">Assignee</Label>
-                    <Select 
-                      value={newTask.assignee} 
-                      onValueChange={(value) => setNewTask(prev => ({ ...prev, assignee: value }))}
+                    <Select
+                      value={newTask.assignee}
+                      onValueChange={(value) =>
+                        setNewTask((prev) => ({ ...prev, assignee: value }))
+                      }
                       disabled={isCreating}
                     >
                       <SelectTrigger>
@@ -433,7 +589,7 @@ const Project: React.FC = () => {
                       </SelectTrigger>
                       <SelectContent>
                         {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.name}>
+                          <SelectItem key={member.id} value={member.id}>
                             <div className="flex items-center gap-2">
                               <User className="w-4 h-4" />
                               {member.name}
@@ -443,12 +599,14 @@ const Project: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="taskStatus">Status</Label>
-                    <Select 
-                      value={newTask.status} 
-                      onValueChange={(value: TaskStatus) => setNewTask(prev => ({ ...prev, status: value }))}
+                    <Select
+                      value={newTask.status}
+                      onValueChange={(value: TaskStatus) =>
+                        setNewTask((prev) => ({ ...prev, status: value }))
+                      }
                       disabled={isCreating}
                     >
                       <SelectTrigger>
@@ -462,7 +620,7 @@ const Project: React.FC = () => {
                     </Select>
                   </div>
                 </div>
-                
+
                 <DialogFooter className="flex gap-3">
                   <Button
                     variant="outline"
@@ -471,28 +629,43 @@ const Project: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button onClick={handleCreateTask} disabled={isCreating}>
-                    {isCreating ? 'Creating...' : 'Create Task'}
+                  <Button
+                    onClick={handleCreateTask}
+                    disabled={isCreating || projectRole !== "Owner"}
+                  >
+                    {isCreating ? "Creating..." : "Create Task"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </CardHeader>
-          
+
           <CardContent>
             {tasks.length === 0 ? (
-              <div className="py-12 text-center">
-                <p className="mb-4 text-stone-500">No tasks found</p>
-                <p className="text-stone-400 text-sm">Create a new task to get started</p>
-              </div>
+              isLoading ? (
+                <Loader2 className="mx-auto mt-2 animate-spin" size={24} />
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="mb-4 text-stone-500">No tasks found</p>
+                  <p className="text-stone-400 text-sm">
+                    Create a new task to get started
+                  </p>
+                </div>
+              )
             ) : (
               <div className="border rounded-md">
                 <table className="w-full text-sm caption-bottom">
                   <thead className="[&_tr]:border-b">
-                    {table.getHeaderGroups().map(headerGroup => (
-                      <tr key={headerGroup.id}>
-                        {headerGroup.headers.map(header => (
-                          <th key={header.id} className="px-4 h-12 font-medium text-stone-500 text-left align-middle">
+                    {table.getHeaderGroups().map((headerGroup) => (
+                      <tr
+                        key={headerGroup.id}
+                        className="[&_th:last-child]:border-r-0"
+                      >
+                        {headerGroup.headers.map((header) => (
+                          <th
+                            key={header.id}
+                            className="px-4 border-r-1 h-12 font-medium text-stone-500 text-center align-middle b"
+                          >
                             {header.isPlaceholder
                               ? null
                               : flexRender(
@@ -505,11 +678,20 @@ const Project: React.FC = () => {
                     ))}
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
-                    {table.getRowModel().rows.map(row => (
-                      <tr key={row.id} className="hover:bg-stone-50 border-b transition-colors">
-                        {row.getVisibleCells().map(cell => (
-                          <td key={cell.id} className="p-4 align-middle">
-                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    {table.getRowModel().rows.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="hover:bg-stone-50 [&_td:last-child]:border-r-0 border-b transition-colors"
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="p-4 border-r-1 align-middle"
+                          >
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )}
                           </td>
                         ))}
                       </tr>

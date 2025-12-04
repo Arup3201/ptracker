@@ -5,7 +5,7 @@ from config import Env
 from exceptions.auth import JWTError
 
 TOKEN_NAME = "COLLAB_TOKEN"
-TOKEN_EXIRES = datetime.now(tz=timezone.utc)+timedelta(minutes=30)
+TOKEN_EXIRES = datetime.utcnow()+timedelta(minutes=30)
 
 def generate_token(payload: dict):
     try:

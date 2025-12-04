@@ -33,7 +33,7 @@ def list_projects():
         projects = ProjectService().list_projects(user_id=user.id)
         return jsonify({
             "message": "fetched all projects", 
-            "data": projects
+            "projects": projects
         })
     except DBOverloadError as e:
         return jsonify({

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,9 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
+import useAuth from "@/hooks/auth";
+import { HttpPost } from "@/utils/http";
+
 interface LoginFormData {
   email: string;
   password: string;
@@ -22,6 +25,13 @@ interface LoginFormData {
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthenticated, setIsAuthenticated, setUser } = useAuth();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/")
+    }
+  }, [isAuthenticated])
 
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
@@ -61,11 +71,16 @@ const Login: React.FC = () => {
     }
 
     try {
-      // TODO: Replace with your actual login API call
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulate API call
-
-      console.log("Login data:", formData);
-      // Handle successful login (redirect, store token, etc.)
+      const response = await HttpPost("/auth/login", {
+        email: formData.email,
+        password: formData.password,
+      });
+      setUser({
+        id: response.user.id, 
+        name: response.user.name, 
+        email: response.user.email
+      })
+      setIsAuthenticated(true)
     } catch (err) {
       setError("Invalid email or password. Please try again.");
     } finally {
