@@ -62,7 +62,7 @@
 | **role**       | VARCHAR(255) | not null |              | "Owner" / "Member" |
 | **created_at** | TIMESTAMPTZ  | null     |              |                    |
 | **updated_at** | TIMESTAMPTZ  | not null |              |                    |
-| **deleted_at** | VARCHAR(255) | not null |              |                    |
+| **deleted_at** | TIMESTAMPTZ  | not null |              |                    |
 
 #### assignees
 
@@ -71,9 +71,9 @@
 | **project_id** | VARCHAR(255) | not null | projects(id) |      |
 | **task_id**    | VARCHAR(255) | not null | tasks(id)    |      |
 | **user_id**    | VARCHAR(255) | not null | users(id)    |      |
-| **created_at** | VARCHAR(255) | not null |              |      |
-| **updated_at** | VARCHAR(255) | null     |              |      |
-| **deleted_at** | VARCHAR(255) | null     |              |      |
+| **created_at** | TIMESTAMPTZ  | not null |              |      |
+| **updated_at** | TIMESTAMPTZ  | null     |              |      |
+| **deleted_at** | TIMESTAMPTZ  | null     |              |      |
 
 #### comments
 
