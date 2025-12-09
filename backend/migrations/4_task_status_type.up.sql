@@ -1,0 +1,1 @@
+CREATE TYPE task_status AS ENUM('Unassigned', 'Ongoing', 'Completed', 'Abandoned');

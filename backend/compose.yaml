@@ -27,5 +27,17 @@ services:
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: keycloak
 
+  apidb:
+    image: postgres:18-alpine
+    volumes:
+      - ptracker-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+      POSTGRES_DB: ptracker
+    ports:
+      - 127.0.0.1:5432:5432
+
 volumes:
   keycloak-data:
+  ptracker-data:
