@@ -15,9 +15,9 @@ CREATE TABLE users (
 
   -- User lifecycle
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ,
-  last_login_at TIMESTAMPTZ
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE,
+  last_login_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Every user must have a unique identity provider subject
