@@ -1,92 +1,127 @@
 # PTracker Backend
 
-## Models
-
-- [Introduction](#introduction)
-- [Database Type](#database-type)
-- [Table Structure](#table-structure)
-  - [users](#users)
-  - [projects](#projects)
-  - [tasks](#tasks)
-  - [roles](#roles)
-  - [assignees](#assignees)
-  - [comments](#comments)
-- [Relationships](#relationships)
-- [Database Diagram](#database-diagram)
+## Database Schema
 
 ### Database type
 
 - **Database system:** PostgreSQL
 
-### Table structure
+### `sessions`
 
-#### users
+| Column             | Type        | Constraints / Notes               |
+| ------------------ | ----------- | --------------------------------- |
+| id                 | UUID        | PK, default `gen_random_uuid()`   |
+| user_id            | UUID        | FK → users(id), ON DELETE CASCADE |
+| refresh_token_hash | TEXT        | UNIQUE, NOT NULL                  |
+| user_agent         | TEXT        |                                   |
+| ip_address         | INET        |                                   |
+| device_name        | TEXT        |                                   |
+| created_at         | TIMESTAMPTZ | NOT NULL, default `NOW()`         |
+| last_active_at     | TIMESTAMPTZ | NOT NULL, default `NOW()`         |
+| revoked_at         | TIMESTAMPTZ | NULL                              |
+| expires_at         | TIMESTAMPTZ | NOT NULL                          |
 
-| Name         | Type         | Settings                | References | Note |
-| ------------ | ------------ | ----------------------- | ---------- | ---- |
-| **id**       | VARCHAR(255) | 🔑 PK, not null, unique |            |      |
-| **username** | VARCHAR(255) | not null, unique        |            |      |
+**Indexes**
 
-#### projects
+| Index Name           | Columns | Condition          |
+| -------------------- | ------- | ------------------ |
+| idx_sessions_user_id | user_id | —                  |
+| idx_sessions_active  | user_id | revoked_at IS NULL |
 
-| Name            | Type         | Settings                | References | Note                                     |
-| --------------- | ------------ | ----------------------- | ---------- | ---------------------------------------- |
-| **id**          | VARCHAR(255) | 🔑 PK, not null, unique |            |                                          |
-| **code**        | VARCHAR(255) | not null, unique        |            | Human readable alphanumeric project code |
-| **owner**       | VARCHAR(255) | not null                | users(id)  |                                          |
-| **name**        | VARCHAR(255) | not null                |            |                                          |
-| **description** | VARCHAR(255) | null                    |            |                                          |
-| **created_at**  | TIMESTAMPTZ  | not null                |            |                                          |
-| **updated_at**  | TIMESTAMPTZ  | null                    |            |                                          |
-| **deleted_at**  | TIMESTAMPTZ  | null                    |            |                                          |
+### `projects`
 
-#### tasks
+| Column      | Type         | Constraints / Notes             |
+| ----------- | ------------ | ------------------------------- |
+| id          | UUID         | PK, default `gen_random_uuid()` |
+| code        | VARCHAR(255) | UNIQUE (via index), NOT NULL    |
+| owner       | UUID         | FK → users(id)                  |
+| name        | VARCHAR(255) | NOT NULL                        |
+| description | TEXT         |                                 |
+| created_at  | TIMESTAMPTZ  | default CURRENT_TIMESTAMP       |
+| updated_at  | TIMESTAMPTZ  |                                 |
+| deleted_at  | TIMESTAMPTZ  |                                 |
 
-| Name            | Type         | Settings                | References                  | Note                                               |
-| --------------- | ------------ | ----------------------- | --------------------------- | -------------------------------------------------- |
-| **id**          | VARCHAR(255) | 🔑 PK, not null, unique | assignee_task,task_comments |                                                    |
-| **project_id**  | VARCHAR(255) | not null                | projects(id)                |                                                    |
-| **title**       | VARCHAR(255) | not null                |                             |                                                    |
-| **description** | VARCHAR(255) | null                    |                             |                                                    |
-| **status**      | VARCHAR(255) | not null                |                             | "Unassigned"/"Ongoing" / "Completed" / "Abandoned" |
-| **created_at**  | TIMESTAMPTZ  | not null                |                             |                                                    |
-| **updated_at**  | TIMESTAMPTZ  | null                    |                             |                                                    |
-| **deleted_at**  | TIMESTAMPTZ  | null                    |                             |                                                    |
+**Indexes**
 
-#### roles
+| Index Name      | Columns |
+| --------------- | ------- |
+| ux_project_code | code    |
 
-| Name           | Type         | Settings | References   | Note               |
-| -------------- | ------------ | -------- | ------------ | ------------------ |
-| **project_id** | VARCHAR(255) | not null | projects(id) |                    |
-| **user_id**    | VARCHAR(255) | not null | users(id)    |                    |
-| **role**       | VARCHAR(255) | not null |              | "Owner" / "Member" |
-| **created_at** | TIMESTAMPTZ  | null     |              |                    |
-| **updated_at** | TIMESTAMPTZ  | not null |              |                    |
-| **deleted_at** | TIMESTAMPTZ  | not null |              |                    |
+### Enum: `task_status`
 
-#### assignees
+| Possible Values |
+| --------------- |
+| Unassigned      |
+| Ongoing         |
+| Completed       |
+| Abandoned       |
 
-| Name           | Type         | Settings | References   | Note |
-| -------------- | ------------ | -------- | ------------ | ---- |
-| **project_id** | VARCHAR(255) | not null | projects(id) |      |
-| **task_id**    | VARCHAR(255) | not null | tasks(id)    |      |
-| **user_id**    | VARCHAR(255) | not null | users(id)    |      |
-| **created_at** | TIMESTAMPTZ  | not null |              |      |
-| **updated_at** | TIMESTAMPTZ  | null     |              |      |
-| **deleted_at** | TIMESTAMPTZ  | null     |              |      |
+### `tasks`
 
-#### comments
+| Column      | Type         | Constraints / Notes             |
+| ----------- | ------------ | ------------------------------- |
+| id          | UUID         | PK, default `gen_random_uuid()` |
+| project_id  | UUID         | FK → projects(id)               |
+| title       | VARCHAR(255) | NOT NULL                        |
+| description | TEXT         |                                 |
+| status      | task_status  | NOT NULL                        |
+| created_at  | TIMESTAMPTZ  | default CURRENT_TIMESTAMP       |
+| updated_at  | TIMESTAMPTZ  |                                 |
+| deleted_at  | TIMESTAMPTZ  |                                 |
 
-| Name           | Type         | Settings                | References   | Note |
-| -------------- | ------------ | ----------------------- | ------------ | ---- |
-| **id**         | VARCHAR(255) | 🔑 PK, not null, unique |              |      |
-| **project_id** | VARCHAR(255) | not null                | projects(id) |      |
-| **task_id**    | VARCHAR(255) | not null                | tasks(id)    |      |
-| **user_id**    | VARCHAR(255) | not null                | users(id)    |      |
-| **content**    | TEXT         | not null                |              |      |
-| **created_at** | TIMESTAMPTZ  | not null                |              |      |
-| **updated_at** | TIMESTAMPTZ  | null                    |              |      |
-| **deleted_at** | TIMESTAMPTZ  | null                    |              |      |
+### Enum: `user_role`
+
+| Possible Values |
+| --------------- |
+| Owner           |
+| Member          |
+
+### `roles`
+
+| Column     | Type        | Constraints / Notes       |
+| ---------- | ----------- | ------------------------- |
+| project_id | UUID        | FK → projects(id)         |
+| user_id    | UUID        | FK → users(id)            |
+| role       | user_role   | NOT NULL                  |
+| created_at | TIMESTAMPTZ | default CURRENT_TIMESTAMP |
+| updated_at | TIMESTAMPTZ |                           |
+| deleted_at | TIMESTAMPTZ |                           |
+
+**Indexes**
+
+| Index Name       | Columns               |
+| ---------------- | --------------------- |
+| ux_project_roles | (project_id, user_id) |
+
+### `assignees`
+
+| Column     | Type        | Constraints / Notes       |
+| ---------- | ----------- | ------------------------- |
+| project_id | UUID        | FK → projects(id)         |
+| task_id    | UUID        | FK → tasks(id)            |
+| user_id    | UUID        | FK → users(id)            |
+| created_at | TIMESTAMPTZ | default CURRENT_TIMESTAMP |
+| updated_at | TIMESTAMPTZ |                           |
+| deleted_at | TIMESTAMPTZ |                           |
+
+**Indexes**
+
+| Index Name               | Columns                        |
+| ------------------------ | ------------------------------ |
+| ux_project_task_assignee | (project_id, task_id, user_id) |
+
+### `comments`
+
+| Column     | Type        | Constraints / Notes             |
+| ---------- | ----------- | ------------------------------- |
+| id         | UUID        | PK, default `gen_random_uuid()` |
+| project_id | UUID        | FK → projects(id)               |
+| task_id    | UUID        | FK → tasks(id)                  |
+| user_id    | UUID        | FK → users(id)                  |
+| content    | TEXT        | NOT NULL                        |
+| created_at | TIMESTAMPTZ | default CURRENT_TIMESTAMP       |
+| updated_at | TIMESTAMPTZ |                                 |
+| deleted_at | TIMESTAMPTZ |                                 |
 
 ### Relationships
 
@@ -105,11 +140,49 @@
 
 [Database Diagram PDF](./db/schema_design.pdf)
 
+### Migration
+
+For some reason if the tables are not created or modification is needed, please use the following command to take the tables down.
+
+```sh
+migrate -source file://migrations -database postgres://[user]:[password]@[host]:[port]/[database]?sslmode=disable down 9
+```
+
+Before running the `migrate` command, you would need the CLI. You can install the CLI following the official golang-migrate [instructions](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#unversioned).
+
 ## API Endpoints
 
 ## **Auth**
 
 Authentication is managed by Keycloak.
+
+### **Tokens and session_id**
+
+1. User tries to login.
+2. Backend redirects to Keycloak login UI.
+3. User logs in successfully.
+4. Backend receives the `access_token`, `id_token` and `refresh_token`.
+5. Backend creates a new session (entry in the `sessions` tables) in the database with hashed `refresh_token`. Backend also saves the `access_token` with `session_id` in-memory.
+6. Backend sends `session_id` as HTTPOnly, secure cookie.
+
+### **Per Request Check**
+
+For every request from frontend,
+
+1. Backend checks the `session_id`, looks up for the `access_token`.
+2. If `access_token` verification is successful - Validates and verifies the `id_token` to get the `sub` field value.
+3. Fetch user details from `users` table and save it in the request context.
+4. If `access_token` verification fails - fetch the `session_id` from cookie and fetch the `session` from DB.
+5. Use the hashed `refresh_token` to get new `access_token` from keycloak.
+6. Send the new `access_token` to frontend.
+
+### **refresh_token expires**
+
+In case `refresh_token` expires, we
+
+- log out the user
+- remove the session
+- ask user to login again
 
 ## **Projects**
 
