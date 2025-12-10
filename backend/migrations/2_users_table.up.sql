@@ -1,8 +1,0 @@
-CREATE TABLE users (
-    user_id UUID NOT NULL UNIQUE,
-    username VARCHAR(255) NOT NULL,
-    first_last_name VARCHAR(255),
-    email VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE
-);
