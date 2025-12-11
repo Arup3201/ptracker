@@ -12,12 +12,24 @@ Change directory to `backend` first to startup the necessary database applicatio
 
 Use docker-compose to run the instances in the background (`-d`).
 
-`docker compose up -d`
+```sh
+docker compose up -d
+```
 
 It should start the necessary databases.
 
 Then you can run the go server with,
 
-`go run main.go`
+```sh
+go run main.go
+```
 
 It should start the server as well as create all the database tables necessary for the app to run through migrations.
+
+```
+
+```
+
+```
+
+```
