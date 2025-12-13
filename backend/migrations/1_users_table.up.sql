@@ -17,7 +17,7 @@ CREATE TABLE users (
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE,
-  last_login_at TIMESTAMP WITH TIME ZONE
+  last_login_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
 -- Every user must have a unique identity provider subject
