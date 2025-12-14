@@ -170,9 +170,9 @@ Authentication is managed by Keycloak.
 For every request from frontend,
 
 1. Backend checks the `session_id`, looks up for the `access_token`.
-2. If `access_token` verification is successful - Validates and verifies the `id_token` to get the `sub` field value.
-3. Fetch user details from `users` table and save it in the request context.
-4. If `access_token` verification fails - fetch the `session_id` from cookie and fetch the `session` from DB.
+2. If `access_token` verification is successful - get the `sub` field.
+3. Fetch user details from `users` table using `sub` and save the user in the request context.
+4. If `access_token` verification fails - fetch the `session` object from DB.
 5. Use the hashed `refresh_token` to get new `access_token` from keycloak.
 6. Send the new `access_token` to frontend.
 
@@ -181,7 +181,7 @@ For every request from frontend,
 In case `refresh_token` expires, we
 
 - log out the user
-- remove the session
+- revoke the session
 - ask user to login again
 
 ## **Projects**

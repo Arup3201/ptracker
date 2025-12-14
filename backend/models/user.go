@@ -12,6 +12,6 @@ type User struct {
 	AvaterURL     string
 	IsActive      bool
 	CreatedAt     time.Time
-	UpdatedAt     *time.Time
+	UpdatedAt     *time.Time // nullable
 	LastLoginTime time.Time
 }

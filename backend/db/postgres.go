@@ -80,7 +80,7 @@ func FindUserWithIdp(idpSubject, idpProvider string) (*models.User, error) {
 }
 
 func CreateSession(userId, refreshTokenHash, userAgent, ipAddress, deviceName string,
-	expireAt time.Time) (string, error) {
+	expireAt time.Time) (*models.Session, error) {
 
 	sid := uuid.NewString()
 	_, err := pgDb.Exec("INSERT INTO "+
@@ -89,23 +89,25 @@ func CreateSession(userId, refreshTokenHash, userAgent, ipAddress, deviceName st
 		"VALUES($1, $2, $3, $4, $5, $6, $7)",
 		sid, userId, refreshTokenHash, userAgent, ipAddress, deviceName, expireAt)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return sid, nil
+	return GetActiveSession(sid)
 }
 
-func GetSession(sessionId string) (*models.Session, error) {
+func GetActiveSession(sessionId string) (*models.Session, error) {
 	var session models.Session
 	err := pgDb.QueryRow("SELECT "+
 		"id, user_id, refresh_token_hash, user_agent, ip_address, device_name, "+
 		"created_at, last_active_at, revoked_at, expires_at "+
-		"FROM sessions"+
-		"WHERE id=($1)", sessionId).Scan(&session.Id, &session.UserId, &session.RefreshTokenHash,
+		"FROM sessions "+
+		"WHERE id=($1) AND revoked_at IS NULL", sessionId).Scan(&session.Id, &session.UserId, &session.RefreshTokenHash,
 		&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
 		&session.RevokedAt, &session.ExpiresAt)
 	if err == sql.ErrNoRows {
 		return nil, &apierr.ResourceNotFound{}
+	} else if err != nil {
+		return nil, err
 	}
 
 	return &session, nil

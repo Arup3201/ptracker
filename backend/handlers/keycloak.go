@@ -245,9 +245,10 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	expiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
-	sessionId, err := db.CreateSession(user.Id, TokenResponse.RefreshToken, r.UserAgent(),
-		strings.Split(r.RemoteAddr, ":")[0], "None", expiresAt)
+	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
+
+	session, err := db.CreateSession(user.Id, TokenResponse.RefreshToken, r.UserAgent(),
+		strings.Split(r.RemoteAddr, ":")[0], "None", tokenExpiresAt)
 	if err != nil {
 		fmt.Printf("[ERROR] session create error: %s", err)
 
@@ -265,12 +266,12 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 
 	cookie := &http.Cookie{
 		Name:     "PTRACKER_SESSION_ID",
-		Value:    sessionId,
+		Value:    session.Id,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteDefaultMode,
-		Expires:  expiresAt,
+		Expires:  tokenExpiresAt,
 	}
 	http.SetCookie(w, cookie)
 
