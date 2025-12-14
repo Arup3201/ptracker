@@ -108,9 +108,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		"client_id":     []string{KC_CLIENT_ID},
 		"client_secret": []string{KC_CLIENT_SECRET},
 	})
-	defer func() {
-		delete(states, state)
-	}()
+	delete(states, state)
 
 	if err != nil {
 		fmt.Printf("[ERROR] token request error: %s", err)
@@ -126,6 +124,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError

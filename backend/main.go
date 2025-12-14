@@ -26,6 +26,10 @@ func setConstants() {
 	if PORT == "" {
 		log.Fatalf("environment variable 'PORT' missing")
 	}
+	db.PG_HOST = os.Getenv("PG_HOST")
+	if db.PG_HOST == "" {
+		log.Fatalf("environment variable 'PG_HOST' missing")
+	}
 	db.PG_USER = os.Getenv("PG_USER")
 	if db.PG_USER == "" {
 		log.Fatalf("environment variable 'PG_USER' missing")
@@ -82,7 +86,7 @@ func main() {
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      mux,
+		Handler:      handlers.Logging(mux),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
