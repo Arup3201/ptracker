@@ -46,7 +46,8 @@ func Migrate() error {
 	if err != nil {
 		return fmt.Errorf("[ERROR] postgres NewWithDatabaseInstance: %s", err)
 	}
-	if err = m.Up(); !errors.Is(err, migrate.ErrNoChange) {
+	err = m.Up()
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		fmt.Printf("[ERROR] postgres migration error: %s", err)
 	}
 
@@ -59,7 +60,7 @@ func CreateUser(idpSubject, idpProvider, username,
 	_, err := pgDb.Exec("INSERT INTO users"+
 		"(id, idp_subject, idp_provider, username, display_name, email, "+
 		"avatar_url) "+
-		"VALUES($1, $2, $3, $4, $5, $6, $7, $8)",
+		"VALUES($1, $2, $3, $4, $5, $6, $7)",
 		uId, idpSubject, idpProvider, username, displayName, email, avatarUrl)
 	if err != nil {
 		return nil, err
@@ -89,15 +90,15 @@ func FindUserWithIdp(idpSubject, idpProvider string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateSession(userId, refreshTokenHash, userAgent, ipAddress, deviceName string,
+func CreateSession(userId string, refreshTokenEncrypted []byte, userAgent, ipAddress, deviceName string,
 	expireAt time.Time) (*models.Session, error) {
 
 	sid := uuid.NewString()
 	_, err := pgDb.Exec("INSERT INTO "+
-		"sessions(id, user_id, refresh_token_hash, user_agent, "+
+		"sessions(id, user_id, refresh_token_encrypted, user_agent, "+
 		"ip_address, device_name, expires_at)"+
 		"VALUES($1, $2, $3, $4, $5, $6, $7)",
-		sid, userId, refreshTokenHash, userAgent, ipAddress, deviceName, expireAt)
+		sid, userId, refreshTokenEncrypted, userAgent, ipAddress, deviceName, expireAt)
 	if err != nil {
 		return nil, err
 	}
@@ -108,10 +109,10 @@ func CreateSession(userId, refreshTokenHash, userAgent, ipAddress, deviceName st
 func GetActiveSession(sessionId string) (*models.Session, error) {
 	var session models.Session
 	err := pgDb.QueryRow("SELECT "+
-		"id, user_id, refresh_token_hash, user_agent, ip_address, device_name, "+
+		"id, user_id, refresh_token_encrypted, user_agent, ip_address, device_name, "+
 		"created_at, last_active_at, revoked_at, expires_at "+
 		"FROM sessions "+
-		"WHERE id=($1) AND revoked_at IS NULL", sessionId).Scan(&session.Id, &session.UserId, &session.RefreshTokenHash,
+		"WHERE id=($1) AND revoked_at IS NULL", sessionId).Scan(&session.Id, &session.UserId, &session.RefreshTokenEncrypted,
 		&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
 		&session.RevokedAt, &session.ExpiresAt)
 	if err == sql.ErrNoRows {

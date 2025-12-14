@@ -16,11 +16,12 @@ import (
 )
 
 var (
-	KC_URL           string
-	KC_REALM         string
-	KC_CLIENT_ID     string
-	KC_CLIENT_SECRET string
-	KC_REDIRECT_URI  string
+	KC_URL            string
+	KC_REALM          string
+	KC_CLIENT_ID      string
+	KC_CLIENT_SECRET  string
+	KC_REDIRECT_URI   string
+	ENCRYPTION_SECRET string
 )
 
 type ApiError struct {
@@ -259,7 +260,22 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 
 	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
 
-	session, err := db.CreateSession(user.Id, TokenResponse.RefreshToken, r.UserAgent(),
+	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
+	if err != nil {
+		fmt.Printf("[ERROR] refresh_token encryption error: %s", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session create error",
+			ApiError: ApiError{
+				Code:    "internal_error",
+				Message: "Failed to create session",
+			},
+		})
+		return
+	}
+	session, err := db.CreateSession(user.Id, encryptedRefreshToken, r.UserAgent(),
 		strings.Split(r.RemoteAddr, ":")[0], "None", tokenExpiresAt)
 	if err != nil {
 		fmt.Printf("[ERROR] session create error: %s", err)

@@ -3,7 +3,7 @@ CREATE TABLE sessions (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 
   -- Rotating refresh token (hashed) for safety
-  refresh_token_hash TEXT UNIQUE NOT NULL,
+  refresh_token_encrypted BYTEA NOT NULL,
 
   -- Device + context info
   user_agent TEXT,

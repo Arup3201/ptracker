@@ -26,6 +26,10 @@ func setConstants() {
 	if PORT == "" {
 		log.Fatalf("environment variable 'PORT' missing")
 	}
+	handlers.ENCRYPTION_SECRET = os.Getenv("ENCRYPTION_SECRET")
+	if handlers.ENCRYPTION_SECRET == "" {
+		log.Fatalf("environment variable 'ENCRYPTION_SECRET' missing")
+	}
 	db.PG_HOST = os.Getenv("PG_HOST")
 	if db.PG_HOST == "" {
 		log.Fatalf("environment variable 'PG_HOST' missing")
