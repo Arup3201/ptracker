@@ -13,11 +13,21 @@ import (
 	"github.com/ptracker/models"
 )
 
+var (
+	PG_HOST string
+	PG_PORT string
+	PG_USER string
+	PG_PASS string
+	PG_DB   string
+)
+
 var pgDb *sql.DB
 
-func ConnectPostgres(connString string) error {
+func ConnectPostgres() error {
 	var err error
-	pgDb, err = sql.Open("postgres", connString)
+	pgDb, err = sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable", PG_HOST, PG_PORT,
+		PG_USER, PG_PASS, PG_DB))
 	if err != nil {
 		return fmt.Errorf("[ERROR] postgres Open: %s", err)
 	}

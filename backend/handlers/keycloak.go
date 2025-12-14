@@ -15,12 +15,12 @@ import (
 	"github.com/ptracker/utils"
 )
 
-const (
-	KC_URL           = "http://localhost:8080"
-	KC_REALM         = "ptracker"
-	KC_CLIENT_ID     = "api"
-	KC_CLIENT_SECRET = "cp50avHQeX18cESEraheJvr3RhUBMq2A"
-	KC_REDIRECT_URI  = "http://localhost:8081/api/keycloak/callback"
+var (
+	KC_URL           string
+	KC_REALM         string
+	KC_CLIENT_ID     string
+	KC_CLIENT_SECRET string
+	KC_REDIRECT_URI  string
 )
 
 type ApiError struct {
@@ -108,7 +108,9 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		"client_id":     []string{KC_CLIENT_ID},
 		"client_secret": []string{KC_CLIENT_SECRET},
 	})
-	delete(states, state)
+	defer func() {
+		delete(states, state)
+	}()
 
 	if err != nil {
 		fmt.Printf("[ERROR] token request error: %s", err)
@@ -127,9 +129,20 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
-		json.NewDecoder(res.Body).Decode(&KCErrorResponse)
+		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(ApiResponse{
+				Status:  "Error",
+				Message: "Token endpoint error response unpacking failed",
+				ApiError: ApiError{
+					Code:    KCErrorResponse.ErrorCode,
+					Message: "Error in unpacking error response for token",
+				},
+			})
+			return
+		}
 
-		fmt.Printf("[ERROR] %s", KCErrorResponse.ErrorDescription)
+		fmt.Printf("[ERROR] status: %d, %s", res.StatusCode, KCErrorResponse.ErrorDescription)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(ApiResponse{
