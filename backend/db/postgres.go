@@ -103,7 +103,21 @@ func CreateSession(userId string, refreshTokenEncrypted []byte, userAgent, ipAdd
 		return nil, err
 	}
 
-	return GetActiveSession(sid)
+	var session models.Session
+	err = pgDb.QueryRow("SELECT "+
+		"id, user_id, refresh_token_encrypted, user_agent, ip_address, device_name, "+
+		"created_at, last_active_at, revoked_at, expires_at "+
+		"FROM sessions "+
+		"WHERE id=($1)",
+		sid).
+		Scan(&session.Id, &session.UserId, &session.RefreshTokenEncrypted,
+			&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
+			&session.RevokedAt, &session.ExpiresAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &session, nil
 }
 
 func GetActiveSession(sessionId string) (*models.Session, error) {
@@ -112,9 +126,11 @@ func GetActiveSession(sessionId string) (*models.Session, error) {
 		"id, user_id, refresh_token_encrypted, user_agent, ip_address, device_name, "+
 		"created_at, last_active_at, revoked_at, expires_at "+
 		"FROM sessions "+
-		"WHERE id=($1) AND revoked_at IS NULL", sessionId).Scan(&session.Id, &session.UserId, &session.RefreshTokenEncrypted,
-		&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
-		&session.RevokedAt, &session.ExpiresAt)
+		"WHERE id=($1) AND revoked_at IS NULL AND expires_at>=CURRENT_TIMESTAMP",
+		sessionId).
+		Scan(&session.Id, &session.UserId, &session.RefreshTokenEncrypted,
+			&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
+			&session.RevokedAt, &session.ExpiresAt)
 	if err == sql.ErrNoRows {
 		return nil, &apierr.ResourceNotFound{}
 	} else if err != nil {
@@ -122,4 +138,22 @@ func GetActiveSession(sessionId string) (*models.Session, error) {
 	}
 
 	return &session, nil
+}
+
+func MakeSessionInactive(sessionId string) error {
+	_, err := pgDb.Exec("UPDATE sessions "+
+		"SET revoked_at = CURRENT_TIMESTAMP "+
+		"WHERE id=($1)", sessionId)
+
+	return err
+}
+
+func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt time.Time) error {
+	_, err := pgDb.Exec("UPDATE sessions "+
+		"SET refresh_token_encrypted = ($1), "+
+		"expires_at = ($2), "+
+		"last_active_at = CURRENT_TIMESTAMP "+
+		"WHERE id=($3)", refreshTokenEncrypted, expiresAt, sessionId)
+
+	return err
 }

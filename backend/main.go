@@ -84,13 +84,15 @@ func main() {
 
 	// handler
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/keycloak/login", handlers.KeycloakLogin)
-	mux.HandleFunc("GET /api/keycloak/callback", handlers.KeycloakCallback)
+	mux.HandleFunc("GET /api/auth/login", handlers.KeycloakLogin)
+	mux.HandleFunc("GET /api/auth/callback", handlers.KeycloakCallback)
+	mux.HandleFunc("POST /api/auth/refresh", handlers.KeycloakRefresh)
+	mux.HandleFunc("GET /api/welcome", handlers.Welcome)
 
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(mux),
+		Handler:      handlers.Logging(handlers.Authorize(mux)),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

@@ -5,7 +5,7 @@ import "time"
 type Session struct {
 	Id                    string
 	UserId                string
-	RefreshTokenEncrypted string
+	RefreshTokenEncrypted []byte
 	UserAgent             string
 	IpAddress             string
 	DeviceName            string

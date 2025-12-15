@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -16,12 +17,13 @@ import (
 )
 
 var (
-	KC_URL            string
-	KC_REALM          string
-	KC_CLIENT_ID      string
-	KC_CLIENT_SECRET  string
-	KC_REDIRECT_URI   string
-	ENCRYPTION_SECRET string
+	KC_URL              string
+	KC_REALM            string
+	KC_CLIENT_ID        string
+	KC_CLIENT_SECRET    string
+	KC_REDIRECT_URI     string
+	ENCRYPTION_SECRET   string
+	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
 type ApiError struct {
@@ -292,8 +294,10 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	accessTokens[session.Id] = TokenResponse.AccessToken
+
 	cookie := &http.Cookie{
-		Name:     "PTRACKER_SESSION_ID",
+		Name:     SESSION_COOKIE_NAME,
 		Value:    session.Id,
 		Path:     "/",
 		HttpOnly: true,
@@ -306,5 +310,164 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(ApiResponse{
 		Status:  "Success",
 		Message: "Login success",
+	})
+}
+
+func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
+	cookies := r.Cookies()
+	ind := slices.IndexFunc(cookies, func(cookie *http.Cookie) bool {
+		return cookie.Name == SESSION_COOKIE_NAME
+	})
+	if ind == -1 {
+		fmt.Printf("[ERROR] refresh token error: session cookie missing\n")
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Unathorized",
+		})
+		return
+	}
+
+	sessionId := cookies[ind].Value
+	session, err := db.GetActiveSession(sessionId)
+	if err != nil {
+		fmt.Printf("[ERROR] refresh token error: no active session found: %s\n", err)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Unathorized",
+		})
+		return
+	}
+
+	refreshToken, err := utils.DecryptAES(session.RefreshTokenEncrypted, []byte(ENCRYPTION_SECRET))
+	if err != nil {
+		fmt.Printf("[ERROR] refresh token error: token decrypt error: %s\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
+	res, err := http.PostForm(tokenEndpoint, url.Values{
+		"grant_type":    []string{"refresh_token"},
+		"refresh_token": []string{string(refreshToken)},
+		"redirect_uri":  []string{KC_REDIRECT_URI},
+		"client_id":     []string{KC_CLIENT_ID},
+		"client_secret": []string{KC_CLIENT_SECRET},
+		"scope":         []string{"openid"},
+	})
+	if err != nil {
+		fmt.Printf("[ERROR] refresh token error: keycloak request error: %s\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+
+	if res.StatusCode != http.StatusOK {
+		// revoke session and remove from cookie
+
+		err := db.MakeSessionInactive(sessionId)
+		if err != nil {
+			fmt.Printf("[ERROR] refresh token error: session inactivation error: %s\n", err)
+
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(ApiResponse{
+				Status:  "Error",
+				Message: "Session refresh error",
+			})
+			return
+		}
+
+		cookie := &http.Cookie{
+			Name:     SESSION_COOKIE_NAME,
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteDefaultMode,
+			Expires:  time.Unix(0, 0),
+		}
+		http.SetCookie(w, cookie)
+
+		var KCErrorResponse KCError
+		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
+			fmt.Printf("[ERROR] refresh token error: error response decode error: %s\n", err)
+
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(ApiResponse{
+				Status:  "Error",
+				Message: "Session refresh error",
+			})
+			return
+		}
+
+		fmt.Printf("[ERROR] refresh token error: error response: %s\n", KCErrorResponse.ErrorDescription)
+
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+
+	var TokenResponse struct {
+		AccessToken      string `json:"access_token"`
+		TokenType        string `json:"token_type"`
+		RefreshToken     string `json:"refresh_token"`
+		RefreshExpiresIn int    `json:"refresh_expires_in"`
+		IDToken          string `json:"id_token"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&TokenResponse); err != nil {
+		fmt.Printf("[ERROR] refresh token error: token decode error: %s\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+
+	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
+	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
+	if err != nil {
+		fmt.Printf("[ERROR] refresh_token encryption error: %s", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+
+	err = db.UpdateSession(sessionId, encryptedRefreshToken, tokenExpiresAt)
+	if err != nil {
+		fmt.Printf("[ERROR] refresh token error: update session error: %s\n", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(ApiResponse{
+			Status:  "Error",
+			Message: "Session refresh error",
+		})
+		return
+	}
+	accessTokens[sessionId] = TokenResponse.AccessToken
+
+	json.NewEncoder(w).Encode(ApiResponse{
+		Status:  "Success",
+		Message: "Access token refreshed",
 	})
 }
