@@ -1,5 +1,14 @@
+import { BrowserRouter as Router, Routes, Route } from "react-router";
+import LoginPage from "./pages/auth";
+
 function App() {
-  return <h1 className="text-2xl font-bold text-amber-700">Hello, world!</h1>;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;
