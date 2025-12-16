@@ -24,6 +24,8 @@ It should start the necessary databases.
 
 Before starting the server, make sure you have `.env` file inside the `backend` folder.
 
+For dev, you can COPY the following `.env` and it should work fine.
+
 **.env**
 
 ```sh
@@ -33,12 +35,12 @@ ENCRYPTION_SECRET=...
 PG_HOST=localhost
 PG_USER=postgres
 PG_PORT=5432
-PG_PASS=...
+PG_PASS=1234
 PG_DB=ptracker
 KC_URL=http://localhost:8080
 KC_REALM=ptracker
 KC_CLIENT_ID=api
-KC_CLIENT_SECRET=...
+KC_CLIENT_SECRET=cp50avHQeX18cESEraheJvr3RhUBMq2A
 KC_REDIRECT_URI=http://localhost:8081/api/auth/callback
 ```
 
