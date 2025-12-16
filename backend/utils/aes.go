@@ -14,7 +14,7 @@ import (
 func EncryptAES(plaintext, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encrypt aes: %w", err)
 	}
 
 	// Pad plaintext to block size
@@ -24,7 +24,7 @@ func EncryptAES(plaintext, key []byte) ([]byte, error) {
 	ciphertext := make([]byte, aes.BlockSize+len(padtext))
 	iv := ciphertext[:aes.BlockSize]
 	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("encrypt aes: %w", err)
 	}
 
 	mode := cipher.NewCBCEncrypter(block, iv)
@@ -36,11 +36,11 @@ func EncryptAES(plaintext, key []byte) ([]byte, error) {
 func DecryptAES(ciphertext, key []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decrypt AES: %w", err)
 	}
 
 	if len(ciphertext) < aes.BlockSize {
-		return nil, fmt.Errorf("ciphertext too short")
+		return nil, fmt.Errorf("decrypt aes: ciphertext too short")
 	}
 
 	iv := ciphertext[:aes.BlockSize]

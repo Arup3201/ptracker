@@ -28,15 +28,38 @@ func Logging(next http.Handler) http.Handler {
 	})
 }
 
+type HTTPErrorHandler func(w http.ResponseWriter, r *http.Request) error
+
+func (fn HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := fn(w, r); err != nil {
+		fmt.Printf("[ERROR] %s\n", err)
+
+		if httpError, ok := err.(*HTTPError); ok {
+			w.WriteHeader(httpError.Code)
+			json.NewEncoder(w).Encode(HTTPErrorResponse{
+				Status:  "error",
+				Message: httpError.Message,
+			})
+		} else {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(HTTPErrorResponse{
+				Status:  "error",
+				Message: "Unexpected error occured, we are working on it.",
+			})
+		}
+		return
+	}
+}
+
 var accessTokens = map[string]string{}
 
-func Authorize(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func Authorize(next http.Handler) HTTPErrorHandler {
+	return func(w http.ResponseWriter, r *http.Request) error {
 		public := []string{"/auth/login", "/auth/callback", "/auth/refresh"}
 		for _, endpoint := range public {
 			if strings.Contains(strings.TrimPrefix(r.URL.Path, "/api"), endpoint) {
 				next.ServeHTTP(w, r)
-				return
+				return nil
 			}
 		}
 
@@ -45,45 +68,39 @@ func Authorize(next http.Handler) http.Handler {
 			return cookie.Name == SESSION_COOKIE_NAME
 		})
 		if ind == -1 {
-			fmt.Printf("[ERROR] authorization error: session cookie missing\n")
-
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "Unathorized",
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusUnauthorized,
+				Message: "User is not authorized",
+				Err:     fmt.Errorf("authorize: session cookie not found"),
+			}
 		}
 
 		sessionId := cookies[ind].Value
 		sub, err := verifyAccessToken(accessTokens[sessionId])
 		if err != nil {
-
-			fmt.Printf("[ERROR] authorization error: refresh token error: %s\n", err)
-
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "Unathorized",
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusUnauthorized,
+				Message: "User is not authorized",
+				Err:     fmt.Errorf("authorize: %w", err),
+			}
 		}
 
 		fmt.Printf("subject: %s\n", sub)
 
 		next.ServeHTTP(w, r)
-	})
+		return nil
+	}
 }
 
 func verifyAccessToken(accessToken string) (string, error) {
 	jwksKeySet, err := jwk.Fetch(context.TODO(), fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", KC_URL, KC_REALM))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("verify access token: %w", err)
 	}
 
 	token, err := jwt.Parse([]byte(accessToken), jwt.WithKeySet(jwksKeySet), jwt.WithValidate(true))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("verify access token: %w", err)
 	}
 
 	if token == nil {

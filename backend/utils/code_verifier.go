@@ -27,11 +27,11 @@ func CreateCodeVerifier() (*CodeVerifier, error) {
 
 func CreateCodeVerifierWithLength(length int) (*CodeVerifier, error) {
 	if length < MinLength || length > MaxLength {
-		return nil, fmt.Errorf("invalid length: %v", length)
+		return nil, fmt.Errorf("create code verifier: invalid length %v", length)
 	}
 	buf, err := randomBytes(length)
 	if err != nil {
-		return nil, fmt.Errorf("failed to generate random bytes: %v", err)
+		return nil, fmt.Errorf("create code verifier: %w", err)
 	}
 	return CreateCodeVerifierFromBytes(buf)
 }
@@ -73,7 +73,7 @@ func randomBytes(length int) ([]byte, error) {
 	for {
 		buf := make([]byte, length)
 		if _, err := io.ReadFull(rand.Reader, buf); err != nil {
-			return nil, fmt.Errorf("failed to read random bytes: %v", err)
+			return nil, fmt.Errorf("random byte read: %v", err)
 		}
 		for _, b := range buf {
 			// Avoid bias by using a value range that's a multiple of 62

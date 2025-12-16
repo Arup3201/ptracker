@@ -17,89 +17,104 @@ var (
 	PORT string
 )
 
-func setConstants() {
+func getEnvironment() error {
 	HOST = os.Getenv("HOST")
 	if HOST == "" {
-		log.Fatalf("environment variable 'HOST' missing")
+		return fmt.Errorf("environment variable 'HOST' missing")
 	}
 	PORT = os.Getenv("PORT")
 	if PORT == "" {
-		log.Fatalf("environment variable 'PORT' missing")
+		return fmt.Errorf("environment variable 'PORT' missing")
 	}
 	handlers.ENCRYPTION_SECRET = os.Getenv("ENCRYPTION_SECRET")
 	if handlers.ENCRYPTION_SECRET == "" {
-		log.Fatalf("environment variable 'ENCRYPTION_SECRET' missing")
+		return fmt.Errorf("environment variable 'ENCRYPTION_SECRET' missing")
 	}
 	db.PG_HOST = os.Getenv("PG_HOST")
 	if db.PG_HOST == "" {
-		log.Fatalf("environment variable 'PG_HOST' missing")
+		return fmt.Errorf("environment variable 'PG_HOST' missing")
 	}
 	db.PG_USER = os.Getenv("PG_USER")
 	if db.PG_USER == "" {
-		log.Fatalf("environment variable 'PG_USER' missing")
+		return fmt.Errorf("environment variable 'PG_USER' missing")
 	}
 	db.PG_PORT = os.Getenv("PG_PORT")
 	if db.PG_PORT == "" {
-		log.Fatalf("environment variable 'PG_PORT' missing")
+		return fmt.Errorf("environment variable 'PG_PORT' missing")
 	}
 	db.PG_PASS = os.Getenv("PG_PASS")
 	if db.PG_PASS == "" {
-		log.Fatalf("environment variable 'PG_PASS' missing")
+		return fmt.Errorf("environment variable 'PG_PASS' missing")
 	}
 	db.PG_DB = os.Getenv("PG_DB")
 	if db.PG_DB == "" {
-		log.Fatalf("environment variable 'PG_DB' missing")
+		return fmt.Errorf("environment variable 'PG_DB' missing")
 	}
 	handlers.KC_URL = os.Getenv("KC_URL")
 	if handlers.KC_URL == "" {
-		log.Fatalf("environment variable 'KC_URL' missing")
+		return fmt.Errorf("environment variable 'KC_URL' missing")
 	}
 	handlers.KC_REALM = os.Getenv("KC_REALM")
 	if handlers.KC_REALM == "" {
-		log.Fatalf("environment variable 'KC_REALM' missing")
+		return fmt.Errorf("environment variable 'KC_REALM' missing")
 	}
 	handlers.KC_CLIENT_ID = os.Getenv("KC_CLIENT_ID")
 	if handlers.KC_CLIENT_ID == "" {
-		log.Fatalf("environment variable 'KC_CLIENT_ID' missing")
+		return fmt.Errorf("environment variable 'KC_CLIENT_ID' missing")
 	}
 	handlers.KC_CLIENT_SECRET = os.Getenv("KC_CLIENT_SECRET")
 	if handlers.KC_CLIENT_SECRET == "" {
-		log.Fatalf("environment variable 'KC_CLIENT_SECRET' missing")
+		return fmt.Errorf("environment variable 'KC_CLIENT_SECRET' missing")
 	}
 	handlers.KC_REDIRECT_URI = os.Getenv("KC_REDIRECT_URI")
 	if handlers.KC_REDIRECT_URI == "" {
-		log.Fatalf("environment variable 'KC_REDIRECT_URI' missing")
+		return fmt.Errorf("environment variable 'KC_REDIRECT_URI' missing")
 	}
+
+	return nil
+}
+
+func attachMiddlewares(mux *http.ServeMux, pattern string, handler handlers.HTTPErrorHandler) {
+	mux.Handle(pattern, handlers.Logging(handlers.HTTPErrorHandler(handlers.Authorize(handler))))
 }
 
 func main() {
-	// Set constants from environment
-	setConstants()
+	// Get constants from environment
+	err := getEnvironment()
+	if err != nil {
+		log.Fatalf("[ERROR] server failed to get environemnt: %s", err)
+	}
 
 	// DB connection
-	db.ConnectPostgres()
+	err = db.ConnectPostgres()
+	if err != nil {
+		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
+	}
 
 	// migrate
-	db.Migrate()
+	err = db.Migrate()
+	if err != nil {
+		log.Fatalf("[ERROR] server failed to migrate postgres: %s", err)
+	}
 
 	// handler
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/auth/login", handlers.KeycloakLogin)
-	mux.HandleFunc("GET /api/auth/callback", handlers.KeycloakCallback)
-	mux.HandleFunc("POST /api/auth/refresh", handlers.KeycloakRefresh)
-	mux.HandleFunc("GET /api/welcome", handlers.Welcome)
+	attachMiddlewares(mux, "GET /api/auth/login", handlers.KeycloakLogin)
+	attachMiddlewares(mux, "GET /api/auth/callback", handlers.KeycloakCallback)
+	attachMiddlewares(mux, "POST /api/auth/refresh", handlers.KeycloakRefresh)
+	attachMiddlewares(mux, "GET /api/welcome", handlers.Welcome)
 
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(handlers.Authorize(mux)),
+		Handler:      mux,
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
 
 	fmt.Printf("[INFO] server starting at %s:%s\n", HOST, PORT)
 
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil {
 		fmt.Printf("[ERROR] server failed to start: %s", err)
 	}

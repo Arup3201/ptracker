@@ -1,7 +1,5 @@
 package apierr
 
-type ResourceNotFound struct{}
+import "errors"
 
-func (e *ResourceNotFound) Error() string {
-	return "Resource not found"
-}
+var ErrResourceNotFound = errors.New("resource not found")

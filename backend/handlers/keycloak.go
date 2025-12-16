@@ -26,18 +26,29 @@ var (
 	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
-type ApiError struct {
-	Code    string `json:"code"`
+type HTTPSuccessResponse struct {
+	Status  string         `json:"status"`
+	Data    map[string]any `json:"data,omitempty"`
+	Message string         `json:"message,omitempty"`
+}
+
+type HTTPErrorResponse struct {
+	Status  string `json:"status"`
 	Message string `json:"message"`
 }
 
-type ApiData map[string]any
+type HTTPError struct {
+	Code    int
+	Message string
+	Err     error
+}
 
-type ApiResponse struct {
-	Status   string `json:"status"`
-	Message  string `json:"message"`
-	ApiError `json:"error,omitempty"`
-	ApiData  `json:"data,omitempty"`
+func (e *HTTPError) Error() string {
+	return e.Err.Error()
+}
+
+func (e *HTTPError) Unwrap() error {
+	return e.Err
 }
 
 type KCError struct {
@@ -47,12 +58,28 @@ type KCError struct {
 
 var states = map[string]string{}
 
-func KeycloakLogin(w http.ResponseWriter, r *http.Request) {
+func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 	verifier, _ := utils.CreateCodeVerifier()
 	challenge := verifier.CodeChallengeSHA256()
 
 	state := uuid.NewString()
 	states[state] = verifier.Value
+
+	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Server encountered an issue",
+			Err:     fmt.Errorf("keycloak login: KC_* env missing"),
+		}
+	}
+
+	if state == "" || challenge == "" {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Server encountered an issue",
+			Err:     fmt.Errorf("keycloak login: state/challenge is missing"),
+		}
+	}
 
 	kc_auth_url := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?"+
 		"scope=openid"+
@@ -64,45 +91,49 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) {
 		"&code_challenge=%s",
 		KC_URL, KC_REALM, KC_CLIENT_ID, KC_REDIRECT_URI, state, challenge)
 	http.Redirect(w, r, kc_auth_url, http.StatusSeeOther)
+
+	return nil
 }
 
-func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
+func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
+	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" || KC_CLIENT_SECRET == "" {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Server encountered an issue",
+			Err:     fmt.Errorf("keycloak login: KC_* env missing"),
+		}
+	}
+
+	if ENCRYPTION_SECRET == "" {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Server encountered an issue",
+			Err:     fmt.Errorf("keycloak login: encryption secret env missing"),
+		}
+	}
+
 	authorization_code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 	authorization_error_code := r.URL.Query().Get("error")
 
 	if authorization_error_code != "" {
 		authorization_error_description := r.URL.Query().Get("error_description")
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Authorization denied",
+			Err:     fmt.Errorf("keycloak callback: %s", authorization_error_description),
+		}
+	}
 
-		fmt.Printf("[ERROR] authorization code request error: %s", authorization_error_description)
-
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak authorization error",
-			ApiError: ApiError{
-				Code:    authorization_error_code,
-				Message: authorization_error_description,
-			},
-		})
-		return
+	if _, ok := states[state]; !ok {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Authorization denied for repeated PKCE",
+			Err:     fmt.Errorf("keycloak callback: code_verifier state reused"),
+		}
 	}
 
 	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
-	if _, ok := states[state]; !ok {
-		fmt.Printf("[ERROR] PKCE code verifier missing")
-
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Authentication error",
-			ApiError: ApiError{
-				Code:    "malicious_attempt",
-				Message: "No code_verifier found for the state",
-			},
-		})
-		return
-	}
 	res, err := http.PostForm(tokenEndpoint, url.Values{
 		"grant_type":    []string{"authorization_code"},
 		"code":          []string{authorization_code},
@@ -111,51 +142,31 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		"client_id":     []string{KC_CLIENT_ID},
 		"client_secret": []string{KC_CLIENT_SECRET},
 	})
-	delete(states, state)
-
 	if err != nil {
-		fmt.Printf("[ERROR] token request error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak token endpoint error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Error requesting token from keycloak",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak token request: %w", err),
+		}
 	}
 	defer res.Body.Close()
+	delete(states, state)
 
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
 		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "Token endpoint error response unpacking failed",
-				ApiError: ApiError{
-					Code:    KCErrorResponse.ErrorCode,
-					Message: "Error in unpacking error response for token",
-				},
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusInternalServerError,
+				Message: "Authorization failed",
+				Err:     fmt.Errorf("keycloak callback: keycloak token response error decode: %w", err),
+			}
 		}
 
-		fmt.Printf("[ERROR] status: %d, %s", res.StatusCode, KCErrorResponse.ErrorDescription)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak token endpoint error",
-			ApiError: ApiError{
-				Code:    KCErrorResponse.ErrorCode,
-				Message: "Keycloak error response for token",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak token response: %s", KCErrorResponse.ErrorDescription),
+		}
 	}
 
 	var TokenResponse struct {
@@ -166,18 +177,11 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		IDToken          string `json:"id_token"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&TokenResponse); err != nil {
-		fmt.Printf("[ERROR] token unpacking error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak token endpoint error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Error unpacking token payload",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak token response body decode: %w", err),
+		}
 	}
 
 	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", KC_URL, KC_REALM)
@@ -185,36 +189,29 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", TokenResponse.AccessToken))
 	res, err = http.DefaultClient.Do(req)
 	if err != nil {
-		fmt.Printf("[ERROR] userinfo request error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak userinfo endpoint error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Error requesting userinfo endpoint",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak userinfo request: %w", err),
+		}
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
-		json.NewDecoder(res.Body).Decode(&KCErrorResponse)
+		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
+			return &HTTPError{
+				Code:    http.StatusInternalServerError,
+				Message: "Authorization failed",
+				Err:     fmt.Errorf("keycloak callback: keycloak userinfo response error decode: %w", err),
+			}
+		}
 
-		fmt.Printf("[ERROR] status: %d: %s", res.StatusCode, KCErrorResponse.ErrorDescription)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak userinfo endpoint error",
-			ApiError: ApiError{
-				Code:    KCErrorResponse.ErrorCode,
-				Message: "Keycloak error response for userinfo",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak userinfo response: %s", KCErrorResponse.ErrorDescription),
+		}
 	}
 
 	var keycloakUserInfo struct {
@@ -225,38 +222,24 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 		AvatarUrl string `json:"picture"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&keycloakUserInfo); err != nil {
-		fmt.Printf("[ERROR] userinfo unpacking error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Keycloak userinfo unpacking error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Error unpacking userinfo response",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: keycloak userinfo response body decode: %w", err),
+		}
 	}
 
 	user, err := db.FindUserWithIdp(keycloakUserInfo.Subject, "keycloak")
-	if errors.Is(err, &apierr.ResourceNotFound{}) {
+	if errors.Is(err, apierr.ErrResourceNotFound) {
 		user, err = db.CreateUser(keycloakUserInfo.Subject, "keycloak",
 			keycloakUserInfo.Name, keycloakUserInfo.Name, keycloakUserInfo.Email,
 			keycloakUserInfo.AvatarUrl)
 		if err != nil {
-			fmt.Printf("[ERROR] new user create error: %s", err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "User create error",
-				ApiError: ApiError{
-					Code:    "internal_error",
-					Message: "Tried creating a new user, but failed",
-				},
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusInternalServerError,
+				Message: "Authorization failed",
+				Err:     fmt.Errorf("keycloak callback: new user create: %w", err),
+			}
 		}
 	}
 
@@ -264,34 +247,20 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 
 	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
 	if err != nil {
-		fmt.Printf("[ERROR] refresh_token encryption error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session create error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Failed to create session",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: refresh token encryption: %w", err),
+		}
 	}
 	session, err := db.CreateSession(user.Id, encryptedRefreshToken, r.UserAgent(),
 		strings.Split(r.RemoteAddr, ":")[0], "None", tokenExpiresAt)
 	if err != nil {
-		fmt.Printf("[ERROR] session create error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session create error",
-			ApiError: ApiError{
-				Code:    "internal_error",
-				Message: "Failed to create session for the user",
-			},
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Authorization failed",
+			Err:     fmt.Errorf("keycloak callback: new session create: %w", err),
+		}
 	}
 
 	accessTokens[session.Id] = TokenResponse.AccessToken
@@ -307,51 +276,43 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	http.SetCookie(w, cookie)
 
-	json.NewEncoder(w).Encode(ApiResponse{
-		Status:  "Success",
+	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+		Status:  "success",
 		Message: "Login success",
 	})
+	return nil
 }
 
-func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
+func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	cookies := r.Cookies()
 	ind := slices.IndexFunc(cookies, func(cookie *http.Cookie) bool {
 		return cookie.Name == SESSION_COOKIE_NAME
 	})
 	if ind == -1 {
-		fmt.Printf("[ERROR] refresh token error: session cookie missing\n")
-
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Unathorized",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: "User is not authorized",
+			Err:     fmt.Errorf("keycloak refresh token: session cookie missing"),
+		}
 	}
 
 	sessionId := cookies[ind].Value
 	session, err := db.GetActiveSession(sessionId)
 	if err != nil {
-		fmt.Printf("[ERROR] refresh token error: no active session found: %s\n", err)
-
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Unathorized",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: "User session has expired",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
 	}
 
 	refreshToken, err := utils.DecryptAES(session.RefreshTokenEncrypted, []byte(ENCRYPTION_SECRET))
 	if err != nil {
-		fmt.Printf("[ERROR] refresh token error: token decrypt error: %s\n", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
 	}
 
 	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
@@ -364,14 +325,11 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
 		"scope":         []string{"openid"},
 	})
 	if err != nil {
-		fmt.Printf("[ERROR] refresh token error: keycloak request error: %s\n", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: keycloak refresh token request: %w", err),
+		}
 	}
 
 	if res.StatusCode != http.StatusOK {
@@ -379,14 +337,11 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
 
 		err := db.MakeSessionInactive(sessionId)
 		if err != nil {
-			fmt.Printf("[ERROR] refresh token error: session inactivation error: %s\n", err)
-
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "Session refresh error",
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusInternalServerError,
+				Message: "Token refresh error",
+				Err:     fmt.Errorf("keycloak refresh token: %w", err),
+			}
 		}
 
 		cookie := &http.Cookie{
@@ -402,24 +357,18 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
 
 		var KCErrorResponse KCError
 		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			fmt.Printf("[ERROR] refresh token error: error response decode error: %s\n", err)
-
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(ApiResponse{
-				Status:  "Error",
-				Message: "Session refresh error",
-			})
-			return
+			return &HTTPError{
+				Code:    http.StatusUnauthorized,
+				Message: "User session expired",
+				Err:     fmt.Errorf("keycloak refresh token: keycloak error response: %w", err),
+			}
 		}
 
-		fmt.Printf("[ERROR] refresh token error: error response: %s\n", KCErrorResponse.ErrorDescription)
-
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: "User session expired",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
 	}
 
 	var TokenResponse struct {
@@ -430,44 +379,36 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) {
 		IDToken          string `json:"id_token"`
 	}
 	if err := json.NewDecoder(res.Body).Decode(&TokenResponse); err != nil {
-		fmt.Printf("[ERROR] refresh token error: token decode error: %s\n", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: keycloak token response: %w", err),
+		}
 	}
 
 	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
 	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
 	if err != nil {
-		fmt.Printf("[ERROR] refresh_token encryption error: %s", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
 	}
 
 	err = db.UpdateSession(sessionId, encryptedRefreshToken, tokenExpiresAt)
 	if err != nil {
-		fmt.Printf("[ERROR] refresh token error: update session error: %s\n", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(ApiResponse{
-			Status:  "Error",
-			Message: "Session refresh error",
-		})
-		return
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
 	}
 	accessTokens[sessionId] = TokenResponse.AccessToken
 
-	json.NewEncoder(w).Encode(ApiResponse{
-		Status:  "Success",
+	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+		Status:  "success",
 		Message: "Access token refreshed",
 	})
+	return nil
 }

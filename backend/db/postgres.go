@@ -25,11 +25,14 @@ var pgDb *sql.DB
 
 func ConnectPostgres() error {
 	var err error
+	if PG_HOST == "" || PG_PORT == "" || PG_USER == "" || PG_PASS == "" || PG_DB == "" {
+		return fmt.Errorf("connect postgres: missing env variables")
+	}
 	pgDb, err = sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable", PG_HOST, PG_PORT,
 		PG_USER, PG_PASS, PG_DB))
 	if err != nil {
-		return fmt.Errorf("[ERROR] postgres Open: %s", err)
+		return fmt.Errorf("connect postgres: %w", err)
 	}
 
 	return nil
@@ -38,17 +41,17 @@ func ConnectPostgres() error {
 func Migrate() error {
 	driver, err := postgres.WithInstance(pgDb, &postgres.Config{})
 	if err != nil {
-		return fmt.Errorf("[ERROR] postgres WithInstance: %s", err)
+		return fmt.Errorf("postgres migrate: %s", err)
 	}
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
 		"postgres", driver)
 	if err != nil {
-		return fmt.Errorf("[ERROR] postgres NewWithDatabaseInstance: %s", err)
+		return fmt.Errorf("postgres migrate: %s", err)
 	}
 	err = m.Up()
 	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
-		fmt.Printf("[ERROR] postgres migration error: %s", err)
+		return fmt.Errorf("postgres migrate: %s", err)
 	}
 
 	return nil
@@ -63,7 +66,7 @@ func CreateUser(idpSubject, idpProvider, username,
 		"VALUES($1, $2, $3, $4, $5, $6, $7)",
 		uId, idpSubject, idpProvider, username, displayName, email, avatarUrl)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("postgres create user: %w", err)
 	}
 
 	return FindUserWithIdp(idpSubject, idpProvider)
@@ -82,9 +85,9 @@ func FindUserWithIdp(idpSubject, idpProvider string) (*models.User, error) {
 			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, &apierr.ResourceNotFound{}
+			return nil, apierr.ErrResourceNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("postgres find user with IDP: %w", err)
 	}
 
 	return &user, nil
@@ -100,7 +103,7 @@ func CreateSession(userId string, refreshTokenEncrypted []byte, userAgent, ipAdd
 		"VALUES($1, $2, $3, $4, $5, $6, $7)",
 		sid, userId, refreshTokenEncrypted, userAgent, ipAddress, deviceName, expireAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("postgres create session: %w", err)
 	}
 
 	var session models.Session
@@ -114,7 +117,7 @@ func CreateSession(userId string, refreshTokenEncrypted []byte, userAgent, ipAdd
 			&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
 			&session.RevokedAt, &session.ExpiresAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("postgres create session get: %w", err)
 	}
 
 	return &session, nil
@@ -132,9 +135,9 @@ func GetActiveSession(sessionId string) (*models.Session, error) {
 			&session.UserAgent, &session.IpAddress, &session.DeviceName, &session.CreatedAt, &session.LastActiveAt,
 			&session.RevokedAt, &session.ExpiresAt)
 	if err == sql.ErrNoRows {
-		return nil, &apierr.ResourceNotFound{}
+		return nil, apierr.ErrResourceNotFound
 	} else if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("postgres get active session: %w", err)
 	}
 
 	return &session, nil
@@ -145,7 +148,7 @@ func MakeSessionInactive(sessionId string) error {
 		"SET revoked_at = CURRENT_TIMESTAMP "+
 		"WHERE id=($1)", sessionId)
 
-	return err
+	return fmt.Errorf("postgres make session inactive: %w", err)
 }
 
 func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt time.Time) error {
@@ -155,5 +158,5 @@ func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt tim
 		"last_active_at = CURRENT_TIMESTAMP "+
 		"WHERE id=($3)", refreshTokenEncrypted, expiresAt, sessionId)
 
-	return err
+	return fmt.Errorf("postgres update session: %w", err)
 }
