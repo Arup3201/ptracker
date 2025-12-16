@@ -22,6 +22,32 @@ docker compose up -d
 
 It should start the necessary databases.
 
+Before starting the server, make sure you have `.env` file inside the `backend` folder.
+
+**.env**
+
+```sh
+HOST=localhost
+PORT=8081
+ENCRYPTION_SECRET=...
+PG_HOST=localhost
+PG_USER=postgres
+PG_PORT=5432
+PG_PASS=...
+PG_DB=ptracker
+KC_URL=http://localhost:8080
+KC_REALM=ptracker
+KC_CLIENT_ID=api
+KC_CLIENT_SECRET=...
+KC_REDIRECT_URI=http://localhost:8081/api/auth/callback
+```
+
+Export the environment variables to your shell(Linux).
+
+```sh
+export (cat .env | xargs)
+```
+
 Then you can run the go server with,
 
 ```sh
