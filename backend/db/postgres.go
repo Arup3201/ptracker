@@ -148,7 +148,11 @@ func MakeSessionInactive(sessionId string) error {
 		"SET revoked_at = CURRENT_TIMESTAMP "+
 		"WHERE id=($1)", sessionId)
 
-	return fmt.Errorf("postgres make session inactive: %w", err)
+	if err != nil {
+		return fmt.Errorf("postgres make session inactive: %w", err)
+	}
+
+	return nil
 }
 
 func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt time.Time) error {

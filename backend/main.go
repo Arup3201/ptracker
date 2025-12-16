@@ -102,6 +102,7 @@ func main() {
 	attachMiddlewares(mux, "GET /api/auth/login", handlers.KeycloakLogin)
 	attachMiddlewares(mux, "GET /api/auth/callback", handlers.KeycloakCallback)
 	attachMiddlewares(mux, "POST /api/auth/refresh", handlers.KeycloakRefresh)
+	attachMiddlewares(mux, "POST /api/auth/logout", handlers.KeycloakLogout)
 	attachMiddlewares(mux, "GET /api/welcome", handlers.Welcome)
 
 	// server

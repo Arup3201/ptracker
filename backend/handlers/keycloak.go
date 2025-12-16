@@ -382,3 +382,44 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	})
 	return nil
 }
+
+func KeycloakLogout(w http.ResponseWriter, r *http.Request) error {
+	sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
+	if err != nil {
+		return &HTTPError{
+			Code:    http.StatusUnauthorized,
+			Message: "User session has expired",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
+		}
+	}
+
+	// revoke db session, remove cookie and in-memory access token
+
+	err = db.MakeSessionInactive(sessionId)
+	if err != nil {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Logout error",
+			Err:     fmt.Errorf("keycloak logout: %w", err),
+		}
+	}
+
+	cookie := &http.Cookie{
+		Name:     SESSION_COOKIE_NAME,
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteDefaultMode,
+		Expires:  time.Unix(0, 0),
+	}
+	http.SetCookie(w, cookie)
+
+	delete(accessTokens, sessionId)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+		Status:  "success",
+		Message: "Logout success",
+	})
+	return nil
+}
