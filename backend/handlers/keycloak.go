@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"slices"
 	"strings"
 	"time"
 
@@ -260,18 +259,14 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 
 func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	cookies := r.Cookies()
-	ind := slices.IndexFunc(cookies, func(cookie *http.Cookie) bool {
-		return cookie.Name == SESSION_COOKIE_NAME
-	})
-	if ind == -1 {
+	sessionId, err := utils.GetSessionIdFromCookie(cookies, SESSION_COOKIE_NAME)
+	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusUnauthorized,
-			Message: "User is not authorized",
-			Err:     fmt.Errorf("keycloak refresh token: session cookie missing"),
+			Message: "User session has expired",
+			Err:     fmt.Errorf("keycloak refresh token: %w", err),
 		}
 	}
-
-	sessionId := cookies[ind].Value
 	session, err := db.GetActiveSession(sessionId)
 	if err != nil {
 		return &HTTPError{
@@ -310,7 +305,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	if res.StatusCode != http.StatusOK {
 		// revoke session and remove from cookie
 
-		err := db.MakeSessionInactive(sessionId)
+		err := db.MakeSessionInactive(session.Id)
 		if err != nil {
 			return &HTTPError{
 				Code:    http.StatusInternalServerError,
@@ -371,7 +366,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	err = db.UpdateSession(sessionId, encryptedRefreshToken, tokenExpiresAt)
+	err = db.UpdateSession(session.Id, encryptedRefreshToken, tokenExpiresAt)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -379,7 +374,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 			Err:     fmt.Errorf("keycloak refresh token: %w", err),
 		}
 	}
-	accessTokens[sessionId] = TokenResponse.AccessToken
+	accessTokens[session.Id] = TokenResponse.AccessToken
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
 		Status:  "success",

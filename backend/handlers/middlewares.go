@@ -8,11 +8,11 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"strings"
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/ptracker/utils"
 )
 
 func Logging(next http.Handler) http.Handler {
@@ -63,11 +63,8 @@ func Authorize(next http.Handler) HTTPErrorHandler {
 			}
 		}
 
-		cookies := r.Cookies()
-		ind := slices.IndexFunc(cookies, func(cookie *http.Cookie) bool {
-			return cookie.Name == SESSION_COOKIE_NAME
-		})
-		if ind == -1 {
+		sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
+		if err != nil {
 			return &HTTPError{
 				Code:    http.StatusUnauthorized,
 				Message: "User is not authorized",
@@ -75,7 +72,6 @@ func Authorize(next http.Handler) HTTPErrorHandler {
 			}
 		}
 
-		sessionId := cookies[ind].Value
 		sub, err := verifyAccessToken(accessTokens[sessionId])
 		if err != nil {
 			return &HTTPError{
