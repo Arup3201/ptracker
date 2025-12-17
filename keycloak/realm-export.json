@@ -633,9 +633,9 @@
       "clientId": "api",
       "name": "Project Tracker API",
       "description": "Collaborative project management and tracking",
-      "rootUrl": "http://localhost:8081/api",
-      "adminUrl": "http://localhost:8081/api",
-      "baseUrl": "http://localhost:5173/",
+      "rootUrl": "http://backend/api",
+      "adminUrl": "http://backend/api",
+      "baseUrl": "http://frontend/",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -645,8 +645,8 @@
         "/auth/callback"
       ],
       "webOrigins": [
-        "http://localhost:8081",
-        "http://localhost:5173"
+        "http://backend",
+        "http://frontend"
       ],
       "notBefore": 0,
       "bearerOnly": false,

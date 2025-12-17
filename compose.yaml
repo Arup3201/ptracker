@@ -2,7 +2,7 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.7
     volumes:
-      - ./testdata/keycloak:/opt/keycloak/data/import
+      - ./keycloak:/opt/keycloak/data/import
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloakdb:5432/keycloak
@@ -31,14 +31,18 @@ services:
 
   apidb:
     image: postgres:18-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tasks"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 10s
     volumes:
       - ptracker-data:/var/lib/postgresql/data
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: ptracker
-    ports:
-      - 127.0.0.1:5432:5432
 
 volumes:
   keycloak-data:
