@@ -1,4 +1,22 @@
 services:
+  frontend:
+    image: node:20-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: sh -c "npm install && npm run dev -- --host"
+    ports:
+      - 127.0.0.1:5173:5173
+
+  backend:
+    build: ./backend
+    command: /api
+    depends_on:
+      - apidb
+    env_file: ./backend/.env
+    ports:
+      - 127.0.0.1:8081:8081
+
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.7
     volumes:
@@ -32,7 +50,7 @@ services:
   apidb:
     image: postgres:18-alpine
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d tasks"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ptracker"]
       interval: 10s
       retries: 5
       start_period: 30s
@@ -43,6 +61,16 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 1234
       POSTGRES_DB: ptracker
+
+  proxy:
+    image: nginx:mainline-alpine3.23-perl
+    depends_on:
+      - frontend
+      - backend
+    ports:
+      - 127.0.0.1:80:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
 
 volumes:
   keycloak-data:

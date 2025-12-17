@@ -1,0 +1,6 @@
+node_moduels/
+Dockerfile
+.dockerignore
+.git
+.gitignore
+.env

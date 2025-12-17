@@ -75,7 +75,7 @@ func getEnvironment() error {
 }
 
 func attachMiddlewares(mux *http.ServeMux, pattern string, handler handlers.HTTPErrorHandler) {
-	mux.Handle(pattern, handlers.Logging(handlers.HTTPErrorHandler(handlers.Authorize(handler))))
+	mux.Handle(pattern, handlers.HTTPErrorHandler(handlers.Authorize(handler)))
 }
 
 func main() {
@@ -108,7 +108,7 @@ func main() {
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      mux,
+		Handler:      handlers.Logging(mux),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
