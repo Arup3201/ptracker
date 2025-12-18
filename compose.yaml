@@ -6,7 +6,7 @@ services:
       - ./frontend:/app
     command: sh -c "npm install && npm run dev -- --host"
     ports:
-      - 127.0.0.1:5173:5173
+      - "5173:5173"
 
   backend:
     build: ./backend
@@ -15,7 +15,7 @@ services:
       - apidb
     env_file: ./backend/.env
     ports:
-      - 127.0.0.1:8081:8081
+      - "8081:8081"
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.4.7
@@ -36,7 +36,7 @@ services:
       - keycloakdb
     command: start-dev --import-realm
     ports:
-      - 127.0.0.1:8080:8080
+      - "8080:8080"
 
   keycloakdb:
     image: postgres:18-alpine
@@ -70,7 +70,7 @@ services:
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
-      - 127.0.0.1:80:80
+      - "80:80"
 
 volumes:
   keycloak-data:

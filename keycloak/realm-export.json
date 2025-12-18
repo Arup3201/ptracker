@@ -633,9 +633,9 @@
       "clientId": "api",
       "name": "Project Tracker API",
       "description": "Collaborative project management and tracking",
-      "rootUrl": "http://localhost/api",
-      "adminUrl": "http://localhost/api",
-      "baseUrl": "http://localhost/",
+      "rootUrl": "http://192.168.0.105/api",
+      "adminUrl": "http://192.168.0.105/api",
+      "baseUrl": "http://192.168.0.105",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -645,7 +645,7 @@
         "/auth/callback"
       ],
       "webOrigins": [
-        "http://localhost"
+        "http://192.168.0.105"
       ],
       "notBefore": 0,
       "bearerOnly": false,
