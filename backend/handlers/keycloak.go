@@ -22,6 +22,7 @@ var (
 	KC_CLIENT_SECRET    string
 	KC_REDIRECT_URI     string
 	ENCRYPTION_SECRET   string
+	HOME_URL            string
 	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
@@ -43,7 +44,7 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: KC_* env missing"),
+			Err:     fmt.Errorf("keycloak login: one or more of the required env KC_URL, KC_REALM, KC_CLIENT_ID and KC_REDIRECT_URI missing"),
 		}
 	}
 
@@ -70,11 +71,11 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 }
 
 func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
-	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" || KC_CLIENT_SECRET == "" {
+	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" || KC_CLIENT_SECRET == "" || HOME_URL == "" {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: KC_* env missing"),
+			Err:     fmt.Errorf("keycloak login: one or more of the required env KC_URL, KC_REALM, KC_CLIENT_ID, KC_REDIRECT_URI and HOME_URL missing"),
 		}
 	}
 
@@ -82,7 +83,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: encryption secret env missing"),
+			Err:     fmt.Errorf("keycloak login: ENCRYPTION_SECRET env missing"),
 		}
 	}
 
@@ -250,10 +251,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	}
 	http.SetCookie(w, cookie)
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
-		Status:  "success",
-		Message: "Login success",
-	})
+	http.Redirect(w, r, HOME_URL, http.StatusSeeOther)
 	return nil
 }
 

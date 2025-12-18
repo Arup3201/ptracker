@@ -26,6 +26,10 @@ func getEnvironment() error {
 	if PORT == "" {
 		return fmt.Errorf("environment variable 'PORT' missing")
 	}
+	handlers.HOME_URL = os.Getenv("HOME_URL")
+	if handlers.HOME_URL == "" {
+		return fmt.Errorf("environment variable 'HOME_URL' missing")
+	}
 	handlers.ENCRYPTION_SECRET = os.Getenv("ENCRYPTION_SECRET")
 	if handlers.ENCRYPTION_SECRET == "" {
 		return fmt.Errorf("environment variable 'ENCRYPTION_SECRET' missing")
