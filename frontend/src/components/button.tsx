@@ -8,7 +8,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    "h-8 px-3 text-sm font-medium rounded-xs transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed";
+    "h-8 px-3 text-sm font-medium rounded-xs transition-colors focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variants = {
     primary: "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white",
