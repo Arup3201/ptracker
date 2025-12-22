@@ -172,8 +172,8 @@ For every request from frontend,
 1. Backend checks the `session_id`, looks up for the `access_token`.
 2. If `access_token` verification is successful - get the `sub` field.
 3. Fetch user details from `users` table using `sub` and save the user in the request context.
-4. If `access_token` verification fails - fetch the `session` object from DB.
-5. Use the hashed `refresh_token` to get new `access_token` from keycloak.
+4. If `access_token` verification fails return `401` response.
+5. Retry with `/refresh_token` endpoint to refresh the access token using the hashed `refresh_token` to get new `access_token` from keycloak.
 6. Send the new `access_token` to frontend.
 
 ### **refresh_token expires**
