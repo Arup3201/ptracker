@@ -16,7 +16,14 @@ export function Dashboard() {
       <Sidebar />
 
       <main className="flex flex-1 flex-col">
-        <TopBar />
+        <TopBar
+          title="Dashboard"
+          actions={
+            <button className="h-8 rounded-xs bg-(--primary) px-3 text-sm font-medium hover:bg-(--primary-hover)">
+              New Project
+            </button>
+          }
+        />
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <section>
