@@ -10,6 +10,7 @@ import {
   TableCell,
 } from "../components/table.tsx";
 import { Button } from "../components/button";
+import { Input } from "../components/input.tsx";
 
 /**
  * Temporary shape — replace with real data later
@@ -67,14 +68,19 @@ export function ProjectsPage() {
 
       <main className="flex flex-1 flex-col">
         <TopBar title="Projects" actions={<Button>New Project</Button>} />
+        <div className="flex gap-2 p-4">
+          <Input
+            placeholder="Project code"
+            onChange={(text) => setQuery(text)}
+          />
+          <Button>Join</Button>
+        </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div className="w-90">
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search projects"
-              className="h-8 w-full rounded-xs border border-(--border-default) bg-(--bg-surface) px-3 text-sm placeholder:text-(--text-muted) focus:border-(--primary) focus:outline-none"
+            <Input
+              placeholder="Search Projects"
+              onChange={(text) => setQuery(text)}
             />
           </div>
 
