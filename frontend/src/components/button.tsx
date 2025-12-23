@@ -1,5 +1,5 @@
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary";
+  variant?: "primary" | "secondary" | "danger";
 }
 
 export function Button({
@@ -11,9 +11,10 @@ export function Button({
     "h-8 px-3 text-sm font-medium rounded-xs transition-colors focus:outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variants = {
-    primary: "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white",
+    primary: "bg-(--primary) hover:bg-(--primary-hover) text-white",
     secondary:
-      "bg-transparent border border-[var(--border-default)] text-[var(--text-primary)] hover:bg-[var(--bg-elevated)]",
+      "bg-transparent border border-(--border-default) text-(--text-primary) hover:bg-(--bg-elevated)",
+    danger: "text-(--danger) hover:bg-(--danger)/10",
   };
 
   return (

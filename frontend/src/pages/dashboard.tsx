@@ -9,6 +9,7 @@ import {
   TableHead,
   TableCell,
 } from "../components/table.tsx";
+import { Button } from "../components/button.tsx";
 
 export function Dashboard() {
   return (
@@ -16,14 +17,7 @@ export function Dashboard() {
       <Sidebar />
 
       <main className="flex flex-1 flex-col">
-        <TopBar
-          title="Dashboard"
-          actions={
-            <button className="h-8 rounded-xs bg-(--primary) px-3 text-sm font-medium hover:bg-(--primary-hover)">
-              New Project
-            </button>
-          }
-        />
+        <TopBar title="Dashboard" actions={<Button>New Project</Button>} />
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <section>

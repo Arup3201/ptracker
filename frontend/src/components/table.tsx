@@ -1,3 +1,4 @@
+import clsx from "clsx";
 import type { ReactNode } from "react";
 
 export function Table({ children }: { children: ReactNode }) {
@@ -20,9 +21,23 @@ export function TableBody({ children }: { children: ReactNode }) {
   return <tbody>{children}</tbody>;
 }
 
-export function TableRow({ children }: { children: ReactNode }) {
+export function TableRow({
+  onClick = () => {},
+  className = "",
+  children,
+}: {
+  onClick?: () => void;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <tr className="border-b border-(--border-muted) last:border-0 hover:bg-(--bg-elevated)">
+    <tr
+      className={clsx(
+        "border-b border-(--border-muted) last:border-0 hover:bg-(--bg-elevated)",
+        className
+      )}
+      onClick={onClick}
+    >
       {children}
     </tr>
   );
