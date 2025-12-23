@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Sidebar } from "../components/sidebar.tsx";
 import { TopBar } from "../components/topbar.tsx";
 import {
   Table,
@@ -63,73 +62,62 @@ export function ProjectsPage() {
   }, [query]);
 
   return (
-    <>
-      <Sidebar />
+    <main className="flex flex-1 flex-col">
+      <TopBar title="Projects" actions={<Button>New Project</Button>} />
 
-      <main className="flex flex-1 flex-col">
-        <TopBar title="Projects" actions={<Button>New Project</Button>} />
-        <div className="flex gap-2 p-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="w-90">
           <Input
-            placeholder="Project code"
+            placeholder="Search Projects"
             onChange={(text) => setQuery(text)}
           />
-          <Button>Join</Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          <div className="w-90">
-            <Input
-              placeholder="Search Projects"
-              onChange={(text) => setQuery(text)}
-            />
-          </div>
+        <Table>
+          <TableHeader>
+            <TableHead>Project</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Tasks</TableHead>
+            <TableHead align="right">Updated</TableHead>
+          </TableHeader>
 
-          <Table>
-            <TableHeader>
-              <TableHead>Project</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Tasks</TableHead>
-              <TableHead align="right">Updated</TableHead>
-            </TableHeader>
-
-            <TableBody>
-              {filteredProjects.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-3 py-6 text-center text-sm text-(--text-muted)"
-                  >
-                    No projects found
-                  </td>
-                </tr>
-              )}
-
-              {filteredProjects.map((project) => (
-                <TableRow
-                  key={project.id}
-                  onClick={() => {
-                    // navigate(`/projects/${project.id}`)
-                  }}
-                  className="cursor-pointer"
+          <TableBody>
+            {filteredProjects.length === 0 && (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="px-3 py-6 text-center text-sm text-(--text-muted)"
                 >
-                  <TableCell>
-                    <span className="font-medium">{project.name}</span>
-                  </TableCell>
+                  No projects found
+                </td>
+              </tr>
+            )}
 
-                  <TableCell muted>{project.role}</TableCell>
+            {filteredProjects.map((project) => (
+              <TableRow
+                key={project.id}
+                onClick={() => {
+                  // navigate(`/projects/${project.id}`)
+                }}
+                className="cursor-pointer"
+              >
+                <TableCell>
+                  <span className="font-medium">{project.name}</span>
+                </TableCell>
 
-                  <TableCell muted>{renderTaskSignal(project)}</TableCell>
+                <TableCell muted>{project.role}</TableCell>
 
-                  <TableCell align="right" muted>
-                    {project.updatedAt}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </main>
-    </>
+                <TableCell muted>{renderTaskSignal(project)}</TableCell>
+
+                <TableCell align="right" muted>
+                  {project.updatedAt}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </main>
   );
 }
 

@@ -12,6 +12,10 @@ const NavItems = [
     name: "Projects",
     path: "/projects",
   },
+  {
+    name: "Explore",
+    path: "/explore",
+  },
 ];
 
 export function Sidebar() {
