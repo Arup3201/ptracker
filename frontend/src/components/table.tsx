@@ -4,21 +4,35 @@ import type { ReactNode } from "react";
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-hidden rounded-sm border border-(--border-default) bg-(--bg-surface) shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
-      <table className="w-full border-collapse text-sm">{children}</table>
+      <div className="w-full">{children}</div>
     </div>
   );
 }
 
 export function TableHeader({ children }: { children: ReactNode }) {
   return (
-    <thead className="border-b border-(--border-muted) text-(--text-muted)">
-      <tr>{children}</tr>
-    </thead>
+    <table className="w-full table-fixed border-collapse text-sm">
+      <thead className="border-b border-(--border-muted) text-(--text-muted)">
+        <tr>{children}</tr>
+      </thead>
+    </table>
   );
 }
 
-export function TableBody({ children }: { children: ReactNode }) {
-  return <tbody>{children}</tbody>;
+export function TableBody({
+  children,
+  maxHeight = 500,
+}: {
+  children: ReactNode;
+  maxHeight?: number | string;
+}) {
+  return (
+    <div className="overflow-y-auto" style={{ maxHeight }}>
+      <table className="w-full table-fixed border-collapse text-sm">
+        <tbody>{children}</tbody>
+      </table>
+    </div>
+  );
 }
 
 export function TableRow({

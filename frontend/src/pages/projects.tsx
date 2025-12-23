@@ -48,6 +48,134 @@ const PROJECTS: Project[] = [
     unassignedCount: 2,
     updatedAt: "4d ago",
   },
+  {
+    id: "4",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "5",
+    name: "Payments Revamp",
+    role: "Owner",
+    ongoingCount: 3,
+    unassignedCount: 1,
+    updatedAt: "2h ago",
+  },
+  {
+    id: "6",
+    name: "Auth Refactor",
+    role: "Member",
+    ongoingCount: 1,
+    unassignedCount: 0,
+    updatedAt: "1d ago",
+  },
+  {
+    id: "7",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "8",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "9",
+    name: "Payments Revamp",
+    role: "Owner",
+    ongoingCount: 3,
+    unassignedCount: 1,
+    updatedAt: "2h ago",
+  },
+  {
+    id: "10",
+    name: "Auth Refactor",
+    role: "Member",
+    ongoingCount: 1,
+    unassignedCount: 0,
+    updatedAt: "1d ago",
+  },
+  {
+    id: "11",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "12",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "13",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "14",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "15",
+    name: "Payments Revamp",
+    role: "Owner",
+    ongoingCount: 3,
+    unassignedCount: 1,
+    updatedAt: "2h ago",
+  },
+  {
+    id: "16",
+    name: "Auth Refactor",
+    role: "Member",
+    ongoingCount: 1,
+    unassignedCount: 0,
+    updatedAt: "1d ago",
+  },
+  {
+    id: "17",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "18",
+    name: "Internal Tooling",
+    role: "Owner",
+    ongoingCount: 0,
+    unassignedCount: 2,
+    updatedAt: "4d ago",
+  },
+  {
+    id: "19",
+    name: "Payments Revamp",
+    role: "Owner",
+    ongoingCount: 3,
+    unassignedCount: 1,
+    updatedAt: "2h ago",
+  },
 ];
 
 export function ProjectsPage() {
@@ -65,7 +193,7 @@ export function ProjectsPage() {
     <main className="flex flex-1 flex-col">
       <TopBar title="Projects" actions={<Button>New Project</Button>} />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 p-4 space-y-4">
         <div className="w-90">
           <Input
             placeholder="Search Projects"
