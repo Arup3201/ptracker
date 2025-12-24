@@ -6,9 +6,14 @@ type HTTPSuccessResponse struct {
 	Message string         `json:"message,omitempty"`
 }
 
-type HTTPErrorResponse struct {
-	Status  string `json:"status"`
+type ErrorBody struct {
+	Id      string `json:"id"`
 	Message string `json:"message"`
+}
+
+type HTTPErrorResponse struct {
+	Status string    `json:"status"`
+	Error  ErrorBody `json:"error"`
 }
 
 type HTTPError struct {
