@@ -12,6 +12,7 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
+	"github.com/ptracker/db"
 	"github.com/ptracker/utils"
 )
 
@@ -131,7 +132,10 @@ func Authorize(next http.Handler) HTTPErrorHandler {
 			}
 		}
 
-		fmt.Printf("subject: %s\n", sub)
+		user, err := db.GetUserBySub(sub)
+
+		ctx := context.WithValue(r.Context(), "user_id", user.Id)
+		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 		return nil

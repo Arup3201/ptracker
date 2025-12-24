@@ -18,3 +18,12 @@ func GetSessionIdFromCookie(cookies []*http.Cookie, sessionCookieName string) (s
 
 	return sessionId, nil
 }
+
+func GetUserId(req *http.Request) (string, error) {
+	ctx := req.Context()
+	userId, ok := ctx.Value("user_id").(string)
+	if !ok || userId == "" {
+		return "", fmt.Errorf("get user id: empty context")
+	}
+	return userId, nil
+}

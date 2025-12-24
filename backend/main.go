@@ -13,8 +13,13 @@ import (
 )
 
 var (
-	HOST string
-	PORT string
+	HOST    string
+	PORT    string
+	PG_HOST string
+	PG_PORT string
+	PG_USER string
+	PG_PASS string
+	PG_DB   string
 )
 
 func getEnvironment() error {
@@ -34,24 +39,24 @@ func getEnvironment() error {
 	if handlers.ENCRYPTION_SECRET == "" {
 		return fmt.Errorf("environment variable 'ENCRYPTION_SECRET' missing")
 	}
-	db.PG_HOST = os.Getenv("PG_HOST")
-	if db.PG_HOST == "" {
+	PG_HOST = os.Getenv("PG_HOST")
+	if PG_HOST == "" {
 		return fmt.Errorf("environment variable 'PG_HOST' missing")
 	}
-	db.PG_USER = os.Getenv("PG_USER")
-	if db.PG_USER == "" {
+	PG_USER = os.Getenv("PG_USER")
+	if PG_USER == "" {
 		return fmt.Errorf("environment variable 'PG_USER' missing")
 	}
-	db.PG_PORT = os.Getenv("PG_PORT")
-	if db.PG_PORT == "" {
+	PG_PORT = os.Getenv("PG_PORT")
+	if PG_PORT == "" {
 		return fmt.Errorf("environment variable 'PG_PORT' missing")
 	}
-	db.PG_PASS = os.Getenv("PG_PASS")
-	if db.PG_PASS == "" {
+	PG_PASS = os.Getenv("PG_PASS")
+	if PG_PASS == "" {
 		return fmt.Errorf("environment variable 'PG_PASS' missing")
 	}
-	db.PG_DB = os.Getenv("PG_DB")
-	if db.PG_DB == "" {
+	PG_DB = os.Getenv("PG_DB")
+	if PG_DB == "" {
 		return fmt.Errorf("environment variable 'PG_DB' missing")
 	}
 	handlers.KC_URL = os.Getenv("KC_URL")
@@ -90,7 +95,9 @@ func main() {
 	}
 
 	// DB connection
-	err = db.ConnectPostgres()
+	err = db.ConnectPostgres(fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable", PG_HOST, PG_PORT,
+		PG_USER, PG_PASS, PG_DB))
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
 	}
@@ -107,7 +114,8 @@ func main() {
 	attachMiddlewares(mux, "GET /api/auth/callback", handlers.KeycloakCallback)
 	attachMiddlewares(mux, "POST /api/auth/refresh", handlers.KeycloakRefresh)
 	attachMiddlewares(mux, "POST /api/auth/logout", handlers.KeycloakLogout)
-	attachMiddlewares(mux, "GET /api/welcome", handlers.Welcome)
+
+	attachMiddlewares(mux, "POST /api/projects", handlers.CreateProject)
 
 	// server
 	server := &http.Server{

@@ -1,9 +1,11 @@
 package handlers
 
+type HTTPData map[string]any
+
 type HTTPSuccessResponse struct {
-	Status  string         `json:"status"`
-	Data    map[string]any `json:"data,omitempty"`
-	Message string         `json:"message,omitempty"`
+	Status  string   `json:"status"`
+	Data    HTTPData `json:"data,omitempty"`
+	Message string   `json:"message,omitempty"`
 }
 
 type ErrorBody struct {

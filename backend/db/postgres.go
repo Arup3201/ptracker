@@ -13,24 +13,14 @@ import (
 	"github.com/ptracker/models"
 )
 
-var (
-	PG_HOST string
-	PG_PORT string
-	PG_USER string
-	PG_PASS string
-	PG_DB   string
-)
-
 var pgDb *sql.DB
 
-func ConnectPostgres() error {
+func ConnectPostgres(connString string) error {
 	var err error
-	if PG_HOST == "" || PG_PORT == "" || PG_USER == "" || PG_PASS == "" || PG_DB == "" {
-		return fmt.Errorf("connect postgres: missing env variables")
+	if connString == "" {
+		return fmt.Errorf("connect postgres: missing connection string")
 	}
-	pgDb, err = sql.Open("postgres", fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable", PG_HOST, PG_PORT,
-		PG_USER, PG_PASS, PG_DB))
+	pgDb, err = sql.Open("postgres", connString)
 	if err != nil {
 		return fmt.Errorf("connect postgres: %w", err)
 	}
@@ -163,4 +153,47 @@ func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt tim
 		"WHERE id=($3)", refreshTokenEncrypted, expiresAt, sessionId)
 
 	return fmt.Errorf("postgres update session: %w", err)
+}
+
+func GetUserBySub(sub string) (*models.User, error) {
+	var user models.User
+	err := pgDb.QueryRow("SELECT "+
+		"id, idp_subject, idp_provider, username, display_name, email, avatar_url, "+
+		"is_active, created_at, updated_at, last_login_at "+
+		"FROM users "+
+		"WHERE idp_subject=($1)",
+		sub).
+		Scan(&user.Id, &user.IDPSubject, &user.IDPProvider,
+			&user.Username, &user.DisplayName, &user.Email, &user.AvaterURL,
+			&user.IsActive, &user.CreatedAt, &user.UpdatedAt, &user.LastLoginTime)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get user by sub: %w", err)
+	}
+
+	return &user, nil
+}
+
+func CreateProject(name, description, skills, userId string) (*models.Project, error) {
+	pid := uuid.NewString()
+	_, err := pgDb.Exec("INSERT INTO "+
+		"projects(id, name, description, skills, owner) "+
+		"VALUES($1, $2, $3, $4, $5)",
+		pid, name, description, skills, userId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres create project: %w", err)
+	}
+
+	var project models.Project
+	err = pgDb.QueryRow("SELECT "+
+		"id, name, description, owner, skills, created_at, updated_at "+
+		"FROM projects "+
+		"WHERE id=($1)",
+		pid).
+		Scan(&project.Id, &project.Name, &project.Description,
+			&project.Owner, &project.Skills, &project.CreatedAt, &project.UpdateAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres create project get: %w", err)
+	}
+
+	return &project, nil
 }
