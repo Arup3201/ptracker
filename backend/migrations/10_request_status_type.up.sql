@@ -1,0 +1,1 @@
+CREATE TYPE request_status AS ENUM('Pending', 'Accepted');

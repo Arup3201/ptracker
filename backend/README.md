@@ -33,7 +33,7 @@
 | Column      | Type         | Constraints / Notes             |
 | ----------- | ------------ | ------------------------------- |
 | id          | UUID         | PK, default `gen_random_uuid()` |
-| code        | VARCHAR(255) | UNIQUE (via index), NOT NULL    |
+| skills      | TEXT         |                                 |
 | owner       | UUID         | FK → users(id)                  |
 | name        | VARCHAR(255) | NOT NULL                        |
 | description | TEXT         |                                 |
@@ -41,11 +41,29 @@
 | updated_at  | TIMESTAMPTZ  |                                 |
 | deleted_at  | TIMESTAMPTZ  |                                 |
 
+### Enum: `request_status`
+
+| Possible Values |
+| --------------- |
+| Pending         |
+| Accepted        |
+
+### `join_requests`
+
+| Column     | Type           | Constraints / Notes        |
+| ---------- | -------------- | -------------------------- |
+| project_id | UUID           | FK → projects(id)          |
+| user_id    | UUID           | FK → users(id)             |
+| status     | request_status | NOT NULL, default "Pendig" |
+| created_at | TIMESTAMPTZ    | default CURRENT_TIMESTAMP  |
+| updated_at | TIMESTAMPTZ    |                            |
+| deleted_at | TIMESTAMPTZ    |                            |
+
 **Indexes**
 
-| Index Name      | Columns |
-| --------------- | ------- |
-| ux_project_code | code    |
+| Index Name               | Columns               |
+| ------------------------ | --------------------- |
+| ux_project_join_requests | (project_id, user_id) |
 
 ### Enum: `task_status`
 
