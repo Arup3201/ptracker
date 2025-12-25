@@ -26,6 +26,22 @@ var (
 	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
+type KCToken struct {
+	AccessToken      string `json:"access_token"`
+	TokenType        string `json:"token_type"`
+	RefreshToken     string `json:"refresh_token"`
+	RefreshExpiresIn int    `json:"refresh_expires_in"`
+	IDToken          string `json:"id_token"`
+}
+
+type KCUserInfo struct {
+	Subject   string `json:"sub"`
+	Name      string `json:"name"`
+	Username  string `json:"preferred_username"`
+	Email     string `json:"email"`
+	AvatarUrl string `json:"picture"`
+}
+
 type KCError struct {
 	ErrorCode        string `json:"error"`
 	ErrorDescription string `json:"error_description"`
@@ -70,6 +86,96 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func GetToken(authCode, state string) (*KCToken, error) {
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
+	res, err := http.PostForm(tokenEndpoint, url.Values{
+		"grant_type":    []string{"authorization_code"},
+		"code":          []string{authCode},
+		"code_verifier": []string{states[state]},
+		"redirect_uri":  []string{KC_REDIRECT_URI},
+		"client_id":     []string{KC_CLIENT_ID},
+		"client_secret": []string{KC_CLIENT_SECRET},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("keycloak callback: keycloak token request: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var KCErrorResponse KCError
+		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
+			return nil, fmt.Errorf("keycloak callback: keycloak token response error decode: %w", err)
+		}
+
+		return nil, fmt.Errorf("keycloak callback: keycloak token response: %s", KCErrorResponse.ErrorDescription)
+	}
+
+	var tokenResponse KCToken
+	if err := json.NewDecoder(res.Body).Decode(&tokenResponse); err != nil {
+		return nil, fmt.Errorf("keycloak callback: keycloak token response body decode: %w", err)
+	}
+
+	return &tokenResponse, nil
+}
+
+func GetUserInfo(accessToken string) (*KCUserInfo, error) {
+	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", KC_URL, KC_REALM)
+	req, err := http.NewRequest("GET", userinfoEndpoint, nil)
+	if err != nil {
+		return nil, fmt.Errorf("userinfo request generate: %w", err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("keycloak userinfo request: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+		var KCErrorResponse KCError
+		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
+			return nil, fmt.Errorf("keycloak userinfo response error decode: %w", err)
+		}
+
+		return nil, fmt.Errorf("keycloak userinfo response: %s", KCErrorResponse.ErrorDescription)
+	}
+
+	var keycloakUserInfo KCUserInfo
+	if err := json.NewDecoder(res.Body).Decode(&keycloakUserInfo); err != nil {
+		return nil, fmt.Errorf("keycloak userinfo response body decode: %w", err)
+	}
+
+	return &keycloakUserInfo, nil
+}
+
+func GetSessionCookie(refreshTokenExpires int,
+	accessToken, refreshToken string,
+	userId, userAgent, ipAddress, device string) (*http.Cookie, error) {
+	tokenExpiresAt := time.Now().Add(time.Duration(refreshTokenExpires) * time.Second)
+
+	encryptedRefreshToken, err := utils.EncryptAES([]byte(refreshToken), []byte(ENCRYPTION_SECRET))
+	if err != nil {
+		return nil, fmt.Errorf("refresh token encryption: %w", err)
+	}
+	session, err := db.CreateSession(userId, encryptedRefreshToken, userAgent,
+		ipAddress, device, tokenExpiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("new session create: %w", err)
+	}
+
+	cookie := &http.Cookie{
+		Name:     SESSION_COOKIE_NAME,
+		Value:    session.Id,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteDefaultMode,
+		Expires:  tokenExpiresAt,
+	}
+
+	return cookie, nil
+}
+
 func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" || KC_CLIENT_SECRET == "" || HOME_URL == "" {
 		return &HTTPError{
@@ -108,107 +214,30 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
-	res, err := http.PostForm(tokenEndpoint, url.Values{
-		"grant_type":    []string{"authorization_code"},
-		"code":          []string{authorization_code},
-		"code_verifier": []string{states[state]},
-		"redirect_uri":  []string{KC_REDIRECT_URI},
-		"client_id":     []string{KC_CLIENT_ID},
-		"client_secret": []string{KC_CLIENT_SECRET},
-	})
+	tokenResponse, err := GetToken(authorization_code, state)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak token request: %w", err),
+			Err:     fmt.Errorf("keycloak callback: %w", err),
 		}
 	}
-	defer res.Body.Close()
 	delete(states, state)
 
-	if res.StatusCode != http.StatusOK {
-		var KCErrorResponse KCError
-		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			return &HTTPError{
-				Code:    http.StatusInternalServerError,
-				Message: "Authorization failed",
-				Err:     fmt.Errorf("keycloak callback: keycloak token response error decode: %w", err),
-			}
-		}
-
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak token response: %s", KCErrorResponse.ErrorDescription),
-		}
-	}
-
-	var TokenResponse struct {
-		AccessToken      string `json:"access_token"`
-		TokenType        string `json:"token_type"`
-		RefreshToken     string `json:"refresh_token"`
-		RefreshExpiresIn int    `json:"refresh_expires_in"`
-		IDToken          string `json:"id_token"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&TokenResponse); err != nil {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak token response body decode: %w", err),
-		}
-	}
-
-	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", KC_URL, KC_REALM)
-	req, _ := http.NewRequest("GET", userinfoEndpoint, nil)
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", TokenResponse.AccessToken))
-	res, err = http.DefaultClient.Do(req)
+	kcUserInfo, err := GetUserInfo(tokenResponse.AccessToken)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak userinfo request: %w", err),
-		}
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != http.StatusOK {
-		var KCErrorResponse KCError
-		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			return &HTTPError{
-				Code:    http.StatusInternalServerError,
-				Message: "Authorization failed",
-				Err:     fmt.Errorf("keycloak callback: keycloak userinfo response error decode: %w", err),
-			}
-		}
-
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak userinfo response: %s", KCErrorResponse.ErrorDescription),
+			Err:     fmt.Errorf("keycloak callback: %w", err),
 		}
 	}
 
-	var keycloakUserInfo struct {
-		Subject   string `json:"sub"`
-		Name      string `json:"name"`
-		Username  string `json:"preferred_username"`
-		Email     string `json:"email"`
-		AvatarUrl string `json:"picture"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&keycloakUserInfo); err != nil {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: keycloak userinfo response body decode: %w", err),
-		}
-	}
-
-	user, err := db.FindUserWithIdp(keycloakUserInfo.Subject, "keycloak")
+	user, err := db.FindUserWithIdp(kcUserInfo.Subject, "keycloak")
 	if errors.Is(err, apierr.ErrResourceNotFound) {
-		user, err = db.CreateUser(keycloakUserInfo.Subject, "keycloak",
-			keycloakUserInfo.Name, keycloakUserInfo.Name, keycloakUserInfo.Email,
-			keycloakUserInfo.AvatarUrl)
+		user, err = db.CreateUser(kcUserInfo.Subject, "keycloak",
+			kcUserInfo.Name, kcUserInfo.Name, kcUserInfo.Email,
+			kcUserInfo.AvatarUrl)
 		if err != nil {
 			return &HTTPError{
 				Code:    http.StatusInternalServerError,
@@ -218,37 +247,15 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
-
-	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
+	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None")
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
 			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: refresh token encryption: %w", err),
+			Err:     fmt.Errorf("keycloak callback: %w", err),
 		}
 	}
-	session, err := db.CreateSession(user.Id, encryptedRefreshToken, r.UserAgent(),
-		strings.Split(r.RemoteAddr, ":")[0], "None", tokenExpiresAt)
-	if err != nil {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Authorization failed",
-			Err:     fmt.Errorf("keycloak callback: new session create: %w", err),
-		}
-	}
-
-	accessTokens[session.Id] = TokenResponse.AccessToken
-
-	cookie := &http.Cookie{
-		Name:     SESSION_COOKIE_NAME,
-		Value:    session.Id,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteDefaultMode,
-		Expires:  tokenExpiresAt,
-	}
+	accessTokens[cookie.Value] = tokenResponse.AccessToken
 	http.SetCookie(w, cookie)
 
 	http.Redirect(w, r, HOME_URL, http.StatusSeeOther)
