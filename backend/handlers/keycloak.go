@@ -86,16 +86,9 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func GetToken(authCode, state string) (*KCToken, error) {
+func GetToken(kcRequestValue url.Values) (*KCToken, error) {
 	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
-	res, err := http.PostForm(tokenEndpoint, url.Values{
-		"grant_type":    []string{"authorization_code"},
-		"code":          []string{authCode},
-		"code_verifier": []string{states[state]},
-		"redirect_uri":  []string{KC_REDIRECT_URI},
-		"client_id":     []string{KC_CLIENT_ID},
-		"client_secret": []string{KC_CLIENT_SECRET},
-	})
+	res, err := http.PostForm(tokenEndpoint, kcRequestValue)
 	if err != nil {
 		return nil, fmt.Errorf("keycloak callback: keycloak token request: %w", err)
 	}
@@ -214,7 +207,14 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tokenResponse, err := GetToken(authorization_code, state)
+	tokenResponse, err := GetToken(url.Values{
+		"grant_type":    []string{"authorization_code"},
+		"code":          []string{authorization_code},
+		"code_verifier": []string{states[state]},
+		"redirect_uri":  []string{KC_REDIRECT_URI},
+		"client_id":     []string{KC_CLIENT_ID},
+		"client_secret": []string{KC_CLIENT_SECRET},
+	})
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
