@@ -3,35 +3,117 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
-	"time"
 
 	"github.com/ptracker/db"
-	"github.com/ptracker/models"
 	"github.com/ptracker/testhelpers"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	IDPProvider     = "keycloak"
-	TestUsername    = "test_user"
-	TestDisplayName = "User Test"
-	TestEmail       = "test@example.com"
-	TestAvatarUrl   = "https://example.com/avatar/test_user.png"
+	IDPProvider      = "keycloak"
+	TestKCRealm      = "ptracker"
+	TestUserId       = "b24b8712-6819-47fb-83e5-11eb28280a2f"
+	TestUsername     = "test_user"
+	TestFirstName    = "Test"
+	TestLastName     = "User"
+	TestEmail        = "test@example.com"
+	TestClientId     = "api"
+	TestClientSecret = "cp50avHQeX18cESEraheJvr3RhUBMq2A"
+	TestPassword     = "1234"
+	TestUserAgent    = "Firefox"
+	TestIpAddress    = "127.0.0.1"
+	TestDevice       = "HP"
 )
 
-func CreateDummySession(t testing.TB, userId, refreshToken string, expires int64) *models.Session {
+func createKCTestUser(t testing.TB, serverUrl string) {
 	t.Helper()
 
-	session, err := db.CreateSession(userId, []byte(refreshToken), "Firefox", "127.0.0.1", "Windows", time.Now().Add(time.Duration(expires)*time.Second))
+	credentials := url.Values{
+		"grant_type": []string{"password"},
+		"client_id":  []string{"admin-cli"},
+		"username":   []string{"admin"},
+		"password":   []string{"admin"},
+	}
+	tokenUrl := serverUrl + "/realms/master/protocol/openid-connect/token"
+	res, err := http.PostForm(tokenUrl, credentials)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	return session
+	if res.StatusCode != http.StatusOK {
+		var kcError KCError
+		json.NewDecoder(res.Body).Decode(&kcError)
+		log.Fatalf("keycloak get token error: %v\n", kcError)
+	}
+
+	var accessToken struct {
+		Value string `json:"access_token"`
+	}
+	if err := json.NewDecoder(res.Body).Decode(&accessToken); err != nil {
+		log.Fatal(err)
+	}
+
+	type Credential struct {
+		Value     string `json:"value"`
+		Type      string `json:"type"`
+		Temporary bool   `json:"temporary"`
+	}
+	var user = struct {
+		Username      string       `json:"username"`
+		Firstname     string       `json:"firstName"`
+		Lastname      string       `json:"lastName"`
+		Email         string       `json:"email"`
+		Enabled       bool         `json:"enabled"`
+		EmailVerified bool         `json:"emailVerified"`
+		Credentials   []Credential `json:"credentials"`
+	}{
+		Username:      TestUsername,
+		Firstname:     TestFirstName,
+		Lastname:      TestLastName,
+		Email:         TestEmail,
+		Enabled:       true,
+		EmailVerified: true,
+		Credentials: []Credential{
+			{
+				Type:      "password",
+				Value:     TestPassword,
+				Temporary: false,
+			},
+		},
+	}
+	payload, err := json.Marshal(user)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	userUrl := fmt.Sprintf(serverUrl+"/admin/realms/%s/users", TestKCRealm)
+	req, err := http.NewRequest(
+		"POST",
+		userUrl,
+		bytes.NewBuffer(payload),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken.Value))
+	req.Header.Set("Content-Type", "application/json")
+	res, err = http.DefaultClient.Do(req)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if res.StatusCode != http.StatusCreated {
+		var kcError KCError
+		json.NewDecoder(res.Body).Decode(&kcError)
+		log.Fatalf("keycloak create user error: %v\n", kcError)
+	}
 }
 
 func attachMiddlewares(mux *http.ServeMux, pattern string, handler HTTPErrorHandler) {
@@ -50,20 +132,49 @@ func TestProjectCreate(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	user, err := db.CreateUser(IDPSubject, IDPProvider, TestUsername, TestDisplayName, TestEmail, TestAvatarUrl)
+	ctx = context.Background()
+	kcContainer, err := testhelpers.CreateKeycloakContainer(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	session := CreateDummySession(t, user.Id)
-	cookie := &http.Cookie{
-		Name:     SESSION_COOKIE_NAME,
-		Value:    session.Id,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteDefaultMode,
-		Expires:  session.ExpiresAt,
+	adminClient, err := kcContainer.GetAdminClient(context.Background())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Keycloak register user
+	createKCTestUser(t, adminClient.ServerURL)
+
+	// Keycloak implicit flow
+	token, err := GetToken(adminClient.ServerURL, TestKCRealm, url.Values{
+		"grant_type":    []string{"password"},
+		"client_id":     []string{TestClientId},
+		"client_secret": []string{TestClientSecret},
+		"username":      []string{TestUsername},
+		"password":      []string{TestPassword},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Get user information
+	userInfo, err := GetUserInfo(adminClient.ServerURL, TestKCRealm, token.AccessToken)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create user
+	user, err := db.CreateUser(userInfo.Subject, IDPProvider,
+		userInfo.Username, userInfo.Name, userInfo.Email, userInfo.AvatarUrl)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create session
+	cookie, err := GetSessionCookie(token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, user.Id, TestUserAgent, TestIpAddress, TestDevice)
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	mux := http.NewServeMux()

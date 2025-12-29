@@ -2,8 +2,10 @@ package testhelpers
 
 import (
 	"context"
+	"path/filepath"
 	"time"
 
+	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -15,20 +17,9 @@ type PostgresContainer struct {
 }
 
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
-	pgContainer, err := postgres.Run(
-		ctx,
-		"postgres:18-alpine",
-		postgres.WithInitScripts(
-			"../migrations/1_users_table.up.sql",
-			"../migrations/2_sessions_table.up.sql",
-			"../migrations/3_projects_table.up.sql",
-			"../migrations/4_task_status_type.up.sql",
-			"../migrations/5_tasks_table.up.sql",
-			"../migrations/6_user_role_type.up.sql",
-			"../migrations/7_roles_table.up.sql",
-			"../migrations/8_assignees_table.up.sql",
-			"../migrations/9_comments_table.up.sql",
-		),
+	pgContainer, err := postgres.RunContainer(ctx,
+		testcontainers.WithImage("postgres:15.3-alpine"),
+		postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),
@@ -49,4 +40,16 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 		PostgresContainer: pgContainer,
 		ConnectionString:  connString,
 	}, nil
+}
+
+func CreateKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, error) {
+	keycloakContainer, err := keycloak.Run(context.Background(),
+		"quay.io/keycloak/keycloak:26.4.7",
+		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp")),
+		keycloak.WithContextPath("/auth"),
+		keycloak.WithRealmImportFile("../testdata/ptracker-realm.json"),
+		keycloak.WithAdminUsername("admin"),
+		keycloak.WithAdminPassword("admin"),
+	)
+	return keycloakContainer, err
 }

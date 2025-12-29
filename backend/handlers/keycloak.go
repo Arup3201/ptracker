@@ -86,33 +86,33 @@ func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func GetToken(kcRequestValue url.Values) (*KCToken, error) {
-	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
+func GetToken(url, realm string, kcRequestValue url.Values) (*KCToken, error) {
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", url, realm)
 	res, err := http.PostForm(tokenEndpoint, kcRequestValue)
 	if err != nil {
-		return nil, fmt.Errorf("keycloak callback: keycloak token request: %w", err)
+		return nil, fmt.Errorf("keycloak token request: %w", err)
 	}
 	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
 		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			return nil, fmt.Errorf("keycloak callback: keycloak token response error decode: %w", err)
+			return nil, fmt.Errorf("keycloak token response error decode: %w", err)
 		}
 
-		return nil, fmt.Errorf("keycloak callback: keycloak token response: %s", KCErrorResponse.ErrorDescription)
+		return nil, fmt.Errorf("keycloak token response: %s", KCErrorResponse.ErrorDescription)
 	}
 
 	var tokenResponse KCToken
 	if err := json.NewDecoder(res.Body).Decode(&tokenResponse); err != nil {
-		return nil, fmt.Errorf("keycloak callback: keycloak token response body decode: %w", err)
+		return nil, fmt.Errorf("keycloak token response body decode: %w", err)
 	}
 
 	return &tokenResponse, nil
 }
 
-func GetUserInfo(accessToken string) (*KCUserInfo, error) {
-	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", KC_URL, KC_REALM)
+func GetUserInfo(url, realm, accessToken string) (*KCUserInfo, error) {
+	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", url, realm)
 	req, err := http.NewRequest("GET", userinfoEndpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("userinfo request generate: %w", err)
@@ -120,7 +120,7 @@ func GetUserInfo(accessToken string) (*KCUserInfo, error) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("keycloak userinfo request: %w", err)
+		return nil, fmt.Errorf("keycloak userinfo response: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -207,7 +207,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tokenResponse, err := GetToken(url.Values{
+	tokenResponse, err := GetToken(KC_URL, KC_REALM, url.Values{
 		"grant_type":    []string{"authorization_code"},
 		"code":          []string{authorization_code},
 		"code_verifier": []string{states[state]},
@@ -224,7 +224,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	}
 	delete(states, state)
 
-	kcUserInfo, err := GetUserInfo(tokenResponse.AccessToken)
+	kcUserInfo, err := GetUserInfo(KC_URL, KC_REALM, tokenResponse.AccessToken)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
