@@ -6,6 +6,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/lestrrat-go/jwx v1.2.31
+	github.com/mileusna/useragent v1.3.5
 	github.com/stillya/testcontainers-keycloak v0.3.5
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0

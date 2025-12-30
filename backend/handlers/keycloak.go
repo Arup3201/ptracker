@@ -238,7 +238,18 @@ func (handler *KeycloakHandler) KeycloakCallback(w http.ResponseWriter, r *http.
 		}
 	}
 
-	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None", handler.EncryptionKey)
+	ipAddress := strings.Split(r.RemoteAddr, ":")[0]
+	userAgent := r.UserAgent()
+	device := utils.ParseUserAgent(userAgent)
+
+	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn,
+		tokenResponse.AccessToken,
+		tokenResponse.RefreshToken,
+		user.Id,
+		userAgent,
+		ipAddress,
+		device,
+		handler.EncryptionKey)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
