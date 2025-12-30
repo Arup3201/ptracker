@@ -97,7 +97,7 @@ func GetToken(url, realm string, kcRequestValue url.Values) (*KCToken, error) {
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
 		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			return nil, fmt.Errorf("keycloak token response error decode: %w", err)
+			return nil, fmt.Errorf("keycloak token error status %d", res.StatusCode)
 		}
 
 		return nil, fmt.Errorf("keycloak token response: %s", KCErrorResponse.ErrorDescription)
@@ -127,7 +127,7 @@ func GetUserInfo(url, realm, accessToken string) (*KCUserInfo, error) {
 	if res.StatusCode != http.StatusOK {
 		var KCErrorResponse KCError
 		if err := json.NewDecoder(res.Body).Decode(&KCErrorResponse); err != nil {
-			return nil, fmt.Errorf("keycloak userinfo response error decode: %w", err)
+			return nil, fmt.Errorf("keycloak userinfo error status %d", res.StatusCode)
 		}
 
 		return nil, fmt.Errorf("keycloak userinfo response: %s", KCErrorResponse.ErrorDescription)
@@ -143,10 +143,11 @@ func GetUserInfo(url, realm, accessToken string) (*KCUserInfo, error) {
 
 func GetSessionCookie(refreshTokenExpires int,
 	accessToken, refreshToken string,
-	userId, userAgent, ipAddress, device string) (*http.Cookie, error) {
+	userId, userAgent, ipAddress, device string,
+	encryptionKey string) (*http.Cookie, error) {
 	tokenExpiresAt := time.Now().Add(time.Duration(refreshTokenExpires) * time.Second)
 
-	encryptedRefreshToken, err := utils.EncryptAES([]byte(refreshToken), []byte(ENCRYPTION_SECRET))
+	encryptedRefreshToken, err := utils.EncryptAES([]byte(refreshToken), []byte(encryptionKey))
 	if err != nil {
 		return nil, fmt.Errorf("refresh token encryption: %w", err)
 	}
@@ -155,6 +156,8 @@ func GetSessionCookie(refreshTokenExpires int,
 	if err != nil {
 		return nil, fmt.Errorf("new session create: %w", err)
 	}
+
+	accessTokens[session.Id] = accessToken
 
 	cookie := &http.Cookie{
 		Name:     SESSION_COOKIE_NAME,
@@ -247,7 +250,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None")
+	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None", ENCRYPTION_SECRET)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -255,7 +258,6 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 			Err:     fmt.Errorf("keycloak callback: %w", err),
 		}
 	}
-	accessTokens[cookie.Value] = tokenResponse.AccessToken
 	http.SetCookie(w, cookie)
 
 	http.Redirect(w, r, HOME_URL, http.StatusSeeOther)
@@ -335,7 +337,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 			return &HTTPError{
 				Code:    http.StatusUnauthorized,
 				Message: "User session expired",
-				Err:     fmt.Errorf("keycloak refresh token: keycloak error response: %w", err),
+				Err:     fmt.Errorf("keycloak refresh token: response error status: %d", res.StatusCode),
 			}
 		}
 

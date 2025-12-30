@@ -104,46 +104,50 @@ func (fn HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 var accessTokens = map[string]string{}
 
-func Authorize(next http.Handler) HTTPErrorHandler {
-	return func(w http.ResponseWriter, r *http.Request) error {
-		public := []string{"/auth/login", "/auth/callback", "/auth/refresh"}
-		for _, endpoint := range public {
-			if strings.Contains(strings.TrimPrefix(r.URL.Path, "/api"), endpoint) {
-				next.ServeHTTP(w, r)
-				return nil
+type AuthMiddleware func(http.Handler) HTTPErrorHandler
+
+func Authorize(keycloakUrl, keycloakRealm string) AuthMiddleware {
+	return func(next http.Handler) HTTPErrorHandler {
+		return func(w http.ResponseWriter, r *http.Request) error {
+			public := []string{"/auth/login", "/auth/callback", "/auth/refresh"}
+			for _, endpoint := range public {
+				if strings.Contains(strings.TrimPrefix(r.URL.Path, "/api"), endpoint) {
+					next.ServeHTTP(w, r)
+					return nil
+				}
 			}
-		}
 
-		sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
-		if err != nil {
-			return &HTTPError{
-				Code:    http.StatusUnauthorized,
-				Message: "User is not authorized",
-				Err:     fmt.Errorf("authorize: session cookie not found"),
+			sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
+			if err != nil {
+				return &HTTPError{
+					Code:    http.StatusUnauthorized,
+					Message: "User is not authorized",
+					Err:     fmt.Errorf("authorize: session cookie not found"),
+				}
 			}
-		}
 
-		sub, err := verifyAccessToken(accessTokens[sessionId])
-		if err != nil {
-			return &HTTPError{
-				Code:    http.StatusUnauthorized,
-				Message: "User is not authorized",
-				Err:     fmt.Errorf("authorize: %w", err),
+			sub, err := verifyAccessToken(keycloakUrl, keycloakRealm, accessTokens[sessionId])
+			if err != nil {
+				return &HTTPError{
+					Code:    http.StatusUnauthorized,
+					Message: "User is not authorized",
+					Err:     fmt.Errorf("authorize: %w", err),
+				}
 			}
+
+			user, err := db.GetUserBySub(sub)
+
+			ctx := context.WithValue(r.Context(), "user_id", user.Id)
+			r = r.WithContext(ctx)
+
+			next.ServeHTTP(w, r)
+			return nil
 		}
-
-		user, err := db.GetUserBySub(sub)
-
-		ctx := context.WithValue(r.Context(), "user_id", user.Id)
-		r = r.WithContext(ctx)
-
-		next.ServeHTTP(w, r)
-		return nil
 	}
 }
 
-func verifyAccessToken(accessToken string) (string, error) {
-	jwksKeySet, err := jwk.Fetch(context.TODO(), fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", KC_URL, KC_REALM))
+func verifyAccessToken(kcUrl, kcRealm, accessToken string) (string, error) {
+	jwksKeySet, err := jwk.Fetch(context.TODO(), fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", kcUrl, kcRealm))
 	if err != nil {
 		return "", fmt.Errorf("verify access token: %w", err)
 	}
