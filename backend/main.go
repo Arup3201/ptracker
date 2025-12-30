@@ -13,13 +13,20 @@ import (
 )
 
 var (
-	HOST    string
-	PORT    string
-	PG_HOST string
-	PG_PORT string
-	PG_USER string
-	PG_PASS string
-	PG_DB   string
+	HOST              string
+	PORT              string
+	PG_HOST           string
+	PG_PORT           string
+	PG_USER           string
+	PG_PASS           string
+	PG_DB             string
+	KC_URL            string
+	KC_REALM          string
+	KC_CLIENT_ID      string
+	KC_CLIENT_SECRET  string
+	KC_REDIRECT_URI   string
+	ENCRYPTION_SECRET string
+	HOME_URL          string
 )
 
 func getEnvironment() error {
@@ -31,12 +38,12 @@ func getEnvironment() error {
 	if PORT == "" {
 		return fmt.Errorf("environment variable 'PORT' missing")
 	}
-	handlers.HOME_URL = os.Getenv("HOME_URL")
-	if handlers.HOME_URL == "" {
+	HOME_URL = os.Getenv("HOME_URL")
+	if HOME_URL == "" {
 		return fmt.Errorf("environment variable 'HOME_URL' missing")
 	}
-	handlers.ENCRYPTION_SECRET = os.Getenv("ENCRYPTION_SECRET")
-	if handlers.ENCRYPTION_SECRET == "" {
+	ENCRYPTION_SECRET = os.Getenv("ENCRYPTION_SECRET")
+	if ENCRYPTION_SECRET == "" {
 		return fmt.Errorf("environment variable 'ENCRYPTION_SECRET' missing")
 	}
 	PG_HOST = os.Getenv("PG_HOST")
@@ -59,24 +66,24 @@ func getEnvironment() error {
 	if PG_DB == "" {
 		return fmt.Errorf("environment variable 'PG_DB' missing")
 	}
-	handlers.KC_URL = os.Getenv("KC_URL")
-	if handlers.KC_URL == "" {
+	KC_URL = os.Getenv("KC_URL")
+	if KC_URL == "" {
 		return fmt.Errorf("environment variable 'KC_URL' missing")
 	}
-	handlers.KC_REALM = os.Getenv("KC_REALM")
-	if handlers.KC_REALM == "" {
+	KC_REALM = os.Getenv("KC_REALM")
+	if KC_REALM == "" {
 		return fmt.Errorf("environment variable 'KC_REALM' missing")
 	}
-	handlers.KC_CLIENT_ID = os.Getenv("KC_CLIENT_ID")
-	if handlers.KC_CLIENT_ID == "" {
+	KC_CLIENT_ID = os.Getenv("KC_CLIENT_ID")
+	if KC_CLIENT_ID == "" {
 		return fmt.Errorf("environment variable 'KC_CLIENT_ID' missing")
 	}
-	handlers.KC_CLIENT_SECRET = os.Getenv("KC_CLIENT_SECRET")
-	if handlers.KC_CLIENT_SECRET == "" {
+	KC_CLIENT_SECRET = os.Getenv("KC_CLIENT_SECRET")
+	if KC_CLIENT_SECRET == "" {
 		return fmt.Errorf("environment variable 'KC_CLIENT_SECRET' missing")
 	}
-	handlers.KC_REDIRECT_URI = os.Getenv("KC_REDIRECT_URI")
-	if handlers.KC_REDIRECT_URI == "" {
+	KC_REDIRECT_URI = os.Getenv("KC_REDIRECT_URI")
+	if KC_REDIRECT_URI == "" {
 		return fmt.Errorf("environment variable 'KC_REDIRECT_URI' missing")
 	}
 
@@ -84,7 +91,8 @@ func getEnvironment() error {
 }
 
 func attachMiddlewares(mux *http.ServeMux, pattern string, handler handlers.HTTPErrorHandler) {
-	mux.Handle(pattern, handlers.HTTPErrorHandler(handlers.Authorize(handler)))
+	authMiddleware := handlers.Authorize(KC_URL, KC_REALM)
+	mux.Handle(pattern, handlers.HTTPErrorHandler(authMiddleware(handler)))
 }
 
 func main() {
@@ -110,10 +118,19 @@ func main() {
 
 	// handler
 	mux := http.NewServeMux()
-	attachMiddlewares(mux, "GET /api/auth/login", handlers.KeycloakLogin)
-	attachMiddlewares(mux, "GET /api/auth/callback", handlers.KeycloakCallback)
-	attachMiddlewares(mux, "POST /api/auth/refresh", handlers.KeycloakRefresh)
-	attachMiddlewares(mux, "POST /api/auth/logout", handlers.KeycloakLogout)
+
+	kcHandler, err := handlers.CreateKeycloakHandler(
+		KC_URL, KC_REALM, KC_CLIENT_ID, KC_CLIENT_SECRET, KC_REDIRECT_URI,
+		HOME_URL, ENCRYPTION_SECRET,
+	)
+	if err != nil {
+		log.Fatalf("[ERROR] server failed to create keycloak handler: %s", err)
+	}
+
+	attachMiddlewares(mux, "GET /api/auth/login", kcHandler.KeycloakLogin)
+	attachMiddlewares(mux, "GET /api/auth/callback", kcHandler.KeycloakCallback)
+	attachMiddlewares(mux, "POST /api/auth/refresh", kcHandler.KeycloakRefresh)
+	attachMiddlewares(mux, "POST /api/auth/logout", kcHandler.KeycloakLogout)
 
 	attachMiddlewares(mux, "POST /api/projects", handlers.CreateProject)
 

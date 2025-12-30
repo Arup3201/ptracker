@@ -15,14 +15,7 @@ import (
 	"github.com/ptracker/utils"
 )
 
-var (
-	KC_URL              string
-	KC_REALM            string
-	KC_CLIENT_ID        string
-	KC_CLIENT_SECRET    string
-	KC_REDIRECT_URI     string
-	ENCRYPTION_SECRET   string
-	HOME_URL            string
+const (
 	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
@@ -45,45 +38,6 @@ type KCUserInfo struct {
 type KCError struct {
 	ErrorCode        string `json:"error"`
 	ErrorDescription string `json:"error_description"`
-}
-
-var states = map[string]string{}
-
-func KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
-	verifier, _ := utils.CreateCodeVerifier()
-	challenge := verifier.CodeChallengeSHA256()
-
-	state := uuid.NewString()
-	states[state] = verifier.Value
-
-	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: one or more of the required env KC_URL, KC_REALM, KC_CLIENT_ID and KC_REDIRECT_URI missing"),
-		}
-	}
-
-	if state == "" || challenge == "" {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: state/challenge is missing"),
-		}
-	}
-
-	kc_auth_url := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?"+
-		"scope=openid"+
-		"&response_type=code"+
-		"&client_id=%s"+
-		"&redirect_uri=%s"+
-		"&state=%s"+
-		"&code_challenge_method=S256"+
-		"&code_challenge=%s",
-		KC_URL, KC_REALM, KC_CLIENT_ID, KC_REDIRECT_URI, state, challenge)
-	http.Redirect(w, r, kc_auth_url, http.StatusSeeOther)
-
-	return nil
 }
 
 func GetToken(url, realm string, kcRequestValue url.Values) (*KCToken, error) {
@@ -172,23 +126,57 @@ func GetSessionCookie(refreshTokenExpires int,
 	return cookie, nil
 }
 
-func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
-	if KC_URL == "" || KC_REALM == "" || KC_CLIENT_ID == "" || KC_REDIRECT_URI == "" || KC_CLIENT_SECRET == "" || HOME_URL == "" {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: one or more of the required env KC_URL, KC_REALM, KC_CLIENT_ID, KC_REDIRECT_URI and HOME_URL missing"),
-		}
+type KeycloakHandler struct {
+	KCUrl          string
+	KCRealm        string
+	KCClientId     string
+	KCClientSecret string
+	KCRedirectURI  string
+	HomeURL        string
+	EncryptionKey  string
+}
+
+func CreateKeycloakHandler(kcUrl, kcRealm, kcClientId, kcClientSecret, kcRedirectURI string,
+	homeUrl, encryptionKey string) (*KeycloakHandler, error) {
+	if kcUrl == "" || kcRealm == "" || kcClientId == "" || kcRedirectURI == "" {
+		return nil, fmt.Errorf("none of the parameters can be empty")
 	}
 
-	if ENCRYPTION_SECRET == "" {
-		return &HTTPError{
-			Code:    http.StatusInternalServerError,
-			Message: "Server encountered an issue",
-			Err:     fmt.Errorf("keycloak login: ENCRYPTION_SECRET env missing"),
-		}
-	}
+	return &KeycloakHandler{
+		KCUrl:          kcUrl,
+		KCRealm:        kcRealm,
+		KCClientId:     kcClientId,
+		KCClientSecret: kcClientSecret,
+		KCRedirectURI:  kcRedirectURI,
+		HomeURL:        homeUrl,
+		EncryptionKey:  encryptionKey,
+	}, nil
+}
 
+var states = map[string]string{}
+
+func (handler *KeycloakHandler) KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
+	verifier, _ := utils.CreateCodeVerifier()
+	challenge := verifier.CodeChallengeSHA256()
+
+	state := uuid.NewString()
+	states[state] = verifier.Value
+
+	kc_auth_url := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?"+
+		"scope=openid"+
+		"&response_type=code"+
+		"&client_id=%s"+
+		"&redirect_uri=%s"+
+		"&state=%s"+
+		"&code_challenge_method=S256"+
+		"&code_challenge=%s",
+		handler.KCUrl, handler.KCRealm, handler.KCClientId, handler.KCRedirectURI, state, challenge)
+	http.Redirect(w, r, kc_auth_url, http.StatusSeeOther)
+
+	return nil
+}
+
+func (handler *KeycloakHandler) KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	authorization_code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
 	authorization_error_code := r.URL.Query().Get("error")
@@ -206,17 +194,17 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
 			Message: "Authorization denied for repeated PKCE",
-			Err:     fmt.Errorf("keycloak callback: code_verifier state reused"),
+			Err:     fmt.Errorf("keycloak callback: code_verifier state not found"),
 		}
 	}
 
-	tokenResponse, err := GetToken(KC_URL, KC_REALM, url.Values{
+	tokenResponse, err := GetToken(handler.KCUrl, handler.KCRealm, url.Values{
 		"grant_type":    []string{"authorization_code"},
 		"code":          []string{authorization_code},
 		"code_verifier": []string{states[state]},
-		"redirect_uri":  []string{KC_REDIRECT_URI},
-		"client_id":     []string{KC_CLIENT_ID},
-		"client_secret": []string{KC_CLIENT_SECRET},
+		"redirect_uri":  []string{handler.KCRedirectURI},
+		"client_id":     []string{handler.KCClientId},
+		"client_secret": []string{handler.KCClientSecret},
 	})
 	if err != nil {
 		return &HTTPError{
@@ -227,7 +215,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	}
 	delete(states, state)
 
-	kcUserInfo, err := GetUserInfo(KC_URL, KC_REALM, tokenResponse.AccessToken)
+	kcUserInfo, err := GetUserInfo(handler.KCUrl, handler.KCRealm, tokenResponse.AccessToken)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -250,7 +238,7 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None", ENCRYPTION_SECRET)
+	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn, tokenResponse.AccessToken, tokenResponse.RefreshToken, user.Id, r.UserAgent(), strings.Split(r.RemoteAddr, " ")[0], "None", handler.EncryptionKey)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -260,11 +248,11 @@ func KeycloakCallback(w http.ResponseWriter, r *http.Request) error {
 	}
 	http.SetCookie(w, cookie)
 
-	http.Redirect(w, r, HOME_URL, http.StatusSeeOther)
+	http.Redirect(w, r, handler.HomeURL, http.StatusSeeOther)
 	return nil
 }
 
-func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
+func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	cookies := r.Cookies()
 	sessionId, err := utils.GetSessionIdFromCookie(cookies, SESSION_COOKIE_NAME)
 	if err != nil {
@@ -283,7 +271,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	refreshToken, err := utils.DecryptAES(session.RefreshTokenEncrypted, []byte(ENCRYPTION_SECRET))
+	refreshToken, err := utils.DecryptAES(session.RefreshTokenEncrypted, []byte(handler.EncryptionKey))
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -292,13 +280,13 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", KC_URL, KC_REALM)
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", handler.KCUrl, handler.KCRealm)
 	res, err := http.PostForm(tokenEndpoint, url.Values{
 		"grant_type":    []string{"refresh_token"},
 		"refresh_token": []string{string(refreshToken)},
-		"redirect_uri":  []string{KC_REDIRECT_URI},
-		"client_id":     []string{KC_CLIENT_ID},
-		"client_secret": []string{KC_CLIENT_SECRET},
+		"redirect_uri":  []string{handler.KCRedirectURI},
+		"client_id":     []string{handler.KCClientId},
+		"client_secret": []string{handler.KCClientSecret},
 		"scope":         []string{"openid"},
 	})
 	if err != nil {
@@ -364,7 +352,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	tokenExpiresAt := time.Now().Add(time.Duration(TokenResponse.RefreshExpiresIn * int(time.Second)))
-	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(ENCRYPTION_SECRET))
+	encryptedRefreshToken, err := utils.EncryptAES([]byte(TokenResponse.RefreshToken), []byte(handler.EncryptionKey))
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -390,7 +378,7 @@ func KeycloakRefresh(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func KeycloakLogout(w http.ResponseWriter, r *http.Request) error {
+func (handler *KeycloakHandler) KeycloakLogout(w http.ResponseWriter, r *http.Request) error {
 	sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
 	if err != nil {
 		return &HTTPError{
