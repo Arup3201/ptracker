@@ -28,7 +28,7 @@ const (
 	TestClientId      = "api"
 	TestClientSecret  = "cp50avHQeX18cESEraheJvr3RhUBMq2A"
 	TestPassword      = "1234"
-	TestUserAgent     = "Firefox"
+	TestUserAgent     = "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0"
 	TestIpAddress     = "127.0.0.1"
 	TestDevice        = "HP"
 	TestEncryptionKey = "ab9befcad6859b8d0e6740255bfd6e6f"
@@ -213,10 +213,11 @@ func (suite *ProjectTestSuite) TearDownSuite() {
 func (suite *ProjectTestSuite) TestCreateProject() {
 	t := suite.T()
 
-	t.Run("success - create a project - 200 response", func(t *testing.T) {
+	t.Run("success response is 200", func(t *testing.T) {
 		payload := bytes.NewBuffer([]byte(`{
 			"name": "PTracker Go", 
-			"description": "Collaborative project tracking application with Go"
+			"description": "Collaborative project tracking application with Go",
+			"skills": "Go, React, TypeScript, PostgreSQL, Keycloak"
 		}`))
 		req, err := http.NewRequest("POST", "/api/projects", payload)
 		if err != nil {
@@ -228,6 +229,81 @@ func (suite *ProjectTestSuite) TestCreateProject() {
 		suite.mux.ServeHTTP(res, req)
 
 		assert.Equal(t, res.Result().StatusCode, http.StatusOK)
+	})
+
+	t.Run("success response body is correct", func(t *testing.T) {
+		payload := bytes.NewBuffer([]byte(`{
+			"name": "PTracker Go", 
+			"description": "Collaborative project tracking application with Go",
+			"skills": "Go, React, TypeScript, PostgreSQL, Keycloak"
+		}`))
+		req, err := http.NewRequest("POST", "/api/projects", payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.AddCookie(suite.cookie)
+		res := httptest.NewRecorder()
+
+		suite.mux.ServeHTTP(res, req)
+
+		var responseBody HTTPSuccessResponse
+		if err := json.NewDecoder(res.Body).Decode(&responseBody); err != nil {
+			log.Fatal(err)
+		}
+		assert.Equal(t, RESPONSE_SUCCESS_STATUS, responseBody.Status)
+		assert.Equal(t, "PTracker Go", responseBody.Data["name"])
+		assert.Equal(t, "Collaborative project tracking application with Go", responseBody.Data["description"])
+		assert.Equal(t, "Go, React, TypeScript, PostgreSQL, Keycloak", responseBody.Data["skills"])
+	})
+
+	t.Run("error with missing name in payload", func(t *testing.T) {
+		payload := bytes.NewBuffer([]byte(`{
+			"description": "Collaborative project tracking application with Go",
+			"skills": "Go, React, TypeScript, PostgreSQL, Keycloak"
+		}`))
+		req, err := http.NewRequest("POST", "/api/projects", payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.AddCookie(suite.cookie)
+		res := httptest.NewRecorder()
+
+		suite.mux.ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusBadRequest, res.Result().StatusCode)
+		var responseBody HTTPErrorResponse
+		if err := json.NewDecoder(res.Body).Decode(&responseBody); err != nil {
+			log.Fatal(err)
+		}
+		assert.Equal(t, RESPONSE_ERROR_STATUS, responseBody.Status)
+		assert.Equal(t, ERR_INVALID_BODY, responseBody.Error.Id)
+		assert.Equal(t, "Project 'name' is missing", responseBody.Error.Message)
+	})
+
+	t.Run("error with unknown fields in payload", func(t *testing.T) {
+		payload := bytes.NewBuffer([]byte(`{
+			"name": "PTracker Go", 
+			"description": "Collaborative project tracking application with Go",
+			"skills": "Go, React, TypeScript, PostgreSQL, Keycloak",
+			"custom": "It is a custom field"
+		}`))
+		req, err := http.NewRequest("POST", "/api/projects", payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.AddCookie(suite.cookie)
+		res := httptest.NewRecorder()
+
+		suite.mux.ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusBadRequest, res.Result().StatusCode)
+		var responseBody HTTPErrorResponse
+		if err := json.NewDecoder(res.Body).Decode(&responseBody); err != nil {
+			log.Fatal(err)
+		}
+		assert.Equal(t, RESPONSE_ERROR_STATUS, responseBody.Status)
+		assert.Equal(t, ERR_INVALID_BODY, responseBody.Error.Id)
+		assert.Equal(t, "Project must have 'name' with optional 'description' and 'skills' fields only", responseBody.Error.Message)
 	})
 }
 

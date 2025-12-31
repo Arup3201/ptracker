@@ -8,6 +8,11 @@ type HTTPSuccessResponse struct {
 	Message string   `json:"message,omitempty"`
 }
 
+const (
+	RESPONSE_SUCCESS_STATUS = "success"
+	RESPONSE_ERROR_STATUS   = "error"
+)
+
 type ErrorBody struct {
 	Id      string `json:"id"`
 	Message string `json:"message"`
