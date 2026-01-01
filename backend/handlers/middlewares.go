@@ -8,12 +8,15 @@ import (
 	"maps"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/ptracker/db"
 	"github.com/ptracker/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 func Logging(next http.Handler) http.Handler {
@@ -162,4 +165,135 @@ func verifyAccessToken(kcUrl, kcRealm, accessToken string) (string, error) {
 	}
 
 	return token.Subject(), nil
+}
+
+type tokenBucket struct {
+	ctx         context.Context
+	capacity    int // maximum tokens in the bucket - handles traffic bursts
+	rate        int // refill rate per second
+	redisClient *redis.Client
+	tbFunc      *redis.Script
+	retry       int
+}
+
+const RedisLuaScript = `
+local key = KEYS[1]
+local capacity = tonumber(ARGV[1])
+local rate = tonumber(ARGV[2])
+
+local now = redis.call("TIME")
+local now_sec = tonumber(now[1])
+local now_usec = tonumber(now[2])
+local now_ts = now_sec + now_usec / 1e6
+
+local tokens = tonumber(redis.call("HGET", key, "tokens"))
+local last_refill = tonumber(redis.call("HGET", key, "last_refill"))
+
+if tokens == nil then
+    tokens = capacity
+    last_refill = now_ts
+end
+
+-- refill
+local elapsed = now_ts - last_refill
+local tokens_to_add = math.floor(elapsed * rate)
+
+if tokens_to_add > 0 then
+	tokens = math.min(capacity, tokens+tokens_to_add)
+end
+
+if tokens < 1 then
+    local retry_after = (1 - (elapsed*rate)) / rate
+    return {0, retry_after}
+end
+
+redis.call("HSET", key,
+	"tokens", tokens,
+	"last_refill", now_ts
+)
+
+return {1, 0}
+`
+
+func CreateTokenBucket(rdc *redis.Client, cap, rate int) *tokenBucket {
+	function := redis.NewScript(RedisLuaScript)
+
+	return &tokenBucket{
+		ctx:         context.Background(),
+		capacity:    cap,
+		rate:        rate,
+		redisClient: rdc,
+		tbFunc:      function,
+	}
+}
+
+func (tb *tokenBucket) GetToken(key string) (string, error) {
+	value, err := tb.redisClient.HGet(tb.ctx, key, "tokens").Result()
+	if err != nil {
+		return "", fmt.Errorf("get token: %w", err)
+	}
+
+	return value, nil
+}
+
+func (tb *tokenBucket) AllowRequest(key string) (bool, error) {
+	_, err := tb.redisClient.HSetNX(tb.ctx, key, "tokens", tb.capacity).Result()
+	if err != nil {
+		return false, fmt.Errorf("allow request set tokens key: %w", err)
+	}
+	_, err = tb.redisClient.HSetNX(tb.ctx, key, "last_refill", time.Now()).Result()
+	if err != nil {
+		return false, fmt.Errorf("allow request set tokens key: %w", err)
+	}
+
+	value, err := tb.tbFunc.Run(tb.ctx, tb.redisClient, []string{key}, tb.capacity, tb.rate).Slice()
+	if err != nil {
+		return false, fmt.Errorf("allow request run lua script: %w", err)
+	}
+
+	if value[0] == 0 {
+		tb.retry = int(value[1].(float32) * 1000)
+		return false, nil
+	} else {
+		return true, nil
+	}
+}
+
+type RateLimiter func(HTTPErrorHandler) HTTPErrorHandler
+
+func TokenBucketRateLimiter(rdc *redis.Client, capacity, rate int) RateLimiter {
+	bucket := CreateTokenBucket(rdc, capacity, rate)
+	return func(next HTTPErrorHandler) HTTPErrorHandler {
+		return func(w http.ResponseWriter, r *http.Request) error {
+			redisKey := "bucket:user:" + r.Context().Value("user_id").(string)
+			allow, err := bucket.AllowRequest(redisKey)
+			if err != nil {
+				// redis error, continue...
+				log.Printf("[ERROR] rate limiter: %s\n", err)
+				next.ServeHTTP(w, r)
+				return nil
+			}
+			if allow {
+				rec := httptest.NewRecorder()
+
+				next.ServeHTTP(rec, r)
+
+				tokens, err := bucket.GetToken(redisKey)
+				if err != nil {
+					// redis error, continue...
+					log.Printf("[ERROR] rate limiter: %s\n", err)
+				}
+
+				maps.Copy(w.Header(), rec.Header())
+				w.Header().Add("X-Ratelimit-Remaining", tokens)
+				w.Header().Add("X-Ratelimit-Limit", strconv.Itoa(bucket.capacity))
+				w.WriteHeader(rec.Result().StatusCode)
+				w.Write(rec.Body.Bytes())
+			} else {
+				w.Header().Add("X-Ratelimit-Retry-After", strconv.Itoa(int(bucket.retry)))
+				w.WriteHeader(http.StatusTooManyRequests)
+			}
+			return nil
+		}
+	}
 }

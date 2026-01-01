@@ -10,6 +10,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/ptracker/db"
 	"github.com/ptracker/handlers"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
@@ -132,7 +133,14 @@ func main() {
 	attachMiddlewares(mux, "POST /api/auth/refresh", kcHandler.KeycloakRefresh)
 	attachMiddlewares(mux, "POST /api/auth/logout", kcHandler.KeycloakLogout)
 
-	attachMiddlewares(mux, "POST /api/projects", handlers.CreateProject)
+	redis := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+		Protocol: 2,
+	})
+	rateLimiter := handlers.TokenBucketRateLimiter(redis, 5, 2)
+	attachMiddlewares(mux, "POST /api/projects", rateLimiter(handlers.CreateProject))
 
 	// server
 	server := &http.Server{
