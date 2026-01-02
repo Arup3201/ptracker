@@ -8,6 +8,7 @@ import (
 	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/postgres"
+	"github.com/testcontainers/testcontainers-go/modules/redis"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
 
@@ -52,4 +53,18 @@ func CreateKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, 
 		keycloak.WithAdminPassword("admin"),
 	)
 	return keycloakContainer, err
+}
+
+func CreateRedisContainer(ctx context.Context) (*redis.RedisContainer, error) {
+	redisContainer, err := redis.Run(ctx, "redis:8.4.0-alpine")
+	if err != nil {
+		return nil, err
+	}
+
+	err = redisContainer.Start(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return redisContainer, nil
 }
