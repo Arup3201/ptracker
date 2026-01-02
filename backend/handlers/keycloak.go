@@ -114,7 +114,8 @@ func GetSessionCookie(redisClient *redis.Client,
 		return nil, fmt.Errorf("new session create: %w", err)
 	}
 
-	_, err = redisClient.Set(context.Background(), "access_token:session:"+session.Id, accessToken, time.Until(tokenExpiresAt)).Result()
+	tokenKey := utils.GetAccessTokenKey(session.Id)
+	_, err = redisClient.Set(context.Background(), tokenKey, accessToken, time.Until(tokenExpiresAt)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("redis access token store: %w", err)
 	}
@@ -162,14 +163,21 @@ func CreateKeycloakHandler(kcUrl, kcRealm, kcClientId, kcClientSecret, kcRedirec
 	}, nil
 }
 
-var states = map[string]string{}
-
 func (handler *KeycloakHandler) KeycloakLogin(w http.ResponseWriter, r *http.Request) error {
 	verifier, _ := utils.CreateCodeVerifier()
 	challenge := verifier.CodeChallengeSHA256()
 
 	state := uuid.NewString()
-	states[state] = verifier.Value
+
+	verifierKey := utils.GetVerifierKey(state)
+	_, err := handler.Redis.Set(context.Background(), verifierKey, verifier.Value, time.Second*10).Result()
+	if err != nil {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Login failed",
+			Err:     fmt.Errorf("keycloak login: redis set state: %w", err),
+		}
+	}
 
 	kc_auth_url := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth?"+
 		"scope=openid"+
@@ -199,18 +207,20 @@ func (handler *KeycloakHandler) KeycloakCallback(w http.ResponseWriter, r *http.
 		}
 	}
 
-	if _, ok := states[state]; !ok {
+	verifierKey := utils.GetVerifierKey(state)
+	state, err := handler.Redis.Get(context.Background(), verifierKey).Result()
+	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
 			Message: "Authorization denied for repeated PKCE",
-			Err:     fmt.Errorf("keycloak callback: code_verifier state not found"),
+			Err:     fmt.Errorf("keycloak callback: get state: %w", err),
 		}
 	}
 
 	tokenResponse, err := GetToken(handler.KCUrl, handler.KCRealm, url.Values{
 		"grant_type":    []string{"authorization_code"},
 		"code":          []string{authorization_code},
-		"code_verifier": []string{states[state]},
+		"code_verifier": []string{state},
 		"redirect_uri":  []string{handler.KCRedirectURI},
 		"client_id":     []string{handler.KCClientId},
 		"client_secret": []string{handler.KCClientSecret},
@@ -222,7 +232,6 @@ func (handler *KeycloakHandler) KeycloakCallback(w http.ResponseWriter, r *http.
 			Err:     fmt.Errorf("keycloak callback: %w", err),
 		}
 	}
-	delete(states, state)
 
 	kcUserInfo, err := GetUserInfo(handler.KCUrl, handler.KCRealm, tokenResponse.AccessToken)
 	if err != nil {
@@ -393,7 +402,8 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, time.Until(tokenExpiresAt)).Result()
+	tokenKey := utils.GetAccessTokenKey(sessionId)
+	_, err = handler.Redis.Set(context.Background(), tokenKey, TokenResponse.AccessToken, time.Until(tokenExpiresAt)).Result()
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -403,7 +413,7 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
-		Status:  "success",
+		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Access token refreshed",
 	})
 	return nil
@@ -451,7 +461,7 @@ func (handler *KeycloakHandler) KeycloakLogout(w http.ResponseWriter, r *http.Re
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
-		Status:  "success",
+		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Logout success",
 	})
 	return nil

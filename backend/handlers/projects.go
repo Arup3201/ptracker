@@ -55,7 +55,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
-		Status: "success",
+		Status: RESPONSE_SUCCESS_STATUS,
 		Data: HTTPData{
 			"id":          project.Id,
 			"name":        project.Name,
