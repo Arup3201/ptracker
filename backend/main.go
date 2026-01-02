@@ -91,8 +91,12 @@ func getEnvironment() error {
 	return nil
 }
 
-func attachMiddlewares(mux *http.ServeMux, pattern string, handler handlers.HTTPErrorHandler) {
-	authMiddleware := handlers.Authorize(KC_URL, KC_REALM)
+func attachMiddlewares(
+	mux *http.ServeMux,
+	redis *redis.Client,
+	pattern string,
+	handler handlers.HTTPErrorHandler) {
+	authMiddleware := handlers.Authorize(redis, KC_URL, KC_REALM)
 	mux.Handle(pattern, handlers.HTTPErrorHandler(authMiddleware(handler)))
 }
 
@@ -117,30 +121,32 @@ func main() {
 		log.Fatalf("[ERROR] server failed to migrate postgres: %s", err)
 	}
 
-	// handler
-	mux := http.NewServeMux()
-
-	kcHandler, err := handlers.CreateKeycloakHandler(
-		KC_URL, KC_REALM, KC_CLIENT_ID, KC_CLIENT_SECRET, KC_REDIRECT_URI,
-		HOME_URL, ENCRYPTION_SECRET,
-	)
-	if err != nil {
-		log.Fatalf("[ERROR] server failed to create keycloak handler: %s", err)
-	}
-
-	attachMiddlewares(mux, "GET /api/auth/login", kcHandler.KeycloakLogin)
-	attachMiddlewares(mux, "GET /api/auth/callback", kcHandler.KeycloakCallback)
-	attachMiddlewares(mux, "POST /api/auth/refresh", kcHandler.KeycloakRefresh)
-	attachMiddlewares(mux, "POST /api/auth/logout", kcHandler.KeycloakLogout)
-
+	// Redis
 	redis := redis.NewClient(&redis.Options{
 		Addr:     "127.0.0.1:6379",
 		Password: "",
 		DB:       0,
 		Protocol: 2,
 	})
+
+	// handler
+	mux := http.NewServeMux()
+
+	kcHandler, err := handlers.CreateKeycloakHandler(
+		KC_URL, KC_REALM, KC_CLIENT_ID, KC_CLIENT_SECRET, KC_REDIRECT_URI,
+		HOME_URL, ENCRYPTION_SECRET, redis,
+	)
+	if err != nil {
+		log.Fatalf("[ERROR] server failed to create keycloak handler: %s", err)
+	}
+
+	attachMiddlewares(mux, redis, "GET /api/auth/login", kcHandler.KeycloakLogin)
+	attachMiddlewares(mux, redis, "GET /api/auth/callback", kcHandler.KeycloakCallback)
+	attachMiddlewares(mux, redis, "POST /api/auth/refresh", kcHandler.KeycloakRefresh)
+	attachMiddlewares(mux, redis, "POST /api/auth/logout", kcHandler.KeycloakLogout)
+
 	rateLimiter := handlers.TokenBucketRateLimiter(redis, 5, 2)
-	attachMiddlewares(mux, "POST /api/projects", rateLimiter(handlers.CreateProject))
+	attachMiddlewares(mux, redis, "POST /api/projects", rateLimiter(handlers.CreateProject))
 
 	// server
 	server := &http.Server{
