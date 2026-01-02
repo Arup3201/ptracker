@@ -393,7 +393,7 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, tokenExpiresAt.Sub(time.Now())).Result()
+	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, time.Until(tokenExpiresAt)).Result()
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
