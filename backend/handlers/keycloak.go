@@ -114,7 +114,7 @@ func GetSessionCookie(redisClient *redis.Client,
 		return nil, fmt.Errorf("new session create: %w", err)
 	}
 
-	_, err = redisClient.Set(context.Background(), "access_token:session:"+session.Id, accessToken, tokenExpiresAt.Sub(time.Now())).Result()
+	_, err = redisClient.Set(context.Background(), "access_token:session:"+session.Id, accessToken, time.Until(tokenExpiresAt)).Result()
 	if err != nil {
 		return nil, fmt.Errorf("redis access token store: %w", err)
 	}
@@ -393,7 +393,7 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, tokenExpiresAt.Sub(time.Now())).Result()
+	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, time.Until(tokenExpiresAt)).Result()
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,

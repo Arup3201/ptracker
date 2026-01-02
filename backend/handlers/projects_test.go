@@ -13,6 +13,7 @@ import (
 
 	"github.com/ptracker/db"
 	"github.com/ptracker/testhelpers"
+	"github.com/redis/go-redis/v9"
 	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
@@ -118,11 +119,12 @@ func createKCTestUser(serverUrl string) {
 
 type attacher struct {
 	mux   *http.ServeMux
+	redis *redis.Client
 	kcUrl string
 }
 
 func (atc *attacher) attachMiddleware(pattern string, handler HTTPErrorHandler) {
-	authMiddleware := Authorize(atc.kcUrl, TestKCRealm)
+	authMiddleware := Authorize(atc.redis, atc.kcUrl, TestKCRealm)
 	atc.mux.Handle(pattern, HTTPErrorHandler(authMiddleware(handler)))
 }
 
@@ -130,6 +132,7 @@ type ProjectTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	kcContainer *keycloak.KeycloakContainer
+	redis       *redis.Client
 	cookie      *http.Cookie
 	mux         *http.ServeMux
 	ctx         context.Context
@@ -162,6 +165,23 @@ func (suite *ProjectTestSuite) SetupSuite() {
 
 	createKCTestUser(adminClient.ServerURL)
 
+	redisContainer, err := testhelpers.CreateRedisContainer(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	connString, err := redisContainer.ConnectionString(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opt, err := redis.ParseURL(connString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	suite.redis = redis.NewClient(opt)
+
 	// Keycloak implicit flow, scope=openid otherwise 403 error in /userinfo
 	token, err := GetToken(adminClient.ServerURL, TestKCRealm, url.Values{
 		"grant_type":    []string{"password"},
@@ -186,7 +206,7 @@ func (suite *ProjectTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.cookie, err = GetSessionCookie(token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, user.Id, TestUserAgent, TestIpAddress, TestDevice, TestEncryptionKey)
+	suite.cookie, err = GetSessionCookie(suite.redis, token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, user.Id, TestUserAgent, TestIpAddress, TestDevice, TestEncryptionKey)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,6 +214,7 @@ func (suite *ProjectTestSuite) SetupSuite() {
 	suite.mux = http.NewServeMux()
 	atch := &attacher{
 		mux:   suite.mux,
+		redis: suite.redis,
 		kcUrl: adminClient.ServerURL,
 	}
 
