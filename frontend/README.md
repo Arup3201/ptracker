@@ -1,4 +1,4 @@
-# PTracker
+# PTracker Frontend
 
 ## Dashboard
 
@@ -8,7 +8,10 @@
 
 ## Projects
 
-1. Join Project
-2. Create a new project
-3. Table with projects on every row. Each row contains project name, member/owner, unassigned+ongoing tasks and last updated. Table has smooth scroll without any pagination or loading animation. Every row is clickable to open the project.
-4. Table has search bar at top.
+1. Create a new project
+2. Table with projects on every row. Each row contains project name, member/owner, unassigned+ongoing tasks and last updated. Table has smooth scroll without any pagination or loading animation. Every row is clickable to open the project.
+3. Table has search bar at top.
+
+## Explore
+
+Users can explore projects that they are not part of and request to join them.
