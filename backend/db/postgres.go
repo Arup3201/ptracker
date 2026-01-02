@@ -152,7 +152,10 @@ func UpdateSession(sessionId string, refreshTokenEncrypted []byte, expiresAt tim
 		"last_active_at = CURRENT_TIMESTAMP "+
 		"WHERE id=($3)", refreshTokenEncrypted, expiresAt, sessionId)
 
-	return fmt.Errorf("postgres update session: %w", err)
+	if err != nil {
+		return fmt.Errorf("postgres update session: %w", err)
+	}
+	return nil
 }
 
 func GetUserBySub(sub string) (*models.User, error) {

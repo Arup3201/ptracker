@@ -213,16 +213,15 @@ API supports following actions for project:
 
 ### **POST /projects**
 
-Create a project. Any authenticated user can create a project. If `name` is missing or _empty_ in the payload, user will get `access_denied` error. If `description` is missing or _empty_ in the payload, it is assumed to be `""`.
-
-> Question: How the project code is generated so that it does not collide with other codes?
+Create a project. Any authenticated user can create a project. If `name` is missing or _empty_ in the payload, user will get `invalid_body` error. If `description` is missing or _empty_ in the payload, it is assumed to be `""` and same for `skills` field. No extra field is allowed in the payload, otherwise it will throw an `invalid_body` error.
 
 **Payload:**
 
 ```json
 {
   "name": "PROJECT A",
-  "description": "Blah blah blah"
+  "description": "Blah blah blah",
+  "skills": "Java"
 }
 ```
 
@@ -251,7 +250,7 @@ Create a project. Any authenticated user can create a project. If `name` is miss
   "status": "error",
   "error": {
     "id": "invalid_body",
-    "message": "Paylod field 'name' is missing"
+    "message": "Project 'name' is missing"
   }
 }
 ```

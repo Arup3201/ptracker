@@ -5,23 +5,34 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/db"
 	"github.com/ptracker/utils"
 )
 
 type CreateProjectRequest struct {
-	Name        string `json:"name"`
+	Name        string `json:"name" validate:"required"`
 	Description string `json:"description"`
 	Skills      string `json:"skills"`
 }
 
 func CreateProject(w http.ResponseWriter, r *http.Request) error {
 	var payload CreateProjectRequest
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
-			Message: "Payload must have 'name' and 'description'",
+			Message: "Project must have 'name' with optional 'description' and 'skills' fields only",
 			Err:     fmt.Errorf("create project: decode payload: %w", err),
+		}
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'name' is missing",
+			Err:     fmt.Errorf("create project: validate payload: %w", err),
 		}
 	}
 

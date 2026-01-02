@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/db"
 	"github.com/ptracker/utils"
+	"github.com/redis/go-redis/v9"
 )
 
 const (
@@ -95,7 +97,8 @@ func GetUserInfo(url, realm, accessToken string) (*KCUserInfo, error) {
 	return &keycloakUserInfo, nil
 }
 
-func GetSessionCookie(refreshTokenExpires int,
+func GetSessionCookie(redisClient *redis.Client,
+	refreshTokenExpires int,
 	accessToken, refreshToken string,
 	userId, userAgent, ipAddress, device string,
 	encryptionKey string) (*http.Cookie, error) {
@@ -111,7 +114,10 @@ func GetSessionCookie(refreshTokenExpires int,
 		return nil, fmt.Errorf("new session create: %w", err)
 	}
 
-	accessTokens[session.Id] = accessToken
+	_, err = redisClient.Set(context.Background(), "access_token:session:"+session.Id, accessToken, tokenExpiresAt.Sub(time.Now())).Result()
+	if err != nil {
+		return nil, fmt.Errorf("redis access token store: %w", err)
+	}
 
 	cookie := &http.Cookie{
 		Name:     SESSION_COOKIE_NAME,
@@ -134,10 +140,12 @@ type KeycloakHandler struct {
 	KCRedirectURI  string
 	HomeURL        string
 	EncryptionKey  string
+	Redis          *redis.Client
 }
 
 func CreateKeycloakHandler(kcUrl, kcRealm, kcClientId, kcClientSecret, kcRedirectURI string,
-	homeUrl, encryptionKey string) (*KeycloakHandler, error) {
+	homeUrl, encryptionKey string,
+	rdc *redis.Client) (*KeycloakHandler, error) {
 	if kcUrl == "" || kcRealm == "" || kcClientId == "" || kcRedirectURI == "" {
 		return nil, fmt.Errorf("none of the parameters can be empty")
 	}
@@ -150,6 +158,7 @@ func CreateKeycloakHandler(kcUrl, kcRealm, kcClientId, kcClientSecret, kcRedirec
 		KCRedirectURI:  kcRedirectURI,
 		HomeURL:        homeUrl,
 		EncryptionKey:  encryptionKey,
+		Redis:          rdc,
 	}, nil
 }
 
@@ -242,14 +251,17 @@ func (handler *KeycloakHandler) KeycloakCallback(w http.ResponseWriter, r *http.
 	userAgent := r.UserAgent()
 	device := utils.ParseUserAgent(userAgent)
 
-	cookie, err := GetSessionCookie(tokenResponse.RefreshExpiresIn,
+	cookie, err := GetSessionCookie(
+		handler.Redis,
+		tokenResponse.RefreshExpiresIn,
 		tokenResponse.AccessToken,
 		tokenResponse.RefreshToken,
 		user.Id,
 		userAgent,
 		ipAddress,
 		device,
-		handler.EncryptionKey)
+		handler.EncryptionKey,
+	)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusInternalServerError,
@@ -380,7 +392,15 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 			Err:     fmt.Errorf("keycloak refresh token: %w", err),
 		}
 	}
-	accessTokens[session.Id] = TokenResponse.AccessToken
+
+	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+session.Id, TokenResponse.AccessToken, tokenExpiresAt.Sub(time.Now())).Result()
+	if err != nil {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Token refresh error",
+			Err:     fmt.Errorf("keycloak refresh token: access token store: %w", err),
+		}
+	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
 		Status:  "success",
@@ -421,7 +441,14 @@ func (handler *KeycloakHandler) KeycloakLogout(w http.ResponseWriter, r *http.Re
 	}
 	http.SetCookie(w, cookie)
 
-	delete(accessTokens, sessionId)
+	_, err = handler.Redis.Set(context.Background(), "access_token:session:"+sessionId, "", 0).Result()
+	if err != nil {
+		return &HTTPError{
+			Code:    http.StatusInternalServerError,
+			Message: "Logout error",
+			Err:     fmt.Errorf("keycloak logout: access token removal: %w", err),
+		}
+	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse{
 		Status:  "success",
