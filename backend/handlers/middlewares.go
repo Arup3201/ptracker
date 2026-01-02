@@ -127,7 +127,8 @@ func Authorize(redis *redis.Client,
 				}
 			}
 
-			accessToken, err := redis.Get(context.Background(), "access_token:session:"+sessionId).Result()
+			tokenKey := utils.GetAccessTokenKey(sessionId)
+			accessToken, err := redis.Get(context.Background(), tokenKey).Result()
 			if err != nil {
 				return &HTTPError{
 					Code:    http.StatusUnauthorized,
@@ -271,7 +272,7 @@ func TokenBucketRateLimiter(rdc *redis.Client, capacity, rate int) RateLimiter {
 				return fmt.Errorf("rate limiter get user id: %w", err)
 			}
 
-			redisKey := "bucket:user:" + userId
+			redisKey := utils.GetBucketKey(userId)
 			allow, err := bucket.AllowRequest(redisKey)
 			if err != nil {
 				return fmt.Errorf("rate limiter allow request: %w", err)
