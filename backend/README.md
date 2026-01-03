@@ -170,9 +170,18 @@ Before running the `migrate` command, you would need the CLI. You can install th
 
 ## API Endpoints
 
+**All endpoints have `/api` prefix**
+
 ## **Auth**
 
 Authentication is managed by Keycloak.
+
+Endpoints:
+
+1. `/auth/login`: Start keycloak login process.
+2. `/auth/callback`: Keycloak will redirect authorization code to this endpoint where sessions cookie is created.
+3. `/auth/refresh`: Refresh token with keycloak.
+4. `/auth/logout`: Logout by cleaning cookie, session data.
 
 ### **Tokens and session_id**
 
@@ -253,6 +262,61 @@ Create a project. Any authenticated user can create a project. If `name` is miss
     "message": "Project 'name' is missing"
   }
 }
+```
+
+`401 Unauthorized`
+
+```json
+{
+  "status": "error",
+  "error": {
+    "id": "unauthorized",
+    "message": "User is not authorized"
+  }
+}
+```
+
+### **GET /projects**
+
+Get all projects with details of the project and the task statistics inside them.
+
+**Response**
+
+`200 OK`
+
+```json
+  "status": "success",
+  "data": [
+    {
+      "id": "a3f8b1ce-92d4-4c1b-b8df-5e71a2c6c901",
+      "name": "PROJECT A",
+      "code": "XYZ",
+      "description": "Blah blah blah",
+      "owner": {
+        "id": "f92a07cd-1e6f-4df3-9e70-9ad94f0d0ed3",
+        "username": "USER_A"
+      },
+      "created_at": "2025-12-02T10:40:00Z",
+      "updated_at": "2025-12-02T10:40:00Z"
+    },
+    {
+      "id": "edf8b2da-10e6-4c1b-b8df-5e71a2c6c901",
+      "name": "PROJECT B",
+      "code": "ABC",
+      "description": "Blah blah blah",
+      "owner": {
+        "id": "f92a07cd-1e6f-4df3-9e70-9ad94f0d0ed3",
+        "username": "USER_A"
+      },
+      "created_at": "2025-12-02T10:40:00Z",
+      "updated_at": "2025-12-02T10:40:00Z"
+    },
+    // ...
+  ],
+  "page": 4,
+  "limit": 10,
+  "total": 50,
+  "has_next": true
 ```
 
 `401 Unauthorized`
