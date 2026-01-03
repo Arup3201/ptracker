@@ -1,5 +1,7 @@
-import type { Project } from "../types/project.ts";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { MapProject, type Project, type ProjectApi } from "../types/project.ts";
+import { ApiRequest } from "../api/request.ts";
 import { TopBar } from "../components/topbar.tsx";
 import {
   Table,
@@ -15,8 +17,26 @@ import { CreateProjectModal } from "../components/create-project.tsx";
 
 export function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
-  const [projects, _] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [query, setQuery] = useState("");
+
+  const getProjects = async () => {
+    try {
+      const projects = await ApiRequest<ProjectApi[], Project[]>(
+        "/projects",
+        "GET",
+        null,
+        (data) => data.map(MapProject)
+      );
+      setProjects(projects || []);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  useEffect(() => {
+    getProjects();
+  }, []);
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
