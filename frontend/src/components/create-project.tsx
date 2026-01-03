@@ -1,6 +1,7 @@
 import { useState } from "react";
 import clsx from "clsx";
 import { Modal } from "./modal";
+import { Button } from "./button";
 
 type CreateProjectModalProps = {
   open: boolean;
@@ -116,26 +117,13 @@ export const CreateProjectModal = ({
           </form>
 
           <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--border-muted)">
-            <button
-              type="button"
-              className="h-8 rounded-xs border border-(--border-default) px-3 text-sm text-(--text-primary) hover:bg-(--bg-surface)"
-              onClick={onClose}
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
 
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className={clsx(
-                "h-8 rounded-xs px-3 text-sm font-medium",
-                name.trim()
-                  ? "bg-(--primary) text-(--text-primary) hover:bg-(--primary-hover)"
-                  : "bg-(--border-muted) text-(--text-muted) cursor-not-allowed"
-              )}
-            >
+            <Button type="submit" disabled={!name.trim()}>
               Create project
-            </button>
+            </Button>
           </div>
         </>
       }
