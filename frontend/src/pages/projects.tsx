@@ -11,9 +11,11 @@ import {
 } from "../components/table.tsx";
 import { Button } from "../components/button";
 import { Input } from "../components/input.tsx";
+import { CreateProjectModal } from "../components/create-project.tsx";
 
 export function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [projects, _] = useState<Project[]>([]);
   const [query, setQuery] = useState("");
 
   const filteredProjects = useMemo(() => {
@@ -26,7 +28,12 @@ export function ProjectsPage() {
 
   return (
     <>
-      <TopBar title="Projects" actions={<Button>New Project</Button>} />
+      <TopBar
+        title="Projects"
+        actions={
+          <Button onClick={() => setShowModal(true)}>New Project</Button>
+        }
+      />
 
       <div className="flex-1 p-4 space-y-4">
         <div className="w-90">
@@ -80,6 +87,11 @@ export function ProjectsPage() {
           </TableBody>
         </Table>
       </div>
+
+      <CreateProjectModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+      />
     </>
   );
 }
