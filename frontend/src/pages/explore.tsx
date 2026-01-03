@@ -4,28 +4,6 @@ import { Button } from "../components/button";
 import { TopBar } from "../components/topbar";
 import { Input } from "../components/input";
 
-// Mock data (replace with API later)
-const projects = [
-  {
-    id: 1,
-    name: "Personal Expense Tracker",
-    description:
-      "Building a minimal expense tracker to understand PostgreSQL deeply and design clean APIs.",
-  },
-  {
-    id: 2,
-    name: "Workflow Automation Tool",
-    description:
-      "An open-source alternative to n8n focusing on agentic workflows and extensibility.",
-  },
-  {
-    id: 3,
-    name: "Developer Forum",
-    description:
-      "A community-driven forum where developers can discuss, learn, and grow together.",
-  },
-];
-
 function ProjectCard({ project }: { project: Project }) {
   return (
     <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)">
@@ -43,6 +21,7 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 export default function ExploreProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [query, setQuery] = useState("");
 
   const filteredProjects = projects.filter(
@@ -52,7 +31,7 @@ export default function ExploreProjectsPage() {
   );
 
   return (
-    <div className="flex flex-1 flex-col">
+    <>
       <TopBar title="Explore Projects" />
 
       <div className="p-4 space-y-4">
@@ -78,6 +57,6 @@ export default function ExploreProjectsPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 }
