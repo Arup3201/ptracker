@@ -1,3 +1,4 @@
+import type { Project } from "../types/project.ts";
 import { useMemo, useState } from "react";
 import { TopBar } from "../components/topbar.tsx";
 import {
@@ -11,186 +12,20 @@ import {
 import { Button } from "../components/button";
 import { Input } from "../components/input.tsx";
 
-/**
- * Temporary shape — replace with real data later
- */
-interface Project {
-  id: string;
-  name: string;
-  role: "Owner" | "Member";
-  ongoingCount: number;
-  unassignedCount: number;
-  updatedAt: string;
-}
-
-const PROJECTS: Project[] = [
-  {
-    id: "1",
-    name: "Payments Revamp",
-    role: "Owner",
-    ongoingCount: 3,
-    unassignedCount: 1,
-    updatedAt: "2h ago",
-  },
-  {
-    id: "2",
-    name: "Auth Refactor",
-    role: "Member",
-    ongoingCount: 1,
-    unassignedCount: 0,
-    updatedAt: "1d ago",
-  },
-  {
-    id: "3",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "4",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "5",
-    name: "Payments Revamp",
-    role: "Owner",
-    ongoingCount: 3,
-    unassignedCount: 1,
-    updatedAt: "2h ago",
-  },
-  {
-    id: "6",
-    name: "Auth Refactor",
-    role: "Member",
-    ongoingCount: 1,
-    unassignedCount: 0,
-    updatedAt: "1d ago",
-  },
-  {
-    id: "7",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "8",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "9",
-    name: "Payments Revamp",
-    role: "Owner",
-    ongoingCount: 3,
-    unassignedCount: 1,
-    updatedAt: "2h ago",
-  },
-  {
-    id: "10",
-    name: "Auth Refactor",
-    role: "Member",
-    ongoingCount: 1,
-    unassignedCount: 0,
-    updatedAt: "1d ago",
-  },
-  {
-    id: "11",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "12",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "13",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "14",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "15",
-    name: "Payments Revamp",
-    role: "Owner",
-    ongoingCount: 3,
-    unassignedCount: 1,
-    updatedAt: "2h ago",
-  },
-  {
-    id: "16",
-    name: "Auth Refactor",
-    role: "Member",
-    ongoingCount: 1,
-    unassignedCount: 0,
-    updatedAt: "1d ago",
-  },
-  {
-    id: "17",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "18",
-    name: "Internal Tooling",
-    role: "Owner",
-    ongoingCount: 0,
-    unassignedCount: 2,
-    updatedAt: "4d ago",
-  },
-  {
-    id: "19",
-    name: "Payments Revamp",
-    role: "Owner",
-    ongoingCount: 3,
-    unassignedCount: 1,
-    updatedAt: "2h ago",
-  },
-];
-
 export function ProjectsPage() {
+  const [projects, setProjects] = useState<Project[]>([]);
   const [query, setQuery] = useState("");
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase();
 
-    if (!q) return PROJECTS;
+    if (!q) return projects;
 
-    return PROJECTS.filter((project) => project.name.toLowerCase().includes(q));
+    return projects.filter((project) => project.name.toLowerCase().includes(q));
   }, [query]);
 
   return (
-    <main className="flex flex-1 flex-col">
+    <>
       <TopBar title="Projects" actions={<Button>New Project</Button>} />
 
       <div className="flex-1 p-4 space-y-4">
@@ -245,22 +80,19 @@ export function ProjectsPage() {
           </TableBody>
         </Table>
       </div>
-    </main>
+    </>
   );
 }
 
-function renderTaskSignal(project: {
-  ongoingCount: number;
-  unassignedCount: number;
-}) {
+function renderTaskSignal(project: Project) {
   const parts: string[] = [];
 
-  if (project.ongoingCount > 0) {
-    parts.push(`${project.ongoingCount} ongoing`);
+  if (project.ongoingTasks > 0) {
+    parts.push(`${project.ongoingTasks} ongoing`);
   }
 
-  if (project.unassignedCount > 0) {
-    parts.push(`${project.unassignedCount} unassigned`);
+  if (project.unassignedTasks > 0) {
+    parts.push(`${project.unassignedTasks} unassigned`);
   }
 
   return parts.length > 0 ? parts.join(" · ") : "—";
