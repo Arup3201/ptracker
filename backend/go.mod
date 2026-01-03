@@ -9,6 +9,7 @@ require (
 	github.com/lestrrat-go/jwx v1.2.31
 	github.com/mileusna/useragent v1.3.5
 	github.com/redis/go-redis/v9 v9.17.2
+	github.com/rs/cors v1.11.1
 	github.com/stillya/testcontainers-keycloak v0.3.5
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.40.0

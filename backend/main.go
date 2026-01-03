@@ -11,6 +11,7 @@ import (
 	"github.com/ptracker/db"
 	"github.com/ptracker/handlers"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/cors"
 )
 
 var (
@@ -151,7 +152,7 @@ func main() {
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(mux),
+		Handler:      handlers.Logging(cors.Default().Handler(mux)),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
