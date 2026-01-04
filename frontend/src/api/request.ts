@@ -2,11 +2,10 @@ const API_ROOT = "http://localhost:8081/api";
 
 type URLMethod = "GET" | "POST" | "PUT" | "DELETE";
 
-export async function ApiRequest<TApi, TDomain>(
+export async function ApiRequest<TDomain>(
   endpoint: string,
   method: URLMethod,
-  body: Record<string, any> | null,
-  mapper: (data: TApi) => TDomain | null
+  body: Record<string, any> | null
 ): Promise<TDomain | null> {
   if (method == "GET") {
     const response = await fetch(API_ROOT + endpoint, {
@@ -23,7 +22,7 @@ export async function ApiRequest<TApi, TDomain>(
           });
 
           if (response.status == 200) {
-            return await ApiRequest(endpoint, method, body, mapper);
+            return await ApiRequest(endpoint, method, body);
           }
         }
 
@@ -34,7 +33,7 @@ export async function ApiRequest<TApi, TDomain>(
     }
 
     if (json.data) {
-      return mapper ? mapper(json.data) : json.data;
+      return json.data;
     }
   } else {
     const response = await fetch(API_ROOT + endpoint, {
@@ -48,13 +47,15 @@ export async function ApiRequest<TApi, TDomain>(
     const json = await response.json();
     if (response.status >= 400) {
       if (json.status == "error") {
-        const response = await fetch(API_ROOT + "/auth/refresh", {
-          method: "POST",
-          credentials: "include",
-        });
+        if (response.status == 401) {
+          const response = await fetch(API_ROOT + "/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+          });
 
-        if (response.status == 200) {
-          return await ApiRequest(endpoint, method, body, mapper);
+          if (response.status == 200) {
+            return await ApiRequest(endpoint, method, body);
+          }
         }
 
         throw new Error(json.error.message);
@@ -64,7 +65,7 @@ export async function ApiRequest<TApi, TDomain>(
     }
 
     if (json.data) {
-      return mapper ? mapper(json.data) : json.data;
+      return json.data;
     }
   }
 
