@@ -2,6 +2,9 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Modal } from "./modal";
 import { Button } from "./button";
+import { ApiRequest } from "../api/request";
+import { type CreateProjectApi } from "../types/project";
+import { useNavigate } from "react-router";
 
 type CreateProjectModalProps = {
   open: boolean;
@@ -12,6 +15,8 @@ export const CreateProjectModal = ({
   open,
   onClose,
 }: CreateProjectModalProps) => {
+  const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [skills, setSkills] = useState("");
@@ -30,13 +35,16 @@ export const CreateProjectModal = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    console.log({
+    const project = await ApiRequest<CreateProjectApi>("/projects", "POST", {
       name: name.trim(),
       description: description.trim() || undefined,
-      skills: parsedSkills,
+      skills: parsedSkills.join(", "),
     });
 
     onClose();
+    if (project) {
+      navigate("/projects/" + project.id);
+    }
   }
 
   return (
@@ -114,17 +122,17 @@ export const CreateProjectModal = ({
                 Comma-separated values
               </span>
             </div>
+
+            <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--border-muted)">
+              <Button type="button" variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+
+              <Button type="submit" disabled={!name.trim()}>
+                Create project
+              </Button>
+            </div>
           </form>
-
-          <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--border-muted)">
-            <Button type="button" variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-
-            <Button type="submit" disabled={!name.trim()}>
-              Create project
-            </Button>
-          </div>
         </>
       }
     />

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { MapProject, type Project, type ProjectApi } from "../types/project.ts";
+import {
+  MapProject,
+  type ProjectsApiResponse,
+  type ProjectSummary,
+} from "../types/project.ts";
 import { ApiRequest } from "../api/request.ts";
 import { TopBar } from "../components/topbar.tsx";
 import {
@@ -17,18 +21,19 @@ import { CreateProjectModal } from "../components/create-project.tsx";
 
 export function ProjectsPage() {
   const [showModal, setShowModal] = useState(false);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [query, setQuery] = useState("");
 
   const getProjects = async () => {
     try {
-      const projects = await ApiRequest<ProjectApi[], Project[]>(
+      const data = await ApiRequest<ProjectsApiResponse>(
         "/projects",
         "GET",
-        null,
-        (data) => data.map(MapProject)
+        null
       );
-      setProjects(projects || []);
+      if (data?.projects) {
+        setProjects(data.projects.map(MapProject) || []);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -44,7 +49,7 @@ export function ProjectsPage() {
     if (!q) return projects;
 
     return projects.filter((project) => project.name.toLowerCase().includes(q));
-  }, [query]);
+  }, [query, projects]);
 
   return (
     <>
@@ -116,7 +121,7 @@ export function ProjectsPage() {
   );
 }
 
-function renderTaskSignal(project: Project) {
+function renderTaskSignal(project: ProjectSummary) {
   const parts: string[] = [];
 
   if (project.ongoingTasks > 0) {
