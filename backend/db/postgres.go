@@ -228,7 +228,7 @@ func GetAllProjects(userId string, page, limit int) ([]models.ProjectSummary, er
 	rows, err := pgDb.Query(
 		"SELECT "+
 			"p.id, p.name, p.description, p.skills, r.role, "+
-			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, p.created_at, p.updated_at "+
 			"FROM roles as r "+
 			"INNER JOIN projects as p ON r.project_id=p.id "+
 			"LEFT JOIN project_summary as ps ON ps.id=p.id "+
