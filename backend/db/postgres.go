@@ -181,7 +181,7 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 	ctx := context.Background()
 	tx, err := pgDb.BeginTx(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("postgres create project transaction: %w", err)
+		return nil, fmt.Errorf("transaction begin: %w", err)
 	}
 	defer tx.Rollback()
 
@@ -192,20 +192,16 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 		"VALUES($1, $2, $3, $4, $5)",
 		pid, name, description, skills, userId)
 	if err != nil {
-		return nil, fmt.Errorf("postgres insert project row: %w", err)
+		return nil, fmt.Errorf("insert project: %w", err)
 	}
 
 	// insert role as "Owner"
 	_, err = tx.ExecContext(ctx, "INSERT INTO "+
-		"rows(user_id, project_id, role) "+
+		"roles(user_id, project_id, role) "+
 		"VALUES($1, $2, $3)",
-		pid, userId, models.ROLE_OWNER)
+		userId, pid, models.ROLE_OWNER)
 	if err != nil {
-		return nil, fmt.Errorf("postgres create project: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("insert project commit: %w", err)
+		return nil, fmt.Errorf("insert role: %w", err)
 	}
 
 	// get project
@@ -218,7 +214,11 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 		Scan(&project.Id, &project.Name, &project.Description,
 			&project.Owner, &project.Skills, &project.CreatedAt, &project.UpdateAt)
 	if err != nil {
-		return nil, fmt.Errorf("postgres create project get: %w", err)
+		return nil, fmt.Errorf("query created project: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("transaction commit: %w", err)
 	}
 
 	return &project, nil
