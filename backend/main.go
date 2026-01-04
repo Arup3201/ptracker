@@ -160,10 +160,17 @@ func main() {
 	attacher.attach("POST /api/projects", rateLimiter(handlers.CreateProject))
 	attacher.attach("GET /api/projects", handlers.GetAllProjects)
 
+	// cors
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{HOME_URL},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowCredentials: true,
+	})
+
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(cors.Default().Handler(mux)),
+		Handler:      handlers.Logging(cors.Handler(mux)),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
