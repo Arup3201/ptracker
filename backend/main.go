@@ -92,13 +92,17 @@ func getEnvironment() error {
 	return nil
 }
 
-func attachMiddlewares(
-	mux *http.ServeMux,
-	redis *redis.Client,
+type attacher struct {
+	mux            *http.ServeMux
+	redis          *redis.Client
+	kcUrl, kcRealm string
+}
+
+func (a *attacher) attach(
 	pattern string,
 	handler handlers.HTTPErrorHandler) {
-	authMiddleware := handlers.Authorize(redis, KC_URL, KC_REALM)
-	mux.Handle(pattern, handlers.HTTPErrorHandler(authMiddleware(handler)))
+	authMiddleware := handlers.Authorize(a.redis, a.kcUrl, a.kcRealm)
+	a.mux.Handle(pattern, handlers.HTTPErrorHandler(authMiddleware(handler)))
 }
 
 func main() {
@@ -141,18 +145,32 @@ func main() {
 		log.Fatalf("[ERROR] server failed to create keycloak handler: %s", err)
 	}
 
-	attachMiddlewares(mux, redis, "GET /api/auth/login", kcHandler.KeycloakLogin)
-	attachMiddlewares(mux, redis, "GET /api/auth/callback", kcHandler.KeycloakCallback)
-	attachMiddlewares(mux, redis, "POST /api/auth/refresh", kcHandler.KeycloakRefresh)
-	attachMiddlewares(mux, redis, "POST /api/auth/logout", kcHandler.KeycloakLogout)
+	attacher := &attacher{
+		mux:     mux,
+		redis:   redis,
+		kcUrl:   KC_URL,
+		kcRealm: KC_REALM,
+	}
+	attacher.attach("GET /api/auth/login", kcHandler.KeycloakLogin)
+	attacher.attach("GET /api/auth/callback", kcHandler.KeycloakCallback)
+	attacher.attach("POST /api/auth/refresh", kcHandler.KeycloakRefresh)
+	attacher.attach("POST /api/auth/logout", kcHandler.KeycloakLogout)
 
 	rateLimiter := handlers.TokenBucketRateLimiter(redis, 5, 2)
-	attachMiddlewares(mux, redis, "POST /api/projects", rateLimiter(handlers.CreateProject))
+	attacher.attach("POST /api/projects", rateLimiter(handlers.CreateProject))
+	attacher.attach("GET /api/projects", handlers.GetAllProjects)
+
+	// cors
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{HOME_URL},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowCredentials: true,
+	})
 
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(cors.Default().Handler(mux)),
+		Handler:      handlers.Logging(cors.Handler(mux)),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

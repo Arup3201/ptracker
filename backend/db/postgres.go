@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -177,17 +178,35 @@ func GetUserBySub(sub string) (*models.User, error) {
 }
 
 func CreateProject(name, description, skills, userId string) (*models.Project, error) {
+	ctx := context.Background()
+	tx, err := pgDb.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("transaction begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	// insert project row
 	pid := uuid.NewString()
-	_, err := pgDb.Exec("INSERT INTO "+
+	_, err = tx.ExecContext(ctx, "INSERT INTO "+
 		"projects(id, name, description, skills, owner) "+
 		"VALUES($1, $2, $3, $4, $5)",
 		pid, name, description, skills, userId)
 	if err != nil {
-		return nil, fmt.Errorf("postgres create project: %w", err)
+		return nil, fmt.Errorf("insert project: %w", err)
 	}
 
+	// insert role as "Owner"
+	_, err = tx.ExecContext(ctx, "INSERT INTO "+
+		"roles(user_id, project_id, role) "+
+		"VALUES($1, $2, $3)",
+		userId, pid, models.ROLE_OWNER)
+	if err != nil {
+		return nil, fmt.Errorf("insert role: %w", err)
+	}
+
+	// get project
 	var project models.Project
-	err = pgDb.QueryRow("SELECT "+
+	err = tx.QueryRowContext(ctx, "SELECT "+
 		"id, name, description, owner, skills, created_at, updated_at "+
 		"FROM projects "+
 		"WHERE id=($1)",
@@ -195,8 +214,57 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 		Scan(&project.Id, &project.Name, &project.Description,
 			&project.Owner, &project.Skills, &project.CreatedAt, &project.UpdateAt)
 	if err != nil {
-		return nil, fmt.Errorf("postgres create project get: %w", err)
+		return nil, fmt.Errorf("query created project: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("transaction commit: %w", err)
 	}
 
 	return &project, nil
+}
+
+func GetAllProjects(userId string, page, limit int) ([]models.ProjectSummary, error) {
+	rows, err := pgDb.Query(
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, r.role, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, p.created_at, p.updated_at "+
+			"FROM roles as r "+
+			"INNER JOIN projects as p ON r.project_id=p.id "+
+			"LEFT JOIN project_summary as ps ON ps.id=p.id "+
+			"WHERE r.user_id=($1)",
+		userId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get all projects query: %w", err)
+	}
+
+	var projects []models.ProjectSummary
+	for rows.Next() {
+		var p models.ProjectSummary
+		err := rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
+			&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
+			&p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
+		}
+		projects = append(projects, p)
+	}
+
+	return projects, nil
+}
+
+func GetProjectsCount(userId string) (int, error) {
+	var cnt int
+	err := pgDb.QueryRow("SELECT COUNT(p.id) "+
+		"FROM projects as p "+
+		"LEFT JOIN roles as r ON p.id=r.project_id "+
+		"WHERE r.user_id=($1)"+
+		"GROUP BY p.id", userId).Scan(&cnt)
+	if err == sql.ErrNoRows {
+		return 0, apierr.ErrResourceNotFound
+	} else if err != nil {
+		return 0, fmt.Errorf("postgres get active session: %w", err)
+	}
+
+	return cnt, nil
 }

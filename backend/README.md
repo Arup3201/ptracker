@@ -243,9 +243,9 @@ Create a project. Any authenticated user can create a project. If `name` is miss
   "status": "success",
   "data": {
     "id": "a3f8b1ce-92d4-4c1b-b8df-5e71a2c6c901",
-    "code": "XYZ",
     "name": "PROJECT A",
     "description": "Blah blah blah",
+    "skills": "C++, Python",
     "created_at": "2025-12-02T10:40:00Z",
     "updated_at": null
   }
@@ -278,7 +278,7 @@ Create a project. Any authenticated user can create a project. If `name` is miss
 
 ### **GET /projects**
 
-Get all projects with details of the project and the task statistics inside them.
+Get all projects with details of the project and the task statistics inside them. The request query takes `page` and `limit`. E.g. `/projects?page=1&limit=10`. Without the query parameters the API assumes `page=1` and `limit=10`.
 
 **Response**
 
@@ -286,37 +286,41 @@ Get all projects with details of the project and the task statistics inside them
 
 ```json
   "status": "success",
-  "data": [
-    {
-      "id": "a3f8b1ce-92d4-4c1b-b8df-5e71a2c6c901",
-      "name": "PROJECT A",
-      "code": "XYZ",
-      "description": "Blah blah blah",
-      "owner": {
-        "id": "f92a07cd-1e6f-4df3-9e70-9ad94f0d0ed3",
-        "username": "USER_A"
+  "data": {
+    "projects":[
+      {
+        "id": "a3f8b1ce-92d4-4c1b-b8df-5e71a2c6c901",
+        "name": "PROJECT A",
+        "description": "Blah blah blah",
+        "skills": "C++, Python",
+        "role": "Owner",
+        "unassigned_tasks": 1,
+        "ongoing_tasks": 2,
+        "completed_tasks": 0,
+        "abandoned_tasks": 0,
+        "created_at": "2025-12-02T10:40:00Z",
+        "updated_at": "2025-12-02T10:40:00Z"
       },
-      "created_at": "2025-12-02T10:40:00Z",
-      "updated_at": "2025-12-02T10:40:00Z"
-    },
-    {
-      "id": "edf8b2da-10e6-4c1b-b8df-5e71a2c6c901",
-      "name": "PROJECT B",
-      "code": "ABC",
-      "description": "Blah blah blah",
-      "owner": {
-        "id": "f92a07cd-1e6f-4df3-9e70-9ad94f0d0ed3",
-        "username": "USER_A"
+      {
+        "id": "edf8b2da-10e6-4c1b-b8df-5e71a2c6c901",
+        "name": "PROJECT B",
+        "description": "Blah blah blah",
+        "skills": "C, Java",
+        "role": "Member",
+        "unassigned_tasks": 0,
+        "ongoing_tasks": 3,
+        "completed_tasks": 1,
+        "abandoned_tasks": 0,
+        "created_at": "2025-12-02T10:40:00Z",
+        "updated_at": "2025-12-02T10:40:00Z"
       },
-      "created_at": "2025-12-02T10:40:00Z",
-      "updated_at": "2025-12-02T10:40:00Z"
-    },
-    // ...
-  ],
-  "page": 4,
-  "limit": 10,
-  "total": 50,
-  "has_next": true
+      // ...
+    ],
+    "page": 4,
+    "limit": 10,
+    "total": 50,
+    "has_next": true
+  }
 ```
 
 `401 Unauthorized`

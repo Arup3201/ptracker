@@ -1,6 +1,6 @@
 type Role = "Owner" | "Member";
 
-export interface ProjectApi {
+export interface ProjectSummaryApi {
   id: string;
   name: string;
   description?: string;
@@ -13,7 +13,7 @@ export interface ProjectApi {
   updated_at?: string;
 }
 
-export interface Project {
+export interface ProjectSummary {
   id: string;
   name: string;
   description?: string;
@@ -26,7 +26,14 @@ export interface Project {
   updatedAt?: string;
 }
 
-export const MapProject = (p: ProjectApi): Project => ({
+export interface ProjectsApiResponse {
+  projects: ProjectSummaryApi[];
+  page: number;
+  limit: number;
+  hasNext: boolean;
+}
+
+export const MapProject = (p: ProjectSummaryApi): ProjectSummary => ({
   id: p.id,
   name: p.name,
   description: p.description,
@@ -38,3 +45,12 @@ export const MapProject = (p: ProjectApi): Project => ({
   createdAt: p.created_at,
   updatedAt: p.updated_at,
 });
+
+export interface CreateProjectApi {
+  id: string;
+  name: string;
+  description?: string;
+  skills?: string;
+  created_at: string;
+  updated_at?: string;
+}

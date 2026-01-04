@@ -4,20 +4,88 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/ptracker/apierr"
 	"github.com/ptracker/db"
+	"github.com/ptracker/models"
 	"github.com/ptracker/utils"
 )
 
-type CreateProjectRequest struct {
-	Name        string `json:"name" validate:"required"`
-	Description string `json:"description"`
-	Skills      string `json:"skills"`
+func GetAllProjects(w http.ResponseWriter, r *http.Request) error {
+	queryPage := r.URL.Query().Get("page")
+	queryLimit := r.URL.Query().Get("limit")
+
+	var page, limit int
+	if queryPage != "" {
+		var err error
+		page, err = strconv.Atoi(queryPage)
+		if err != nil {
+			return &HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: "Query 'page' value should be integer",
+				Err:     fmt.Errorf("create project: validate payload: %w", err),
+			}
+		}
+	} else {
+		page = 1
+	}
+	if queryLimit != "" {
+		var err error
+		limit, err = strconv.Atoi(queryLimit)
+		if err != nil {
+			return &HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: "Query 'limit' value should be integer",
+				Err:     fmt.Errorf("create project: validate payload: %w", err),
+			}
+		}
+	} else {
+		limit = 10
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	data, err := db.GetAllProjects(userId, page, limit)
+	if err != nil {
+		return fmt.Errorf("get projects from db: %w", err)
+	}
+
+	projectSummaries := []models.ProjectSummary{}
+	for _, row := range data {
+		projectSummaries = append(projectSummaries, models.ProjectSummary{
+			Id:   row.Id,
+			Name: row.Name,
+		})
+	}
+
+	cnt, err := db.GetProjectsCount(userId)
+	if err != apierr.ErrResourceNotFound && err != nil {
+		return fmt.Errorf("get projects from db: %w", err)
+	}
+
+	hasNext := cnt > page*limit
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: HTTPData{
+			"projects": projectSummaries,
+			"page":     page,
+			"limit":    limit,
+			"total":    cnt,
+			"has_next": hasNext,
+		},
+	})
+
+	return nil
 }
 
 func CreateProject(w http.ResponseWriter, r *http.Request) error {
-	var payload CreateProjectRequest
+	var payload models.CreateProjectRequest
 
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
