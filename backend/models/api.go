@@ -21,3 +21,25 @@ type ProjectSummary struct {
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
+
+type Owner struct {
+	Id          string
+	Username    string
+	DisplayName string
+}
+
+type ProjectDetails struct {
+	Id              string
+	Name            string
+	Description     *string
+	Skills          *string
+	Owner           Owner
+	Role            string
+	UnassignedTasks int
+	OngoingTasks    int
+	CompletedTasks  int
+	AbandonedTasks  int
+	MemberCount     int
+	CreatedAt       time.Time
+	UpdatedAt       *time.Time
+}

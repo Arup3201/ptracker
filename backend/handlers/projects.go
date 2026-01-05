@@ -136,3 +136,61 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 	})
 	return nil
 }
+
+func GetProject(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.URL.Query().Get("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query project 'id' can't be empty",
+			Err:     fmt.Errorf("get project id: empty project 'id'"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get context user: %w", err)
+	}
+
+	access, err := db.CanAccess(userId, projectId)
+	if err != nil {
+		return fmt.Errorf("database check access: %w", err)
+	}
+	if !access {
+		return &HTTPError{
+			Code:    http.StatusForbidden,
+			ErrId:   ERR_ACCESS_DENIED,
+			Message: "User is not a member of the project",
+		}
+	}
+
+	project, err := db.GetProjectDetails(userId, projectId)
+	if err != nil {
+		return fmt.Errorf("database get project details: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: HTTPData{
+			"id":          project.Id,
+			"name":        project.Name,
+			"description": project.Description,
+			"skills":      project.Skills,
+			"owner": map[string]any{
+				"id":           project.Owner.Id,
+				"username":     project.Owner.Username,
+				"display_name": project.Owner.DisplayName,
+			},
+			"role":             project.Role,
+			"unassigned_tasks": project.UnassignedTasks,
+			"ongoing_tasks":    project.OngoingTasks,
+			"completed_tasks":  project.CompletedTasks,
+			"abandoned_tasks":  project.AbandonedTasks,
+			"total_members":    project.MemberCount,
+			"created_at":       project.CreatedAt,
+			"updated_at":       project.UpdatedAt,
+		},
+	})
+
+	return nil
+}
