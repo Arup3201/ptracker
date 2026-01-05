@@ -26,6 +26,7 @@ type HTTPErrorResponse struct {
 type HTTPError struct {
 	Code    int
 	Message string
+	ErrId   string
 	Err     error
 }
 

@@ -34,6 +34,7 @@ func Logging(next http.Handler) http.Handler {
 // HTTP Error ID
 const (
 	ERR_UNAUTHORIZED       = "unauthorized"
+	ERR_INVALID_QUERY      = "invalid_query"
 	ERR_INVALID_BODY       = "invalid_body"
 	ERR_ACCESS_DENIED      = "access_denied"
 	ERR_RESOURCE_NOT_FOUND = "resource_not_found"
@@ -48,48 +49,13 @@ func (fn HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		if httpError, ok := err.(*HTTPError); ok {
 			w.WriteHeader(httpError.Code)
-			switch httpError.Code {
-			case http.StatusBadRequest:
-				json.NewEncoder(w).Encode(HTTPErrorResponse{
-					Status: "error",
-					Error: ErrorBody{
-						Id:      ERR_INVALID_BODY,
-						Message: httpError.Message,
-					},
-				})
-			case http.StatusUnauthorized:
-				json.NewEncoder(w).Encode(HTTPErrorResponse{
-					Status: "error",
-					Error: ErrorBody{
-						Id:      ERR_UNAUTHORIZED,
-						Message: httpError.Message,
-					},
-				})
-			case http.StatusForbidden:
-				json.NewEncoder(w).Encode(HTTPErrorResponse{
-					Status: "error",
-					Error: ErrorBody{
-						Id:      ERR_ACCESS_DENIED,
-						Message: httpError.Message,
-					},
-				})
-			case http.StatusNotFound:
-				json.NewEncoder(w).Encode(HTTPErrorResponse{
-					Status: "error",
-					Error: ErrorBody{
-						Id:      ERR_RESOURCE_NOT_FOUND,
-						Message: httpError.Message,
-					},
-				})
-			default:
-				json.NewEncoder(w).Encode(HTTPErrorResponse{
-					Status: "error",
-					Error: ErrorBody{
-						Id:      ERR_SERVER_ERROR,
-						Message: httpError.Message,
-					},
-				})
-			}
+			json.NewEncoder(w).Encode(HTTPErrorResponse{
+				Status: "error",
+				Error: ErrorBody{
+					Id:      httpError.ErrId,
+					Message: httpError.Message,
+				},
+			})
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(HTTPErrorResponse{
