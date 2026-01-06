@@ -249,6 +249,7 @@ func GetAllProjects(userId string, page, limit int) ([]models.ProjectSummary, er
 	if err != nil {
 		return nil, fmt.Errorf("postgres get all projects query: %w", err)
 	}
+	defer rows.Close()
 
 	var projects []models.ProjectSummary
 	for rows.Next() {
@@ -260,6 +261,9 @@ func GetAllProjects(userId string, page, limit int) ([]models.ProjectSummary, er
 			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
 		}
 		projects = append(projects, p)
+	}
+	if err := rows.Err(); err != nil {
+		return projects, err
 	}
 
 	return projects, nil

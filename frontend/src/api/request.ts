@@ -26,6 +26,10 @@ export async function ApiRequest<TDomain>(
           }
         }
 
+        if (response.status === 401) {
+          window.location.href = "/login";
+        }
+
         throw new Error(json.error.message);
       } else {
         throw new Error("Something went wrong there. Please try again.");
