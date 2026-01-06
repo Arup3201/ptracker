@@ -5,6 +5,7 @@ import { Dashboard } from "./pages/dashboard";
 import { AppLayout } from "./layout/app-layout";
 import { ProjectsPage } from "./pages/projects";
 import ExploreProjectsPage from "./pages/explore";
+import ProjectDetailsPage from "./pages/project-details";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
         <Route element={<AppLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:id" element={<ProjectDetailsPage />} />
           <Route path="/explore" element={<ExploreProjectsPage />} />
         </Route>
       </Routes>
