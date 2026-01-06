@@ -25,6 +25,7 @@ func GetAllProjects(w http.ResponseWriter, r *http.Request) error {
 			return &HTTPError{
 				Code:    http.StatusBadRequest,
 				Message: "Query 'page' value should be integer",
+				ErrId:   ERR_INVALID_QUERY,
 				Err:     fmt.Errorf("create project: validate payload: %w", err),
 			}
 		}
@@ -38,6 +39,7 @@ func GetAllProjects(w http.ResponseWriter, r *http.Request) error {
 			return &HTTPError{
 				Code:    http.StatusBadRequest,
 				Message: "Query 'limit' value should be integer",
+				ErrId:   ERR_INVALID_QUERY,
 				Err:     fmt.Errorf("create project: validate payload: %w", err),
 			}
 		}
@@ -70,14 +72,13 @@ func GetAllProjects(w http.ResponseWriter, r *http.Request) error {
 
 	hasNext := cnt > page*limit
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectSummaryResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: HTTPData{
-			"projects": projectSummaries,
-			"page":     page,
-			"limit":    limit,
-			"total":    cnt,
-			"has_next": hasNext,
+		Data: &models.ProjectSummaryResponse{
+			ProjectSummaries: projectSummaries,
+			Page:             page,
+			Limit:            limit,
+			HasNext:          hasNext,
 		},
 	})
 
@@ -93,6 +94,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
 			Message: "Project must have 'name' with optional 'description' and 'skills' fields only",
+			ErrId:   ERR_INVALID_BODY,
 			Err:     fmt.Errorf("create project: decode payload: %w", err),
 		}
 	}
@@ -100,6 +102,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
 			Message: "Project 'name' is missing",
+			ErrId:   ERR_INVALID_BODY,
 			Err:     fmt.Errorf("create project: validate payload: %w", err),
 		}
 	}
@@ -108,6 +111,7 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
 			Message: "Project 'name' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
 			Err:     fmt.Errorf("create project: empty project 'name' provided"),
 		}
 	}
@@ -122,23 +126,15 @@ func CreateProject(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("create project: create project: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.CreatedProject]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: HTTPData{
-			"id":          project.Id,
-			"name":        project.Name,
-			"description": project.Description,
-			"skills":      project.Skills,
-			"owner":       project.Owner,
-			"created_at":  project.CreatedAt,
-			"updated_at":  project.UpdateAt,
-		},
+		Data:   project,
 	})
 	return nil
 }
 
 func GetProject(w http.ResponseWriter, r *http.Request) error {
-	projectId := r.URL.Query().Get("id")
+	projectId := r.PathValue("id")
 	if projectId == "" {
 		return &HTTPError{
 			Code:    http.StatusBadRequest,
@@ -169,27 +165,9 @@ func GetProject(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("database get project details: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectDetails]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: HTTPData{
-			"id":          project.Id,
-			"name":        project.Name,
-			"description": project.Description,
-			"skills":      project.Skills,
-			"owner": map[string]any{
-				"id":           project.Owner.Id,
-				"username":     project.Owner.Username,
-				"display_name": project.Owner.DisplayName,
-			},
-			"role":             project.Role,
-			"unassigned_tasks": project.UnassignedTasks,
-			"ongoing_tasks":    project.OngoingTasks,
-			"completed_tasks":  project.CompletedTasks,
-			"abandoned_tasks":  project.AbandonedTasks,
-			"total_members":    project.MemberCount,
-			"created_at":       project.CreatedAt,
-			"updated_at":       project.UpdatedAt,
-		},
+		Data:   project,
 	})
 
 	return nil

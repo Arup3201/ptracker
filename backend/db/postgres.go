@@ -177,7 +177,7 @@ func GetUserBySub(sub string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateProject(name, description, skills, userId string) (*models.Project, error) {
+func CreateProject(name, description, skills, userId string) (*models.CreatedProject, error) {
 	ctx := context.Background()
 	tx, err := pgDb.BeginTx(ctx, nil)
 	if err != nil {
@@ -205,16 +205,28 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 	}
 
 	// get project
-	var project models.Project
+	var project models.CreatedProject
 	err = tx.QueryRowContext(ctx, "SELECT "+
 		"id, name, description, owner, skills, created_at, updated_at "+
 		"FROM projects "+
 		"WHERE id=($1)",
 		pid).
 		Scan(&project.Id, &project.Name, &project.Description,
-			&project.Owner, &project.Skills, &project.CreatedAt, &project.UpdateAt)
+			&project.Owner.Id, &project.Skills, &project.CreatedAt, &project.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("query created project: %w", err)
+	}
+
+	err = tx.QueryRowContext(
+		ctx,
+		"SELECT "+
+			"username, display_name "+
+			"FROM users "+
+			"WHERE id=($1)",
+		project.Owner.Id,
+	).Scan(&project.Owner.Username, &project.Owner.DisplayName)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query owner details: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

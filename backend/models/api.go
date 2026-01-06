@@ -8,6 +8,22 @@ type CreateProjectRequest struct {
 	Skills      string `json:"skills"`
 }
 
+type Owner struct {
+	Id          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+}
+
+type CreatedProject struct {
+	Id          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description,omitempty"`
+	Skills      *string    `json:"skills,omitempty"`
+	Owner       Owner      `json:"owner"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at,omitempty"`
+}
+
 type ProjectSummary struct {
 	Id              string     `json:"id"`
 	Name            string     `json:"name"`
@@ -22,24 +38,25 @@ type ProjectSummary struct {
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
 
-type Owner struct {
-	Id          string
-	Username    string
-	DisplayName string
+type ProjectSummaryResponse struct {
+	ProjectSummaries []ProjectSummary `json:"projects"`
+	Page             int              `json:"page"`
+	Limit            int              `json:"limit"`
+	HasNext          bool             `json:"has_next"`
 }
 
 type ProjectDetails struct {
-	Id              string
-	Name            string
-	Description     *string
-	Skills          *string
-	Owner           Owner
-	Role            string
-	UnassignedTasks int
-	OngoingTasks    int
-	CompletedTasks  int
-	AbandonedTasks  int
-	MemberCount     int
-	CreatedAt       time.Time
-	UpdatedAt       *time.Time
+	Id              string     `json:"id"`
+	Name            string     `json:"name"`
+	Description     *string    `json:"description,omitempty"`
+	Skills          *string    `json:"skills,omitempty"`
+	Owner           Owner      `json:"owner"`
+	Role            string     `json:"role"`
+	UnassignedTasks int        `json:"unassigned_tasks"`
+	OngoingTasks    int        `json:"ongoing_tasks"`
+	CompletedTasks  int        `json:"completed_tasks"`
+	AbandonedTasks  int        `json:"abandoned_tasks"`
+	MemberCount     int        `json:"member_count"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       *time.Time `json:"updated_at,omitempty"`
 }
