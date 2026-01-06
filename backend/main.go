@@ -159,7 +159,7 @@ func main() {
 	rateLimiter := handlers.TokenBucketRateLimiter(redis, 5, 2)
 	attacher.attach("POST /api/projects", rateLimiter(handlers.CreateProject))
 	attacher.attach("GET /api/projects", handlers.GetAllProjects)
-	attacher.attach("GET /api/projects/:id", handlers.GetProject)
+	attacher.attach("GET /api/projects/{id}", handlers.GetProject)
 
 	// cors
 	cors := cors.New(cors.Options{
