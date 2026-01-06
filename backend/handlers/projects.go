@@ -52,17 +52,9 @@ func GetAllProjects(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	data, err := db.GetAllProjects(userId, page, limit)
+	projectSummaries, err := db.GetAllProjects(userId, page, limit)
 	if err != nil {
 		return fmt.Errorf("get projects from db: %w", err)
-	}
-
-	projectSummaries := []models.ProjectSummary{}
-	for _, row := range data {
-		projectSummaries = append(projectSummaries, models.ProjectSummary{
-			Id:   row.Id,
-			Name: row.Name,
-		})
 	}
 
 	cnt, err := db.GetProjectsCount(userId)
