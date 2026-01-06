@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/db"
+	"github.com/ptracker/models"
 	"github.com/ptracker/testhelpers"
 	"github.com/redis/go-redis/v9"
 	keycloak "github.com/stillya/testcontainers-keycloak"
@@ -219,6 +220,7 @@ func (suite *ProjectTestSuite) SetupSuite() {
 	}
 
 	atch.attachMiddleware("POST /api/projects", CreateProject)
+	atch.attachMiddleware("GET /api/projects/{id}", GetProject)
 }
 
 func (suite *ProjectTestSuite) TearDownSuite() {
@@ -267,14 +269,14 @@ func (suite *ProjectTestSuite) TestCreateProject() {
 
 		suite.mux.ServeHTTP(res, req)
 
-		var responseBody HTTPSuccessResponse
+		var responseBody HTTPSuccessResponse[models.CreatedProject]
 		if err := json.NewDecoder(res.Body).Decode(&responseBody); err != nil {
 			log.Fatal(err)
 		}
 		assert.Equal(t, RESPONSE_SUCCESS_STATUS, responseBody.Status)
-		assert.Equal(t, "PTracker Go", responseBody.Data["name"])
-		assert.Equal(t, "Collaborative project tracking application with Go", responseBody.Data["description"])
-		assert.Equal(t, "Go, React, TypeScript, PostgreSQL, Keycloak", responseBody.Data["skills"])
+		assert.Equal(t, "PTracker Go", responseBody.Data.Name)
+		assert.Equal(t, "Collaborative project tracking application with Go", *responseBody.Data.Description)
+		assert.Equal(t, "Go, React, TypeScript, PostgreSQL, Keycloak", *responseBody.Data.Skills)
 	})
 
 	t.Run("error with missing name in payload", func(t *testing.T) {
@@ -325,6 +327,61 @@ func (suite *ProjectTestSuite) TestCreateProject() {
 		assert.Equal(t, RESPONSE_ERROR_STATUS, responseBody.Status)
 		assert.Equal(t, ERR_INVALID_BODY, responseBody.Error.Id)
 		assert.Equal(t, "Project must have 'name' with optional 'description' and 'skills' fields only", responseBody.Error.Message)
+	})
+}
+
+func (suite *ProjectTestSuite) TestGetProjectDetails() {
+	t := suite.T()
+
+	t.Run("get project details success", func(t *testing.T) {
+		payload := bytes.NewBuffer([]byte(`{
+			"name": "PTracker Go", 
+			"description": "Collaborative project tracking application with Go",
+			"skills": "Go, React, TypeScript, PostgreSQL, Keycloak"
+		}`))
+		req, err := http.NewRequest("POST", "/api/projects", payload)
+		if err != nil {
+			log.Fatal(err)
+		}
+		req.AddCookie(suite.cookie)
+		res := httptest.NewRecorder()
+		suite.mux.ServeHTTP(res, req)
+		if res.Result().StatusCode != http.StatusOK {
+			t.Log("project create failed")
+			t.Fail()
+		}
+		var createdProject HTTPSuccessResponse[models.CreatedProject]
+		if err := json.NewDecoder(res.Body).Decode(&createdProject); err != nil {
+			t.Log("project create decode failed")
+			t.Fail()
+		}
+		projectId := createdProject.Data.Id
+		req, err = http.NewRequest("GET", "/api/projects/"+projectId, nil)
+		if err != nil {
+			t.Log("project get request create failed")
+			t.Fail()
+		}
+		req.AddCookie(suite.cookie)
+		res = httptest.NewRecorder()
+
+		suite.mux.ServeHTTP(res, req)
+
+		assert.Equal(t, http.StatusOK, res.Result().StatusCode)
+		var projectDetails HTTPSuccessResponse[models.ProjectDetails]
+		if err := json.NewDecoder(res.Body).Decode(&projectDetails); err != nil {
+			t.Log("project get decode failed")
+			t.Fail()
+		}
+		assert.Equal(t, RESPONSE_SUCCESS_STATUS, projectDetails.Status)
+		assert.Equal(t, "PTracker Go", projectDetails.Data.Name)
+		assert.Equal(t, "Collaborative project tracking application with Go", *projectDetails.Data.Description)
+		assert.Equal(t, "Go, React, TypeScript, PostgreSQL, Keycloak", *projectDetails.Data.Skills)
+		assert.Equal(t, models.ROLE_OWNER, projectDetails.Data.Role)
+		assert.Equal(t, 0, projectDetails.Data.UnassignedTasks)
+		assert.Equal(t, 0, projectDetails.Data.OngoingTasks)
+		assert.Equal(t, 0, projectDetails.Data.CompletedTasks)
+		assert.Equal(t, 0, projectDetails.Data.AbandonedTasks)
+		assert.Equal(t, 0, projectDetails.Data.MemberCount)
 	})
 }
 

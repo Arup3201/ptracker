@@ -1,11 +1,9 @@
 package handlers
 
-type HTTPData map[string]any
-
-type HTTPSuccessResponse struct {
-	Status  string   `json:"status"`
-	Data    HTTPData `json:"data,omitempty"`
-	Message string   `json:"message,omitempty"`
+type HTTPSuccessResponse[T any] struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+	Data    *T     `json:"data,omitempty"`
 }
 
 const (
@@ -26,6 +24,7 @@ type HTTPErrorResponse struct {
 type HTTPError struct {
 	Code    int
 	Message string
+	ErrId   string
 	Err     error
 }
 

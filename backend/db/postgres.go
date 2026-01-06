@@ -177,7 +177,7 @@ func GetUserBySub(sub string) (*models.User, error) {
 	return &user, nil
 }
 
-func CreateProject(name, description, skills, userId string) (*models.Project, error) {
+func CreateProject(name, description, skills, userId string) (*models.CreatedProject, error) {
 	ctx := context.Background()
 	tx, err := pgDb.BeginTx(ctx, nil)
 	if err != nil {
@@ -205,16 +205,28 @@ func CreateProject(name, description, skills, userId string) (*models.Project, e
 	}
 
 	// get project
-	var project models.Project
+	var project models.CreatedProject
 	err = tx.QueryRowContext(ctx, "SELECT "+
 		"id, name, description, owner, skills, created_at, updated_at "+
 		"FROM projects "+
 		"WHERE id=($1)",
 		pid).
 		Scan(&project.Id, &project.Name, &project.Description,
-			&project.Owner, &project.Skills, &project.CreatedAt, &project.UpdateAt)
+			&project.Owner.Id, &project.Skills, &project.CreatedAt, &project.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("query created project: %w", err)
+	}
+
+	err = tx.QueryRowContext(
+		ctx,
+		"SELECT "+
+			"username, display_name "+
+			"FROM users "+
+			"WHERE id=($1)",
+		project.Owner.Id,
+	).Scan(&project.Owner.Username, &project.Owner.DisplayName)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query owner details: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -267,4 +279,79 @@ func GetProjectsCount(userId string) (int, error) {
 	}
 
 	return cnt, nil
+}
+
+func CanAccess(userId, projectId string) (bool, error) {
+	var userRole string
+	err := pgDb.QueryRow(
+		"SELECT "+
+			"role "+
+			"FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2)",
+		userId, projectId,
+	).Scan(&userRole)
+	if err == sql.ErrNoRows {
+		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("postgres query user role: %w", err)
+	}
+
+	if userRole == models.ROLE_MEMBER || userRole == models.ROLE_OWNER {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error) {
+	var p models.ProjectDetails
+	err := pgDb.QueryRow(
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, p.owner, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects as p "+
+			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
+			"WHERE p.id=($1)",
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner.Id,
+		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
+		&p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query project details: %w", err)
+	}
+
+	err = pgDb.QueryRow(
+		"SELECT "+
+			"COUNT(user_id) "+
+			"FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2) AND role!=($3)",
+		userId, projectId, models.ROLE_OWNER,
+	).Scan(&p.MemberCount)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query total members: %w", err)
+	}
+
+	err = pgDb.QueryRow(
+		"SELECT "+
+			"role "+
+			"FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2)",
+		userId, projectId,
+	).Scan(&p.Role)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query user role: %w", err)
+	}
+
+	err = pgDb.QueryRow(
+		"SELECT "+
+			"username, display_name "+
+			"FROM users "+
+			"WHERE id=($1)",
+		p.Owner.Id,
+	).Scan(&p.Owner.Username, &p.Owner.DisplayName)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query owner details: %w", err)
+	}
+
+	return &p, nil
 }

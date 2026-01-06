@@ -9,5 +9,5 @@ type Project struct {
 	Skills      *string
 	Owner       string
 	CreatedAt   time.Time
-	UpdateAt    *time.Time
+	UpdatedAt   *time.Time
 }

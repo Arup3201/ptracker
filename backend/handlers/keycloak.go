@@ -412,7 +412,7 @@ func (handler *KeycloakHandler) KeycloakRefresh(w http.ResponseWriter, r *http.R
 		}
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Access token refreshed",
 	})
@@ -460,7 +460,7 @@ func (handler *KeycloakHandler) KeycloakLogout(w http.ResponseWriter, r *http.Re
 		}
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Logout success",
 	})
