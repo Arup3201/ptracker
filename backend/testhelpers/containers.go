@@ -18,8 +18,8 @@ type PostgresContainer struct {
 }
 
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
-	pgContainer, err := postgres.RunContainer(ctx,
-		testcontainers.WithImage("postgres:15.3-alpine"),
+	pgContainer, err := postgres.Run(ctx,
+		"postgres:15.3-alpine",
 		postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("postgres"),
@@ -44,9 +44,9 @@ func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 }
 
 func CreateKeycloakContainer(ctx context.Context) (*keycloak.KeycloakContainer, error) {
-	keycloakContainer, err := keycloak.Run(context.Background(),
+	keycloakContainer, err := keycloak.Run(ctx,
 		"quay.io/keycloak/keycloak:26.4.7",
-		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp")),
+		testcontainers.WithWaitStrategy(wait.ForListeningPort("8080/tcp").WithStartupTimeout(2*time.Minute)),
 		keycloak.WithContextPath("/auth"),
 		keycloak.WithRealmImportFile("../testdata/ptracker-realm.json"),
 		keycloak.WithAdminUsername("admin"),
