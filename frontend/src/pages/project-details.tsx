@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useParams } from "react-router";
 
 import { TopBar } from "../components/topbar";
 import {
@@ -12,38 +13,48 @@ import {
 import { Button } from "../components/button";
 import { Input } from "../components/input";
 import { Tab } from "../components/tab";
-
-type TaskStatus = "Unassigned" | "Ongoing" | "Completed" | "Abandoned";
-
-type Task = {
-  id: string;
-  title: string;
-  assignee?: string;
-  status: TaskStatus;
-  updatedAt: string;
-};
-
-type Member = {
-  id: string;
-  name: string;
-  role: "Owner" | "Member";
-  joinedAt: string;
-};
-
-type JoinRequest = {
-  id: string;
-  name: string;
-  note: string;
-};
+import {
+  MapProjectDetails,
+  type ProjectDetails,
+  type ProjectDetailsApi,
+} from "../types/project";
+import type { Task } from "../types/task";
+import type { Member } from "../types/member";
+import type { JoinRequest } from "../types/join-request";
+import { ApiRequest } from "../api/request";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
     "tasks"
   );
 
+  const { id: projectId } = useParams();
+
+  const [details, setDetails] = useState<ProjectDetails>();
   const [tasks, _] = useState<Task[]>([]);
   const [members, __] = useState<Member[]>([]);
   const [requests, ___] = useState<JoinRequest[]>([]);
+
+  async function getProjectDetails(id: string) {
+    try {
+      const data = await ApiRequest<ProjectDetailsApi>(
+        `/projects/${id}`,
+        "GET",
+        null
+      );
+      if (data) {
+        setDetails(MapProjectDetails(data));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    if (projectId) {
+      getProjectDetails(projectId);
+    }
+  }, [projectId]);
 
   return (
     <>
@@ -60,36 +71,49 @@ export default function ProjectDetailsPage() {
       <div className="flex-1 p-4 space-y-4">
         <div className="space-y-3">
           <h1 className="max-w-3xl truncate text-lg font-semibold text-(--text-primary)">
-            Collaborative Project Tracker
+            {details?.name || "-"}
           </h1>
 
           <p className="max-w-2xl text-sm text-(--text-secondary)">
-            A platform to manage collaborative software projects with clear
-            ownership and task visibility.
+            {details?.description || "-"}
           </p>
 
           <p className="text-xs text-(--text-muted)">
-            Skills: PostgreSQL, React, Distributed Systems
+            Skills: {details?.skills || "-"}
           </p>
 
           <div className="flex gap-4 text-sm text-(--text-secondary)">
             <span>
-              Unassigned: <strong className="text-(--text-primary)">3</strong>
+              Unassigned:{" "}
+              <strong className="text-(--text-primary)">
+                {details?.unassignedTasks}
+              </strong>
             </span>
             <span>
-              Ongoing: <strong className="text-(--text-primary)">5</strong>
+              Ongoing:{" "}
+              <strong className="text-(--text-primary)">
+                {details?.ongoingTasks}
+              </strong>
             </span>
             <span>
-              Completed: <strong className="text-(--text-primary)">12</strong>
+              Completed:{" "}
+              <strong className="text-(--text-primary)">
+                {details?.completedTasks}
+              </strong>
             </span>
             <span>
-              Abandoned: <strong className="text-(--text-primary)">1</strong>
+              Abandoned:{" "}
+              <strong className="text-(--text-primary)">
+                {details?.abandonedTasks}
+              </strong>
             </span>
           </div>
 
           <div className="text-sm text-(--text-muted)">
             Members:{" "}
-            <span className="font-medium text-(--text-primary)">6</span>
+            <span className="font-medium text-(--text-primary)">
+              {details?.memberCount}
+            </span>
           </div>
         </div>
 
