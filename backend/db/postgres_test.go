@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"testing"
 
@@ -71,7 +72,7 @@ func (suite *PGTestSuite) TestCreateProject() {
 		assert.Equal(t, projectName, actual.Name)
 		assert.Equal(t, projectDesc, *actual.Description)
 		assert.Equal(t, projectSkills, *actual.Skills)
-		assert.Equal(t, suite.user.Id, actual.Owner)
+		assert.Equal(t, suite.user.Id, actual.Owner.Id)
 	})
 }
 
@@ -145,6 +146,57 @@ func (suite *PGTestSuite) TestGetProjectDetails() {
 		assert.Equal(t, 0, actual.CompletedTasks)
 		assert.Equal(t, 0, actual.AbandonedTasks)
 		assert.Equal(t, 0, actual.MemberCount)
+	})
+}
+
+func (suite *PGTestSuite) GetCreateTask() {
+	t := suite.T()
+	t.Run("get project tasks success", func(t *testing.T) {
+		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
+		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		taskTitle, taskDescription, taskStatus := "Test Task", "Test Description", "Ongoing"
+
+		task, err := CreateProjectTask(taskTitle, taskDescription, taskStatus, project.Id)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		actual := *task
+		assert.Equal(t, taskTitle, actual.Title)
+		assert.Equal(t, taskDescription, *actual.Description)
+		assert.Equal(t, taskStatus, actual.Status)
+	})
+}
+
+func (suite *PGTestSuite) TestGetProjectTasks() {
+	t := suite.T()
+	t.Run("get project tasks success", func(t *testing.T) {
+		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
+		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		for i := range 10 {
+			_, err := CreateProjectTask(fmt.Sprintf("Test task title %d", i), fmt.Sprintf("Test task description %d", i), "Ongoing", project.Id)
+			if err != nil {
+				t.Fail()
+				t.Log(err)
+			}
+		}
+
+		tasks, err := GetProjectTasks(project.Id)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, 10, len(tasks))
 	})
 }
 

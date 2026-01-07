@@ -359,3 +359,69 @@ func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error)
 
 	return &p, nil
 }
+
+func CreateProjectTask(title, description, status, projectId string) (*models.ProjectTask, error) {
+	tId := uuid.NewString()
+	_, err := pgDb.Exec("INSERT INTO "+
+		"tasks(id, project_id, title, description, status) "+
+		"VALUES($1, $2, $3, $4, $5)",
+		tId, projectId, title, description, status)
+	if err != nil {
+		return nil, fmt.Errorf("insert task: %w", err)
+	}
+
+	var task models.ProjectTask
+	err = pgDb.QueryRow(
+		"SELECT "+
+			"id, project_id, title, description, status, created_at, updated_at "+
+			"FROM tasks "+
+			"WHERE id=($1)",
+		tId,
+	).Scan(&task.Id, &task.ProjectId, &task.Title, &task.Description, &task.Status,
+		&task.CreatedAt, &task.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get created task: %w", err)
+	}
+
+	return &task, nil
+}
+
+func GetProjectTasks(projectId string) ([]models.ProjectTask, error) {
+	rows, err := pgDb.Query("SELECT t.id, t.project_id, t.title, t.description, "+
+		"t.status, t.created_at, t.updated_at "+
+		"FROM tasks as t "+
+		"WHERE t.project_id=($1) AND deleted_at IS NULL", projectId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get all projects query: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []models.ProjectTask
+	for rows.Next() {
+		var t models.ProjectTask
+		err := rows.Scan(&t.Id, &t.ProjectId, &t.Title, &t.Description,
+			&t.Status, &t.CreatedAt, &t.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
+		}
+		tasks = append(tasks, t)
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}
+
+func GetProjectTaskCount(projectId string) (int, error) {
+	var cnt int
+	err := pgDb.QueryRow("SELECT COUNT(t.id) "+
+		"FROM projects as p "+
+		"INNER JOIN tasks as t ON p.id=t.project_id "+
+		"WHERE p.id=($1)", projectId).Scan(&cnt)
+	if err != nil {
+		return 0, fmt.Errorf("postgres get task count: %w", err)
+	}
+
+	return cnt, nil
+}
