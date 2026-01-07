@@ -18,7 +18,7 @@ import {
   type ProjectDetails,
   type ProjectDetailsApi,
 } from "../types/project";
-import type { Task } from "../types/task";
+import { MapTask, type Task, type TasksResponseApi } from "../types/task";
 import type { Member } from "../types/member";
 import type { JoinRequest } from "../types/join-request";
 import { ApiRequest } from "../api/request";
@@ -31,7 +31,7 @@ export default function ProjectDetailsPage() {
   const { id: projectId } = useParams();
 
   const [details, setDetails] = useState<ProjectDetails>();
-  const [tasks, _] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [members, __] = useState<Member[]>([]);
   const [requests, ___] = useState<JoinRequest[]>([]);
 
@@ -50,9 +50,25 @@ export default function ProjectDetailsPage() {
     }
   }
 
+  async function getProjectTasks(id: string) {
+    try {
+      const data = await ApiRequest<TasksResponseApi>(
+        `/projects/${id}/tasks`,
+        "GET",
+        null
+      );
+      if (data) {
+        setTasks(data.tasks.map(MapTask));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   useEffect(() => {
     if (projectId) {
       getProjectDetails(projectId);
+      getProjectTasks(projectId);
     }
   }, [projectId]);
 
