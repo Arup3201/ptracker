@@ -160,6 +160,7 @@ func main() {
 	attacher.attach("POST /api/projects", rateLimiter(handlers.CreateProject))
 	attacher.attach("GET /api/projects", handlers.GetAllProjects)
 	attacher.attach("GET /api/projects/{id}", handlers.GetProject)
+	attacher.attach("GET /api/projects/{project_id}/tasks", handlers.GetProjectTasks)
 
 	// cors
 	cors := cors.New(cors.Options{
