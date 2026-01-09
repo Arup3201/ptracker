@@ -163,7 +163,11 @@ export default function ProjectDetailsPage() {
           <JoinRequestsSection requests={requests} />
         )}
       </div>
-      <AddTaskModal open={addTask} onClose={() => setAddTask(false)} />
+      <AddTaskModal
+        projectId={projectId}
+        open={addTask}
+        onClose={() => setAddTask(false)}
+      />
     </>
   );
 }

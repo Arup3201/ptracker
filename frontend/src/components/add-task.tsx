@@ -2,27 +2,48 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Modal } from "./modal";
 import { Button } from "./button";
+import { ApiRequest } from "../api/request";
 
 type AddTaskModalProps = {
+  projectId: string | undefined;
   open: boolean;
   onClose: () => void;
 };
 
-export const AddTaskModal = ({ open, onClose }: AddTaskModalProps) => {
+export const AddTaskModal = ({
+  projectId,
+  open,
+  onClose,
+}: AddTaskModalProps) => {
   const [title, setTitle] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
   const [assignee, setAssignee] = useState<string | undefined>(undefined);
-  const [status, setStatus] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<string>("Unassigned");
 
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
-    e.stopPropagation();
+    e.preventDefault();
 
     if (!title?.trim()) {
       setError("Task title is required");
       return;
     }
+
+    if (!projectId) {
+      console.error("No project id");
+      return;
+    }
+
+    const data = {
+      title: title.trim(),
+      description: description?.trim() || undefined,
+      assignee: assignee || undefined,
+      status: status,
+    };
+    await ApiRequest(`/projects/${projectId}/tasks`, "POST", data);
+
+    onClose();
   }
 
   return (
@@ -118,10 +139,10 @@ export const AddTaskModal = ({ open, onClose }: AddTaskModalProps) => {
                 "focus:border-(--primary)"
               )}
             >
-              <option value="unassigned">Unassigned</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="abandoned">Abandoned</option>
+              <option value="Unassigned">Unassigned</option>
+              <option value="Ongoing">Ongoing</option>
+              <option value="Completed">Completed</option>
+              <option value="Abandoned">Abandoned</option>
             </select>
           </div>
 
