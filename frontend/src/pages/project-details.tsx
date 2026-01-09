@@ -22,6 +22,7 @@ import { MapTask, type Task, type TasksResponseApi } from "../types/task";
 import type { Member } from "../types/member";
 import type { JoinRequest } from "../types/join-request";
 import { ApiRequest } from "../api/request";
+import { AddTaskModal } from "../components/add-task";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
@@ -34,6 +35,9 @@ export default function ProjectDetailsPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, __] = useState<Member[]>([]);
   const [requests, ___] = useState<JoinRequest[]>([]);
+
+  const [addTask, setAddTask] = useState<boolean>(false);
+  const [editProject, setEditProject] = useState<boolean>(false);
 
   async function getProjectDetails(id: string) {
     try {
@@ -78,8 +82,10 @@ export default function ProjectDetailsPage() {
         title="Projects / Project Details"
         actions={
           <div className="flex gap-1">
-            <Button variant="secondary">Edit Project</Button>
-            <Button>Add Task</Button>
+            <Button variant="secondary" onClick={() => setEditProject(true)}>
+              Edit Project
+            </Button>
+            <Button onClick={() => setAddTask(true)}>Add Task</Button>
           </div>
         }
       />
@@ -157,6 +163,7 @@ export default function ProjectDetailsPage() {
           <JoinRequestsSection requests={requests} />
         )}
       </div>
+      <AddTaskModal open={addTask} onClose={() => setAddTask(false)} />
     </>
   );
 }
