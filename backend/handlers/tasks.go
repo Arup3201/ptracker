@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
+	"strings"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/db"
 	"github.com/ptracker/models"
 	"github.com/ptracker/utils"
@@ -91,6 +94,93 @@ func GetProjectTasks(w http.ResponseWriter, r *http.Request) error {
 			Limit:        limit,
 			HasNext:      hasNext,
 		},
+	})
+
+	return nil
+}
+
+func CreateProjectTask(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("project_id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `project_id' can't be empty",
+			Err:     fmt.Errorf("empty 'project_id'"),
+		}
+	}
+
+	var payload models.CreateTaskRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Task accepts title, description, assignee and status only",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("decode task payload: %w", err),
+		}
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Task 'title' or 'status' is missing",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("task payload validation: %w", err),
+		}
+	}
+
+	if payload.Title == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Task 'title' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty task 'title' provided"),
+		}
+	}
+	if payload.Status == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Task 'status' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty task 'status' provided"),
+		}
+	}
+	if !slices.Contains(models.TASK_STATUS, payload.Status) {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Task 'status' is invalid, example: " + strings.Join(models.TASK_STATUS, ", "),
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("task 'status' invalid value provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	access, err := db.CanWrite(userId, projectId)
+	if err != nil {
+		return fmt.Errorf("database check write permission: %w", err)
+	}
+	if !access {
+		return &HTTPError{
+			Code:    http.StatusForbidden,
+			ErrId:   ERR_ACCESS_DENIED,
+			Message: "User is not the owner of this project",
+		}
+	}
+
+	task, err := db.CreateProjectTask(payload.Title, payload.Description, payload.Status, projectId)
+	if err != nil {
+		return fmt.Errorf("db create task: %w", err)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectTask]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data:   task,
 	})
 
 	return nil

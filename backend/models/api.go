@@ -77,3 +77,10 @@ type ProjectTasksResponse struct {
 	Limit        int           `json:"limit"`
 	HasNext      bool          `json:"has_next"`
 }
+
+type CreateTaskRequest struct {
+	Title       string `json:"title" validate:"required"`
+	Description string `json:"description"`
+	Assignee    string `json:"assignee"`
+	Status      string `json:"status" validate:"required"`
+}

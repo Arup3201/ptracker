@@ -307,6 +307,28 @@ func CanAccess(userId, projectId string) (bool, error) {
 	return false, nil
 }
 
+func CanWrite(userId, projectId string) (bool, error) {
+	var userRole string
+	err := pgDb.QueryRow(
+		"SELECT "+
+			"role "+
+			"FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2)",
+		userId, projectId,
+	).Scan(&userRole)
+	if err == sql.ErrNoRows {
+		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("postgres query user role: %w", err)
+	}
+
+	if userRole == models.ROLE_OWNER {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error) {
 	var p models.ProjectDetails
 	err := pgDb.QueryRow(
