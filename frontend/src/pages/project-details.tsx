@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 
 import { TopBar } from "../components/topbar";
 import {
@@ -23,6 +23,7 @@ import type { Member } from "../types/member";
 import type { JoinRequest } from "../types/join-request";
 import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
+import { TaskDrawer } from "./task-drawer";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
@@ -30,6 +31,7 @@ export default function ProjectDetailsPage() {
   );
 
   const { id: projectId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [details, setDetails] = useState<ProjectDetails>();
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -75,6 +77,16 @@ export default function ProjectDetailsPage() {
       getProjectTasks(projectId);
     }
   }, [projectId]);
+
+  const taskId = searchParams.get("task"); // string | null
+  const closeTaskDrawer = () => {
+    searchParams.delete("task");
+    setSearchParams(searchParams);
+  };
+  const openTask = (taskId: string) => {
+    searchParams.set("task", taskId);
+    setSearchParams(searchParams);
+  };
 
   return (
     <>
@@ -157,7 +169,9 @@ export default function ProjectDetailsPage() {
           />
         </div>
 
-        {activeTab === "tasks" && <TasksSection tasks={tasks} />}
+        {activeTab === "tasks" && (
+          <TasksSection onOpenTask={openTask} tasks={tasks} />
+        )}
         {activeTab === "members" && <MembersSection members={members} />}
         {activeTab === "requests" && (
           <JoinRequestsSection requests={requests} />
@@ -168,11 +182,24 @@ export default function ProjectDetailsPage() {
         open={addTask}
         onClose={() => setAddTask(false)}
       />
+      <TaskDrawer
+        open={Boolean(taskId)}
+        taskId={taskId}
+        projectId={projectId}
+        onClose={closeTaskDrawer}
+        role="owner"
+      />
     </>
   );
 }
 
-function TasksSection({ tasks }: { tasks: Task[] }) {
+function TasksSection({
+  tasks,
+  onOpenTask,
+}: {
+  tasks: Task[];
+  onOpenTask: (taskId: string) => void;
+}) {
   return (
     <div className="space-y-3">
       <div className="w-80">
@@ -201,7 +228,15 @@ function TasksSection({ tasks }: { tasks: Task[] }) {
           {tasks.map((task) => (
             <TableRow key={task.id}>
               <TableCell>
-                <span className="font-medium">{task.title}</span>
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onOpenTask(task.id);
+                  }}
+                >
+                  <span className="font-medium">{task.title}</span>
+                </a>
               </TableCell>
               <TableCell muted>{task.assignee ?? "—"}</TableCell>
               <TableCell muted>{task.status}</TableCell>
