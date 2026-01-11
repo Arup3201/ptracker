@@ -382,7 +382,7 @@ func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error)
 	return &p, nil
 }
 
-func CreateProjectTask(title, description, status, projectId string) (*models.ProjectTask, error) {
+func CreateProjectTask(title, description, status, projectId string) (*models.CreatedProjectTask, error) {
 	tId := uuid.NewString()
 	_, err := pgDb.Exec("INSERT INTO "+
 		"tasks(id, project_id, title, description, status) "+
@@ -392,7 +392,7 @@ func CreateProjectTask(title, description, status, projectId string) (*models.Pr
 		return nil, fmt.Errorf("insert task: %w", err)
 	}
 
-	var task models.ProjectTask
+	var task models.CreatedProjectTask
 	err = pgDb.QueryRow(
 		"SELECT "+
 			"id, project_id, title, description, status, created_at, updated_at "+
@@ -409,7 +409,7 @@ func CreateProjectTask(title, description, status, projectId string) (*models.Pr
 }
 
 func GetProjectTasks(projectId string) ([]models.ProjectTask, error) {
-	rows, err := pgDb.Query("SELECT t.id, t.project_id, t.title, t.description, "+
+	rows, err := pgDb.Query("SELECT t.id, t.title, "+
 		"t.status, t.created_at, t.updated_at "+
 		"FROM tasks as t "+
 		"WHERE t.project_id=($1) AND deleted_at IS NULL", projectId)
@@ -421,7 +421,7 @@ func GetProjectTasks(projectId string) ([]models.ProjectTask, error) {
 	var tasks []models.ProjectTask
 	for rows.Next() {
 		var t models.ProjectTask
-		err := rows.Scan(&t.Id, &t.ProjectId, &t.Title, &t.Description,
+		err := rows.Scan(&t.Id, &t.Title,
 			&t.Status, &t.CreatedAt, &t.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
@@ -446,4 +446,18 @@ func GetProjectTaskCount(projectId string) (int, error) {
 	}
 
 	return cnt, nil
+}
+
+func GetProjectTask(projectId, taskId string) (*models.ProjectTaskDetails, error) {
+	var pt models.ProjectTaskDetails
+	err := pgDb.QueryRow("SELECT t.id, t.title, t.description, "+
+		"t.status, t.created_at, t.updated_at "+
+		"FROM tasks as t "+
+		"WHERE t.id=($1) AND t.project_id=($2) AND deleted_at IS NULL", taskId, projectId).
+		Scan(&pt.Id, &pt.Title, &pt.Description, &pt.Status, &pt.CreatedAt, &pt.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get task query: %w", err)
+	}
+
+	return &pt, nil
 }

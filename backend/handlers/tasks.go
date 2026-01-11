@@ -178,7 +178,56 @@ func CreateProjectTask(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectTask]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.CreatedProjectTask]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data:   task,
+	})
+
+	return nil
+}
+
+func GetProjectTask(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("project_id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `project_id' can't be empty",
+			Err:     fmt.Errorf("empty 'project_id'"),
+		}
+	}
+
+	taskId := r.PathValue("task_id")
+	if taskId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `task_id' can't be empty",
+			Err:     fmt.Errorf("empty 'task_id'"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	access, err := db.CanAccess(userId, projectId)
+	if err != nil {
+		return fmt.Errorf("database check access: %w", err)
+	}
+	if !access {
+		return &HTTPError{
+			Code:    http.StatusForbidden,
+			ErrId:   ERR_ACCESS_DENIED,
+			Message: "User is not a member of the project",
+		}
+	}
+
+	task, err := db.GetProjectTask(projectId, taskId)
+	if err != nil {
+		return fmt.Errorf("db get task: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectTaskDetails]{
 		Status: RESPONSE_SUCCESS_STATUS,
 		Data:   task,
 	})

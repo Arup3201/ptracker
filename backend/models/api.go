@@ -62,13 +62,11 @@ type ProjectDetails struct {
 }
 
 type ProjectTask struct {
-	Id          string     `json:"id"`
-	ProjectId   string     `json:"project_id"`
-	Title       string     `json:"title"`
-	Description *string    `json:"description"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at"`
+	Id        string     `json:"id"`
+	Title     string     `json:"title"`
+	Status    string     `json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }
 
 type ProjectTasksResponse struct {
@@ -83,4 +81,23 @@ type CreateTaskRequest struct {
 	Description string `json:"description"`
 	Assignee    string `json:"assignee"`
 	Status      string `json:"status" validate:"required"`
+}
+
+type CreatedProjectTask struct {
+	Id          string     `json:"id"`
+	ProjectId   string     `json:"project_id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
+}
+
+type ProjectTaskDetails struct {
+	Id          string     `json:"id"`
+	Title       string     `json:"title"`
+	Description *string    `json:"description"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }

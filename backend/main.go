@@ -162,6 +162,7 @@ func main() {
 	attacher.attach("GET /api/projects/{id}", handlers.GetProject)
 	attacher.attach("GET /api/projects/{project_id}/tasks", handlers.GetProjectTasks)
 	attacher.attach("POST /api/projects/{project_id}/tasks", handlers.CreateProjectTask)
+	attacher.attach("GET /api/projects/{project_id}/tasks/{task_id}", handlers.GetProjectTask)
 
 	// cors
 	cors := cors.New(cors.Options{
