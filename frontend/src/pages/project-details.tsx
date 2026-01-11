@@ -15,6 +15,7 @@ import { Input } from "../components/input";
 import { Tab } from "../components/tab";
 import {
   MapProjectDetails,
+  ROLES,
   type ProjectDetails,
   type ProjectDetailsApi,
 } from "../types/project";
@@ -187,7 +188,7 @@ export default function ProjectDetailsPage() {
         taskId={taskId}
         projectId={projectId}
         onClose={closeTaskDrawer}
-        role="owner"
+        role={details?.role || ROLES.MEMBER}
       />
     </>
   );

@@ -1,4 +1,10 @@
-type Role = "Owner" | "Member";
+export const ROLES: Record<string, Role> = {
+  OWNER: "Owner",
+  ASSIGNEE: "Assignee",
+  MEMBER: "Member",
+};
+
+export type Role = "Owner" | "Assignee" | "Member";
 
 type OwnerApi = {
   id: string;

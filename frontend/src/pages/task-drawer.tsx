@@ -1,9 +1,10 @@
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 
+import { ROLES, type Role } from "../types/project";
+import { TASK_STATUS, type TaskDetailApi } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
-
-type Role = "owner" | "assignee" | "member";
+import { ApiRequest } from "../api/request";
 
 export function TaskDrawer({
   open,
@@ -18,8 +19,8 @@ export function TaskDrawer({
   onClose: () => void;
   role: Role;
 }) {
-  const canEditAll = role === "owner";
-  const canEditPartial = role === "assignee";
+  const canEditAll = role === ROLES.OWNER;
+  const canEditPartial = role === ROLES.ASSIGNEE;
 
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -30,6 +31,28 @@ export function TaskDrawer({
   );
   const [status, setStatus] = useState("Ongoing");
   const [assignee, setAssignee] = useState("Rahul");
+
+  async function getProjectTask(projectId: string, taskId: string) {
+    try {
+      const taskDetails = await ApiRequest<TaskDetailApi>(
+        `/projects/${projectId}/tasks/${taskId}`,
+        "GET",
+        null
+      );
+      setTitle(taskDetails?.title || "");
+      setDescription(taskDetails?.description || "");
+      setStatus(taskDetails?.status || TASK_STATUS.UNASSIGNED);
+      setAssignee(taskDetails?.assignee || "");
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  useEffect(() => {
+    if (projectId && taskId) {
+      getProjectTask(projectId, taskId);
+    }
+  }, [projectId, taskId]);
 
   const requestClose = () => {
     if (dirty && editMode) {
