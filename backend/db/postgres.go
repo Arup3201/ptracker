@@ -307,6 +307,28 @@ func CanAccess(userId, projectId string) (bool, error) {
 	return false, nil
 }
 
+func CanWrite(userId, projectId string) (bool, error) {
+	var userRole string
+	err := pgDb.QueryRow(
+		"SELECT "+
+			"role "+
+			"FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2)",
+		userId, projectId,
+	).Scan(&userRole)
+	if err == sql.ErrNoRows {
+		return false, nil
+	} else if err != nil {
+		return false, fmt.Errorf("postgres query user role: %w", err)
+	}
+
+	if userRole == models.ROLE_OWNER {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error) {
 	var p models.ProjectDetails
 	err := pgDb.QueryRow(
@@ -358,4 +380,84 @@ func GetProjectDetails(userId, projectId string) (*models.ProjectDetails, error)
 	}
 
 	return &p, nil
+}
+
+func CreateProjectTask(title, description, status, projectId string) (*models.CreatedProjectTask, error) {
+	tId := uuid.NewString()
+	_, err := pgDb.Exec("INSERT INTO "+
+		"tasks(id, project_id, title, description, status) "+
+		"VALUES($1, $2, $3, $4, $5)",
+		tId, projectId, title, description, status)
+	if err != nil {
+		return nil, fmt.Errorf("insert task: %w", err)
+	}
+
+	var task models.CreatedProjectTask
+	err = pgDb.QueryRow(
+		"SELECT "+
+			"id, project_id, title, description, status, created_at, updated_at "+
+			"FROM tasks "+
+			"WHERE id=($1)",
+		tId,
+	).Scan(&task.Id, &task.ProjectId, &task.Title, &task.Description, &task.Status,
+		&task.CreatedAt, &task.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("get created task: %w", err)
+	}
+
+	return &task, nil
+}
+
+func GetProjectTasks(projectId string) ([]models.ProjectTask, error) {
+	rows, err := pgDb.Query("SELECT t.id, t.title, "+
+		"t.status, t.created_at, t.updated_at "+
+		"FROM tasks as t "+
+		"WHERE t.project_id=($1) AND deleted_at IS NULL", projectId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get all projects query: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []models.ProjectTask
+	for rows.Next() {
+		var t models.ProjectTask
+		err := rows.Scan(&t.Id, &t.Title,
+			&t.Status, &t.CreatedAt, &t.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
+		}
+		tasks = append(tasks, t)
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}
+
+func GetProjectTaskCount(projectId string) (int, error) {
+	var cnt int
+	err := pgDb.QueryRow("SELECT COUNT(t.id) "+
+		"FROM projects as p "+
+		"INNER JOIN tasks as t ON p.id=t.project_id "+
+		"WHERE p.id=($1)", projectId).Scan(&cnt)
+	if err != nil {
+		return 0, fmt.Errorf("postgres get task count: %w", err)
+	}
+
+	return cnt, nil
+}
+
+func GetProjectTask(projectId, taskId string) (*models.ProjectTaskDetails, error) {
+	var pt models.ProjectTaskDetails
+	err := pgDb.QueryRow("SELECT t.id, t.title, t.description, "+
+		"t.status, t.created_at, t.updated_at "+
+		"FROM tasks as t "+
+		"WHERE t.id=($1) AND t.project_id=($2) AND deleted_at IS NULL", taskId, projectId).
+		Scan(&pt.Id, &pt.Title, &pt.Description, &pt.Status, &pt.CreatedAt, &pt.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get task query: %w", err)
+	}
+
+	return &pt, nil
 }

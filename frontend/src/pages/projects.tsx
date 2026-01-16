@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 
 import {
   MapProject,
@@ -20,6 +21,8 @@ import { Input } from "../components/input.tsx";
 import { CreateProjectModal } from "../components/create-project.tsx";
 
 export function ProjectsPage() {
+  const navigate = useNavigate();
+
   const [showModal, setShowModal] = useState(false);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [query, setQuery] = useState("");
@@ -92,7 +95,7 @@ export function ProjectsPage() {
               <TableRow
                 key={project.id}
                 onClick={() => {
-                  // navigate(`/projects/${project.id}`)
+                  navigate(`/projects/${project.id}`);
                 }}
                 className="cursor-pointer"
               >
