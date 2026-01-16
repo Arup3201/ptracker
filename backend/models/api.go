@@ -101,3 +101,20 @@ type ProjectTaskDetails struct {
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
 }
+
+type ProjectOverview struct {
+	Id          string     `json:"id"`
+	Name        string     `json:"title"`
+	Description *string    `json:"description"`
+	Skills      *string    `json:"skills"`
+	Role        string     `json:"role"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
+}
+
+type ProjectOverviewsResponse struct {
+	Projects []ProjectOverview `json:"projects"`
+	Page     int               `json:"page"`
+	Limit    int               `json:"limit"`
+	HasNext  bool              `json:"has_next"`
+}

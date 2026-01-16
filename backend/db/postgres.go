@@ -461,3 +461,33 @@ func GetProjectTask(projectId, taskId string) (*models.ProjectTaskDetails, error
 
 	return &pt, nil
 }
+
+func GetExploredProjects(userId string, page, limit int) ([]models.ProjectOverview, error) {
+	rows, err := pgDb.Query(
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"CASE "+
+			"WHEN r.role='Owner' THEN 'Owner' "+
+			"WHEN r.role='Member' THEN 'Member' "+
+			"ELSE 'User' "+
+			"END AS role "+
+			"p.created_at, p.updated_at "+
+			"FROM projects AS p "+
+			"CROSS JOIN users AS u "+
+			"LEFT JOIN roles AS r ON r.user_id=u.id "+
+			"WHERE u.id=($1)",
+		userId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get task query: %w", err)
+	}
+
+	var projects []models.ProjectOverview
+	for rows.Next() {
+		var p models.ProjectOverview
+		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
+			&p.CreatedAt, &p.UpdatedAt)
+		projects = append(projects, p)
+	}
+
+	return projects, nil
+}
