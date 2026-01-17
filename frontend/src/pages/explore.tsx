@@ -1,18 +1,37 @@
-import { useState } from "react";
-import type { Project } from "../types/project";
+import { useEffect, useState } from "react";
 import { Button } from "../components/button";
 import { TopBar } from "../components/topbar";
 import { Input } from "../components/input";
+import { ApiRequest } from "../api/request";
+import {
+  MapExploreProject,
+  type ExploreProject,
+  type ExploreProjectsApiResponse,
+} from "../types/explore";
 
-function ProjectCard({ project }: { project: Project }) {
+function ProjectCard({ project }: { project: ExploreProject }) {
   return (
-    <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)">
-      <h3 className="text-[14px] font-semibold text-(--text-primary) leading-snug">
-        {project.name}
-      </h3>
+    <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="text-[14px] font-semibold text-(--text-primary) leading-snug">
+          {project.title}
+        </h3>
+
+        {project.role !== "User" && (
+          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-[2px]">
+            {project.role}
+          </span>
+        )}
+      </div>
+
       <p className="mt-2 text-[13px] text-(--text-secondary) leading-relaxed line-clamp-3">
         {project.description}
       </p>
+
+      <span className="mt-2 block text-[12px] text-(--text-muted)">
+        Skills: {project.skills}
+      </span>
+
       <div className="mt-4">
         <Button variant="secondary">View Project</Button>
       </div>
@@ -21,12 +40,32 @@ function ProjectCard({ project }: { project: Project }) {
 }
 
 export default function ExploreProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ExploreProject[]>([]);
   const [query, setQuery] = useState("");
+
+  const getProjects = async () => {
+    try {
+      const data = await ApiRequest<ExploreProjectsApiResponse>(
+        "/explore/projects",
+        "GET",
+        null
+      );
+      if (data?.projects) {
+        const projects = data.projects.map(MapExploreProject);
+        setProjects(projects || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    getProjects();
+  }, []);
 
   const filteredProjects = projects.filter(
     (project) =>
-      project.name.toLowerCase().includes(query.toLowerCase()) ||
+      project.title.toLowerCase().includes(query.toLowerCase()) ||
       project.description.toLowerCase().includes(query.toLowerCase())
   );
 
