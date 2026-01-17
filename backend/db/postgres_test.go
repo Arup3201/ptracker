@@ -15,6 +15,7 @@ import (
 const (
 	IDPProvider     = "keycloak"
 	IDPSubject      = "f6e1d9a0-7b3c-4d5e-8f2a-1c9b8e7d6f5a"
+	IDPSubject_1    = "f6e1d9a0-7b3c-4d5e-8f2a-1c9b8e7d6f5b"
 	TestKCRealm     = "ptracker"
 	TestUsername    = "test_user"
 	TestDisplayName = "Test User"
@@ -56,6 +57,14 @@ func (suite *PGTestSuite) TearDownSuite() {
 	}
 }
 
+func (suite *PGTestSuite) Cleanup(t *testing.T) {
+	err := truncateTable("projects")
+	if err != nil {
+		t.Fail()
+		t.Log(err)
+	}
+}
+
 func (suite *PGTestSuite) TestCreateProject() {
 
 	t := suite.T()
@@ -73,6 +82,7 @@ func (suite *PGTestSuite) TestCreateProject() {
 		assert.Equal(t, projectDesc, *actual.Description)
 		assert.Equal(t, projectSkills, *actual.Skills)
 		assert.Equal(t, suite.user.Id, actual.Owner.Id)
+		suite.Cleanup(t)
 	})
 }
 
@@ -93,6 +103,7 @@ func (suite *PGTestSuite) TestCanAccess() {
 			t.Log(err)
 		}
 		assert.Equal(t, true, access)
+		suite.Cleanup(t)
 	})
 
 	t.Run("can't access", func(t *testing.T) {
@@ -114,6 +125,7 @@ func (suite *PGTestSuite) TestCanAccess() {
 			t.Log(err)
 		}
 		assert.Equal(t, false, access)
+		suite.Cleanup(t)
 	})
 }
 
@@ -146,6 +158,7 @@ func (suite *PGTestSuite) TestGetProjectDetails() {
 		assert.Equal(t, 0, actual.CompletedTasks)
 		assert.Equal(t, 0, actual.AbandonedTasks)
 		assert.Equal(t, 0, actual.MemberCount)
+		suite.Cleanup(t)
 	})
 }
 
@@ -170,6 +183,7 @@ func (suite *PGTestSuite) GetCreateTask() {
 		assert.Equal(t, taskTitle, actual.Title)
 		assert.Equal(t, taskDescription, *actual.Description)
 		assert.Equal(t, taskStatus, actual.Status)
+		suite.Cleanup(t)
 	})
 }
 
@@ -197,6 +211,90 @@ func (suite *PGTestSuite) TestGetProjectTasks() {
 			t.Log(err)
 		}
 		assert.Equal(t, 10, len(tasks))
+		suite.Cleanup(t)
+	})
+}
+
+func (suite *PGTestSuite) TestExploreProjects() {
+	t := suite.T()
+
+	user, err := CreateUser(IDPSubject_1, IDPProvider, "user_2", "Test User 2", "test2@example.com", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	t.Run("explore list is empty", func(t *testing.T) {
+		projects, err := GetExploredProjects(user.Id, 1, 10)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, 0, len(projects))
+	})
+	t.Run("explore lists 2 projects", func(t *testing.T) {
+		for i := range 2 {
+			projectName := fmt.Sprintf("Project %d", i+1)
+			projectDescription := fmt.Sprintf("Project Description %d", i+1)
+			_, err := CreateProject(projectName, projectDescription, "C++, Python", user.Id)
+			if err != nil {
+				t.Fail()
+				t.Log(err)
+			}
+		}
+
+		projects, err := GetExploredProjects(user.Id, 1, 10)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, 2, len(projects))
+		suite.Cleanup(t)
+	})
+	t.Run("explore lists projects where role is User", func(t *testing.T) {
+		for i := range 2 {
+			projectName := fmt.Sprintf("Project %d", i+1)
+			projectDescription := fmt.Sprintf("Project Description %d", i+1)
+			CreateProject(projectName, projectDescription, "C++, Python", suite.user.Id)
+			if err != nil {
+				t.Fail()
+				t.Log(err)
+			}
+		}
+
+		projects, err := GetExploredProjects(user.Id, 1, 10)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		for _, p := range projects {
+			assert.Equal(t, "User", p.Role)
+		}
+		suite.Cleanup(t)
+	})
+	t.Run("explore lists projects where role is Owner", func(t *testing.T) {
+		for i := range 2 {
+			projectName := fmt.Sprintf("Project %d", i+1)
+			projectDescription := fmt.Sprintf("Project Description %d", i+1)
+			CreateProject(projectName, projectDescription, "C++, Python", user.Id)
+			if err != nil {
+				t.Fail()
+				t.Log(err)
+			}
+		}
+
+		projects, err := GetExploredProjects(user.Id, 1, 10)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		for _, p := range projects {
+			assert.Equal(t, "Owner", p.Role)
+		}
+		suite.Cleanup(t)
 	})
 }
 

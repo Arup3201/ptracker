@@ -463,14 +463,16 @@ func GetProjectTask(projectId, taskId string) (*models.ProjectTaskDetails, error
 }
 
 func GetExploredProjects(userId string, page, limit int) ([]models.ProjectOverview, error) {
+	var projects = []models.ProjectOverview{}
+
 	rows, err := pgDb.Query(
 		"SELECT "+
-			"p.id, p.name, p.description, p.skills, "+
+			"DISTINCT p.id, p.name, p.description, p.skills, "+
 			"CASE "+
 			"WHEN r.role='Owner' THEN 'Owner' "+
 			"WHEN r.role='Member' THEN 'Member' "+
 			"ELSE 'User' "+
-			"END AS role "+
+			"END AS role, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects AS p "+
 			"CROSS JOIN users AS u "+
@@ -478,16 +480,27 @@ func GetExploredProjects(userId string, page, limit int) ([]models.ProjectOvervi
 			"WHERE u.id=($1)",
 		userId)
 	if err != nil {
-		return nil, fmt.Errorf("postgres get task query: %w", err)
+		return projects, fmt.Errorf("postgres get task query: %w", err)
 	}
+	defer rows.Close()
 
-	var projects []models.ProjectOverview
 	for rows.Next() {
 		var p models.ProjectOverview
 		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
 			&p.CreatedAt, &p.UpdatedAt)
 		projects = append(projects, p)
 	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("postgres scan project overview results: %w", err)
+	}
 
 	return projects, nil
+}
+
+func truncateTable(tableName string) error {
+	_, err := pgDb.Exec(fmt.Sprintf("TRUNCATE %s CASCADE", tableName))
+	if err != nil {
+		return fmt.Errorf("postgres truncate: %w", err)
+	}
+	return nil
 }
