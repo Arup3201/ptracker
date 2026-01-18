@@ -12,20 +12,9 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const (
-	IDPProvider     = "keycloak"
-	IDPSubject      = "f6e1d9a0-7b3c-4d5e-8f2a-1c9b8e7d6f5a"
-	IDPSubject_1    = "f6e1d9a0-7b3c-4d5e-8f2a-1c9b8e7d6f5b"
-	TestKCRealm     = "ptracker"
-	TestUsername    = "test_user"
-	TestDisplayName = "Test User"
-	TestEmail       = "test@example.com"
-)
-
 type PGTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
-	user        models.User
 	ctx         context.Context
 }
 
@@ -43,15 +32,14 @@ func (suite *PGTestSuite) SetupSuite() {
 
 	suite.pgContainer = pgContainer
 
-	user, err := CreateUser(IDPSubject, IDPProvider, TestUsername, TestDisplayName, TestEmail, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	suite.user = *user
+	CreatFixtures()
 }
 
 func (suite *PGTestSuite) TearDownSuite() {
+	_, err := pgDb.Exec("TRUNCATE users CASCADE")
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
 		log.Fatal(err)
 	}
@@ -71,7 +59,7 @@ func (suite *PGTestSuite) TestCreateProject() {
 	t.Run("create project success", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
 
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 
 		if err != nil {
 			t.Fail()
@@ -81,7 +69,7 @@ func (suite *PGTestSuite) TestCreateProject() {
 		assert.Equal(t, projectName, actual.Name)
 		assert.Equal(t, projectDesc, *actual.Description)
 		assert.Equal(t, projectSkills, *actual.Skills)
-		assert.Equal(t, suite.user.Id, actual.Owner.Id)
+		assert.Equal(t, USER_FIXTURES[0].Id, actual.Owner.Id)
 		suite.Cleanup(t)
 	})
 }
@@ -90,13 +78,13 @@ func (suite *PGTestSuite) TestCanAccess() {
 	t := suite.T()
 	t.Run("can access", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
 		}
 
-		access, err := CanAccess(suite.user.Id, project.Id)
+		access, err := CanAccess(USER_FIXTURES[0].Id, project.Id)
 
 		if err != nil {
 			t.Fail()
@@ -108,17 +96,13 @@ func (suite *PGTestSuite) TestCanAccess() {
 
 	t.Run("can't access", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
 		}
-		user, err := CreateUser("some random subject", IDPProvider, "Test 2", "Test 2", "test2@example.com", "")
-		if err != nil {
-			log.Fatal(err)
-		}
 
-		access, err := CanAccess(user.Id, project.Id)
+		access, err := CanAccess(USER_FIXTURES[1].Id, project.Id)
 
 		if err != nil {
 			t.Fail()
@@ -133,13 +117,13 @@ func (suite *PGTestSuite) TestGetProjectDetails() {
 	t := suite.T()
 	t.Run("get project details success", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
 		}
 
-		details, err := GetProjectDetails(suite.user.Id, project.Id)
+		details, err := GetProjectDetails(USER_FIXTURES[0].Id, project.Id)
 
 		if err != nil {
 			t.Fail()
@@ -149,9 +133,9 @@ func (suite *PGTestSuite) TestGetProjectDetails() {
 		assert.Equal(t, projectName, actual.Name)
 		assert.Equal(t, projectDesc, *actual.Description)
 		assert.Equal(t, projectSkills, *actual.Skills)
-		assert.Equal(t, suite.user.Id, actual.Owner.Id)
-		assert.Equal(t, suite.user.Username, actual.Owner.Username)
-		assert.Equal(t, suite.user.DisplayName, actual.Owner.DisplayName)
+		assert.Equal(t, USER_FIXTURES[0].Id, actual.Owner.Id)
+		assert.Equal(t, USER_FIXTURES[0].Username, actual.Owner.Username)
+		assert.Equal(t, USER_FIXTURES[0].DisplayName, actual.Owner.DisplayName)
 		assert.Equal(t, models.ROLE_OWNER, actual.Role)
 		assert.Equal(t, 0, actual.UnassignedTasks)
 		assert.Equal(t, 0, actual.OngoingTasks)
@@ -166,7 +150,7 @@ func (suite *PGTestSuite) GetCreateTask() {
 	t := suite.T()
 	t.Run("get project tasks success", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
@@ -191,7 +175,7 @@ func (suite *PGTestSuite) TestGetProjectTasks() {
 	t := suite.T()
 	t.Run("get project tasks success", func(t *testing.T) {
 		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
-		project, err := CreateProject(projectName, projectDesc, projectSkills, suite.user.Id)
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
@@ -218,13 +202,8 @@ func (suite *PGTestSuite) TestGetProjectTasks() {
 func (suite *PGTestSuite) TestExploreProjects() {
 	t := suite.T()
 
-	user, err := CreateUser(IDPSubject_1, IDPProvider, "user_2", "Test User 2", "test2@example.com", "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	t.Run("explore list is empty", func(t *testing.T) {
-		projects, err := GetExploredProjects(user.Id, 1, 10)
+		projects, err := GetExploredProjects(USER_FIXTURES[0].Id, 1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -236,14 +215,14 @@ func (suite *PGTestSuite) TestExploreProjects() {
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
-			_, err := CreateProject(projectName, projectDescription, "C++, Python", user.Id)
+			_, err := CreateProject(projectName, projectDescription, "C++, Python", USER_FIXTURES[0].Id)
 			if err != nil {
 				t.Fail()
 				t.Log(err)
 			}
 		}
 
-		projects, err := GetExploredProjects(user.Id, 1, 10)
+		projects, err := GetExploredProjects(USER_FIXTURES[0].Id, 1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -256,14 +235,14 @@ func (suite *PGTestSuite) TestExploreProjects() {
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
-			CreateProject(projectName, projectDescription, "C++, Python", suite.user.Id)
+			_, err := CreateProject(projectName, projectDescription, "C++, Python", USER_FIXTURES[0].Id)
 			if err != nil {
 				t.Fail()
 				t.Log(err)
 			}
 		}
 
-		projects, err := GetExploredProjects(user.Id, 1, 10)
+		projects, err := GetExploredProjects(USER_FIXTURES[1].Id, 1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -278,14 +257,14 @@ func (suite *PGTestSuite) TestExploreProjects() {
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
-			CreateProject(projectName, projectDescription, "C++, Python", user.Id)
+			_, err := CreateProject(projectName, projectDescription, "C++, Python", USER_FIXTURES[0].Id)
 			if err != nil {
 				t.Fail()
 				t.Log(err)
 			}
 		}
 
-		projects, err := GetExploredProjects(user.Id, 1, 10)
+		projects, err := GetExploredProjects(USER_FIXTURES[0].Id, 1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -294,6 +273,36 @@ func (suite *PGTestSuite) TestExploreProjects() {
 		for _, p := range projects {
 			assert.Equal(t, "Owner", p.Role)
 		}
+		suite.Cleanup(t)
+	})
+}
+
+func (suite *PGTestSuite) TestJoinProjectRequest() {
+	t := suite.T()
+
+	t.Run("join request with pending status", func(t *testing.T) {
+		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
+		project, err := CreateProject(projectName, projectDesc, projectSkills, USER_FIXTURES[0].Id)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = RequestToJoinProject(USER_FIXTURES[1].Id, project.Id)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		var requestStatus string
+		err = pgDb.QueryRow("SELECT status FROM join_requests "+
+			"WHERE user_id=($1) AND project_id=($2)", USER_FIXTURES[1].Id, project.Id).
+			Scan(&requestStatus)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, "Pending", requestStatus)
 		suite.Cleanup(t)
 	})
 }

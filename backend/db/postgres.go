@@ -504,3 +504,14 @@ func truncateTable(tableName string) error {
 	}
 	return nil
 }
+
+func RequestToJoinProject(userId, projectId string) error {
+	_, err := pgDb.Exec("INSERT INTO join_requests(user_id, project_id) "+
+		"VALUES($1, $2)", userId, projectId)
+
+	if err != nil {
+		return fmt.Errorf("postgres join project: %w", err)
+	}
+
+	return nil
+}
