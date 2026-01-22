@@ -1,8 +1,10 @@
-package models
+package services
 
 import (
 	"database/sql"
 	"log"
+
+	"github.com/ptracker/models"
 )
 
 var USER_ONE = map[string]string{
@@ -23,11 +25,11 @@ var USER_TWO = map[string]string{
 	"email":        "test1@example.com",
 }
 
-var USER_FIXTURES = []User{}
+var USER_FIXTURES = []models.User{}
 
 func CreatFixtures(conn *sql.DB) {
 	user_fixture_data := []map[string]string{USER_ONE, USER_TWO}
-	userStore := &UserStore{
+	userStore := &models.UserStore{
 		DB: conn,
 	}
 	for _, fixture := range user_fixture_data {

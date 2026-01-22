@@ -1,4 +1,4 @@
-package handlers
+package controllers
 
 import (
 	"bytes"
@@ -48,14 +48,12 @@ func (suite *ApiTestSuite) TestCreateProject() {
 
 		suite.mux.ServeHTTP(res, req)
 
-		var responseBody HTTPSuccessResponse[models.CreatedProject]
+		var responseBody HTTPSuccessResponse[string]
 		if err := json.NewDecoder(res.Body).Decode(&responseBody); err != nil {
 			log.Fatal(err)
 		}
 		assert.Equal(t, RESPONSE_SUCCESS_STATUS, responseBody.Status)
-		assert.Equal(t, "PTracker Go", responseBody.Data.Name)
-		assert.Equal(t, "Collaborative project tracking application with Go", *responseBody.Data.Description)
-		assert.Equal(t, "Go, React, TypeScript, PostgreSQL, Keycloak", *responseBody.Data.Skills)
+		assert.NotEqual(t, "", responseBody.Data)
 	})
 
 	t.Run("error with missing name in payload", func(t *testing.T) {
@@ -129,12 +127,12 @@ func (suite *ApiTestSuite) TestGetProjectDetails() {
 			t.Log("project create failed")
 			t.Fail()
 		}
-		var createdProject HTTPSuccessResponse[models.CreatedProject]
+		var createdProject HTTPSuccessResponse[string]
 		if err := json.NewDecoder(res.Body).Decode(&createdProject); err != nil {
 			t.Log("project create decode failed")
 			t.Fail()
 		}
-		projectId := createdProject.Data.Id
+		projectId := *(createdProject.Data)
 		req, err = http.NewRequest("GET", "/api/projects/"+projectId, nil)
 		if err != nil {
 			t.Log("project get request create failed")
@@ -146,7 +144,7 @@ func (suite *ApiTestSuite) TestGetProjectDetails() {
 		suite.mux.ServeHTTP(res, req)
 
 		assert.Equal(t, http.StatusOK, res.Result().StatusCode)
-		var projectDetails HTTPSuccessResponse[models.ProjectDetails]
+		var projectDetails HTTPSuccessResponse[ProjectDetails]
 		if err := json.NewDecoder(res.Body).Decode(&projectDetails); err != nil {
 			t.Log("project get decode failed")
 			t.Fail()

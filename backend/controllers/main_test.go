@@ -1,8 +1,9 @@
-package handlers
+package controllers
 
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/db"
+	"github.com/ptracker/models"
 	"github.com/ptracker/testhelpers"
 	"github.com/redis/go-redis/v9"
 	keycloak "github.com/stillya/testcontainers-keycloak"
@@ -118,11 +120,12 @@ func createKCTestUser(serverUrl string) {
 type attacher struct {
 	mux   *http.ServeMux
 	redis *redis.Client
+	db    *sql.DB
 	kcUrl string
 }
 
 func (atc *attacher) attachMiddleware(pattern string, handler HTTPErrorHandler) {
-	authMiddleware := Authorize(atc.redis, atc.kcUrl, TestKCRealm)
+	authMiddleware := Authorize(atc.db, atc.redis, atc.kcUrl, TestKCRealm)
 	atc.mux.Handle(pattern, HTTPErrorHandler(authMiddleware(handler)))
 }
 
@@ -143,7 +146,7 @@ func (suite *ApiTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	err = db.ConnectPostgres(pgContainer.ConnectionString)
+	db, err := db.ConnectPostgres(pgContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -198,26 +201,34 @@ func (suite *ApiTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	user, err := db.CreateUser(userInfo.Subject, IDPProvider,
+	userStore := &models.UserStore{
+		DB: db,
+	}
+
+	userId, err := userStore.Create(userInfo.Subject, IDPProvider,
 		userInfo.Username, userInfo.Name, userInfo.Email, userInfo.AvatarUrl)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	suite.cookie, err = GetSessionCookie(suite.redis, token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, user.Id, TestUserAgent, TestIpAddress, TestDevice, TestEncryptionKey)
+	suite.cookie, err = GetSessionCookie(db, suite.redis, token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, userId, TestUserAgent, TestIpAddress, TestDevice, TestEncryptionKey)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	suite.mux = http.NewServeMux()
 	atch := &attacher{
+		db:    db,
 		mux:   suite.mux,
 		redis: suite.redis,
 		kcUrl: adminClient.ServerURL,
 	}
 
-	atch.attachMiddleware("POST /api/projects", CreateProject)
-	atch.attachMiddleware("GET /api/projects/{id}", GetProject)
+	handler := &ProjectHandler{
+		DB: db,
+	}
+	atch.attachMiddleware("POST /api/projects", handler.Create)
+	atch.attachMiddleware("GET /api/projects/{id}", handler.Get)
 }
 
 func (suite *ApiTestSuite) TearDownSuite() {
@@ -230,6 +241,6 @@ func (suite *ApiTestSuite) TearDownSuite() {
 	}
 }
 
-func TestProjectSuite(t *testing.T) {
+func TestControllers(t *testing.T) {
 	suite.Run(t, new(ApiTestSuite))
 }

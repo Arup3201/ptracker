@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,8 +9,8 @@ import (
 	"time"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/ptracker/controllers"
 	"github.com/ptracker/db"
-	"github.com/ptracker/handlers"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/cors"
 )
@@ -95,14 +96,15 @@ func getEnvironment() error {
 type attacher struct {
 	mux            *http.ServeMux
 	redis          *redis.Client
+	db             *sql.DB
 	kcUrl, kcRealm string
 }
 
 func (a *attacher) attach(
 	pattern string,
-	handler handlers.HTTPErrorHandler) {
-	authMiddleware := handlers.Authorize(a.redis, a.kcUrl, a.kcRealm)
-	a.mux.Handle(pattern, handlers.HTTPErrorHandler(authMiddleware(handler)))
+	handler controllers.HTTPErrorHandler) {
+	authMiddleware := controllers.Authorize(a.db, a.redis, a.kcUrl, a.kcRealm)
+	a.mux.Handle(pattern, controllers.HTTPErrorHandler(authMiddleware(handler)))
 }
 
 func main() {
@@ -113,7 +115,7 @@ func main() {
 	}
 
 	// DB connection
-	err = db.ConnectPostgres(fmt.Sprintf("host=%s port=%s user=%s "+
+	connection, err := db.ConnectPostgres(fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable", PG_HOST, PG_PORT,
 		PG_USER, PG_PASS, PG_DB))
 	if err != nil {
@@ -121,7 +123,7 @@ func main() {
 	}
 
 	// migrate
-	err = db.Migrate()
+	err = db.Migrate("migrations", connection)
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to migrate postgres: %s", err)
 	}
@@ -137,9 +139,9 @@ func main() {
 	// handler
 	mux := http.NewServeMux()
 
-	kcHandler, err := handlers.CreateKeycloakHandler(
+	kcHandler, err := controllers.CreateKeycloakHandler(
 		KC_URL, KC_REALM, KC_CLIENT_ID, KC_CLIENT_SECRET, KC_REDIRECT_URI,
-		HOME_URL, ENCRYPTION_SECRET, redis,
+		HOME_URL, ENCRYPTION_SECRET, redis, connection,
 	)
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to create keycloak handler: %s", err)
@@ -148,6 +150,7 @@ func main() {
 	attacher := &attacher{
 		mux:     mux,
 		redis:   redis,
+		db:      connection,
 		kcUrl:   KC_URL,
 		kcRealm: KC_REALM,
 	}
@@ -156,14 +159,27 @@ func main() {
 	attacher.attach("POST /api/auth/refresh", kcHandler.KeycloakRefresh)
 	attacher.attach("POST /api/auth/logout", kcHandler.KeycloakLogout)
 
-	rateLimiter := handlers.TokenBucketRateLimiter(redis, 5, 2)
-	attacher.attach("POST /api/projects", rateLimiter(handlers.CreateProject))
-	attacher.attach("GET /api/projects", handlers.GetAllProjects)
-	attacher.attach("GET /api/projects/{id}", handlers.GetProject)
-	attacher.attach("GET /api/projects/{project_id}/tasks", handlers.GetProjectTasks)
-	attacher.attach("POST /api/projects/{project_id}/tasks", handlers.CreateProjectTask)
-	attacher.attach("GET /api/projects/{project_id}/tasks/{task_id}", handlers.GetProjectTask)
-	attacher.attach("GET /api/explore/projects", handlers.GetExploreProjects)
+	rateLimiter := controllers.TokenBucketRateLimiter(redis, 5, 2)
+
+	projectHandler := &controllers.ProjectHandler{
+		DB: connection,
+	}
+	attacher.attach("POST /api/projects", rateLimiter(projectHandler.Create))
+
+	attacher.attach("GET /api/projects", projectHandler.All)
+	attacher.attach("GET /api/projects/{id}", projectHandler.Get)
+
+	taskHandler := &controllers.TaskHandler{
+		DB: connection,
+	}
+	attacher.attach("GET /api/projects/{project_id}/tasks", taskHandler.All)
+	attacher.attach("POST /api/projects/{project_id}/tasks", taskHandler.Create)
+	attacher.attach("GET /api/projects/{project_id}/tasks/{task_id}", taskHandler.Get)
+
+	exploreHandler := &controllers.ExploreHandler{
+		DB: connection,
+	}
+	attacher.attach("GET /api/explore/projects", exploreHandler.GetExploreProjects)
 
 	// cors
 	cors := cors.New(cors.Options{
@@ -175,7 +191,7 @@ func main() {
 	// server
 	server := &http.Server{
 		Addr:         fmt.Sprintf("%s:%s", HOST, PORT),
-		Handler:      handlers.Logging(cors.Handler(mux)),
+		Handler:      controllers.Logging(cors.Handler(mux)),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

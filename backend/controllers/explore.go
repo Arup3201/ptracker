@@ -1,17 +1,22 @@
-package handlers
+package controllers
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/ptracker/db"
-	"github.com/ptracker/models"
+	"github.com/ptracker/services"
 	"github.com/ptracker/utils"
 )
 
-func GetExploreProjects(w http.ResponseWriter, r *http.Request) error {
+type ExploreHandler struct {
+	DB     *sql.DB
+	UserId string
+}
+
+func (eh *ExploreHandler) GetExploreProjects(w http.ResponseWriter, r *http.Request) error {
 	queryPage := r.URL.Query().Get("page")
 	queryLimit := r.URL.Query().Get("limit")
 
@@ -50,12 +55,32 @@ func GetExploreProjects(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	projectOverviews, err := db.GetExploredProjects(userId, page, limit)
+	exploreService := &services.ExploreService{
+		DB:     eh.DB,
+		UserId: userId,
+	}
+	projectOverviews, err := exploreService.GetExploredProjects(page, limit)
+	if err != nil {
+		return fmt.Errorf("service get explore projects: %w", err)
+	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[models.ProjectOverviewsResponse]{
+	projects := []ProjectOverview{}
+	for _, po := range projectOverviews {
+		projects = append(projects, ProjectOverview{
+			Id:          po.Id,
+			Name:        po.Name,
+			Description: po.Description,
+			Skills:      po.Skills,
+			Role:        po.Role,
+			CreatedAt:   po.CreatedAt,
+			UpdatedAt:   po.UpdatedAt,
+		})
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectOverviewsResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &models.ProjectOverviewsResponse{
-			Projects: projectOverviews,
+		Data: &ProjectOverviewsResponse{
+			Projects: projects,
 			Page:     page,
 			Limit:    limit,
 			HasNext:  false,
