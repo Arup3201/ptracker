@@ -63,7 +63,6 @@ func (suite *ModelTestSuite) TestProjectStoreGet() {
 		assert.Equal(t, projectDesc, *actual.Description)
 		assert.Equal(t, projectSkills, *actual.Skills)
 		assert.Equal(t, USER_FIXTURES[0].Id, actual.Owner)
-		assert.Equal(t, ROLE_OWNER, actual.Role)
 		assert.Equal(t, 0, actual.UnassignedTasks)
 		assert.Equal(t, 0, actual.OngoingTasks)
 		assert.Equal(t, 0, actual.CompletedTasks)

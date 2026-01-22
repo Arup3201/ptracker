@@ -107,7 +107,7 @@ func (suite *ApiTestSuite) TestCreateProject() {
 	})
 }
 
-func (suite *ApiTestSuite) TestGetProjectDetails() {
+func (suite *ApiTestSuite) TestProjectGet() {
 	t := suite.T()
 
 	t.Run("get project details success", func(t *testing.T) {

@@ -9,16 +9,13 @@ import (
 )
 
 func (suite *ServiceTestSuite) TestExploreProjects() {
-	projectStore := &models.ProjectStore{
-		DB:     suite.conn,
-		UserId: USER_FIXTURES[0].Id,
-	}
-	exploreService := &ExploreService{
-		DB:     suite.conn,
-		UserId: USER_FIXTURES[0].Id,
-	}
 	t := suite.T()
 	t.Run("explore list is empty", func(t *testing.T) {
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+
 		projects, err := exploreService.GetExploredProjects(1, 10)
 
 		if err != nil {
@@ -28,6 +25,14 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		assert.Equal(t, 0, len(projects))
 	})
 	t.Run("explore lists 2 projects", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
@@ -48,6 +53,10 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		suite.Cleanup(t)
 	})
 	t.Run("explore lists projects where role is User", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
@@ -56,6 +65,10 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 				t.Fail()
 				t.Log(err)
 			}
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
 		}
 
 		projects, err := exploreService.GetExploredProjects(1, 10)
@@ -70,6 +83,10 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		suite.Cleanup(t)
 	})
 	t.Run("explore lists projects where role is Owner", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
 		for i := range 2 {
 			projectName := fmt.Sprintf("Project %d", i+1)
 			projectDescription := fmt.Sprintf("Project Description %d", i+1)
@@ -78,6 +95,10 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 				t.Fail()
 				t.Log(err)
 			}
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
 		}
 
 		projects, err := exploreService.GetExploredProjects(1, 10)
