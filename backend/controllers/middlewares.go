@@ -1,7 +1,8 @@
-package handlers
+package controllers
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -13,7 +14,7 @@ import (
 
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/lestrrat-go/jwx/jwt"
-	"github.com/ptracker/db"
+	"github.com/ptracker/models"
 	"github.com/ptracker/utils"
 	"github.com/redis/go-redis/v9"
 )
@@ -72,7 +73,7 @@ func (fn HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 type AuthMiddleware func(http.Handler) HTTPErrorHandler
 
-func Authorize(redis *redis.Client,
+func Authorize(db *sql.DB, redis *redis.Client,
 	keycloakUrl, keycloakRealm string) AuthMiddleware {
 	return func(next http.Handler) HTTPErrorHandler {
 		return func(w http.ResponseWriter, r *http.Request) error {
@@ -112,7 +113,10 @@ func Authorize(redis *redis.Client,
 				}
 			}
 
-			user, err := db.GetUserBySub(sub)
+			userStore := &models.UserStore{
+				DB: db,
+			}
+			user, err := userStore.GetBySubject(sub, "keycloak")
 
 			ctx := context.WithValue(r.Context(), "user_id", user.Id)
 			r = r.WithContext(ctx)

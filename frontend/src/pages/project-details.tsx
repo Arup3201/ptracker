@@ -21,7 +21,7 @@ import {
 } from "../types/project";
 import { MapTask, type Task, type TasksResponseApi } from "../types/task";
 import type { Member } from "../types/member";
-import type { JoinRequest } from "../types/join-request";
+import type { JoinRequest } from "../types/explore";
 import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";

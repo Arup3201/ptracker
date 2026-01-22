@@ -1,4 +1,4 @@
-package handlers
+package controllers
 
 type HTTPSuccessResponse[T any] struct {
 	Status  string `json:"status"`
