@@ -67,7 +67,9 @@ func (th *TaskHandler) All(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	roleStore := &models.RoleStore{
-		DB: th.DB,
+		DB:        th.DB,
+		ProjectId: projectId,
+		UserId:    userId,
 	}
 	taskStore := &models.TaskStore{
 		DB:        th.DB,
@@ -184,7 +186,9 @@ func (th *TaskHandler) Create(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	roleStore := &models.RoleStore{
-		DB: th.DB,
+		DB:        th.DB,
+		ProjectId: projectId,
+		UserId:    userId,
 	}
 	taskStore := &models.TaskStore{
 		DB:        th.DB,
@@ -243,7 +247,9 @@ func (th *TaskHandler) Get(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	roleStore := &models.RoleStore{
-		DB: th.DB,
+		DB:        th.DB,
+		ProjectId: projectId,
+		UserId:    userId,
 	}
 	taskStore := &models.TaskStore{
 		DB:        th.DB,
@@ -273,7 +279,7 @@ func (th *TaskHandler) Get(w http.ResponseWriter, r *http.Request) error {
 		Data: &ProjectTaskDetails{
 			Id:          task.Id,
 			Title:       task.Title,
-			Description: &task.Description,
+			Description: task.Description,
 			Status:      task.Status,
 			CreatedAt:   task.CreatedAt,
 			UpdatedAt:   task.UpdatedAt,

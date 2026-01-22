@@ -159,7 +159,7 @@ func (ps *ProjectStore) CountMembers(projectId string) (int, error) {
 			"FROM roles "+
 			"WHERE user_id=($1) AND project_id=($2) AND role!=($3)",
 		ps.UserId, projectId, ROLE_OWNER,
-	).Scan(count)
+	).Scan(&count)
 	if err != nil {
 		return -1, fmt.Errorf("postgres query total members: %w", err)
 	}

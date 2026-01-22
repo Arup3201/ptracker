@@ -12,7 +12,7 @@ type ProjectTask struct {
 	Id          string
 	ProjectId   string
 	Title       string
-	Description string
+	Description *string
 	Status      string
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
