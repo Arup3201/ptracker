@@ -182,7 +182,7 @@ func main() {
 		DB: connection,
 	}
 	attacher.attach("GET /api/explore/projects", exploreHandler.GetExploreProjects)
-	attacher.attach("GET /api/explore/projects/{id}", exploreHandler.GetExploreProjects)
+	attacher.attach("GET /api/explore/projects/{id}", exploreHandler.GetProject)
 
 	// cors
 	cors := cors.New(cors.Options{
