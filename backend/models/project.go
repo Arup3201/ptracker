@@ -11,18 +11,18 @@ import (
 )
 
 type Project struct {
-	Id              string  `json:"id"`
-	Name            string  `json:"name"`
-	Description     *string `json:"description"`
-	Skills          *string `json:"skills"`
+	Id              string
+	Name            string
+	Description     *string
+	Skills          *string
 	Owner           string
-	Role            string     `json:"role"`
-	UnassignedTasks int        `json:"unassigned_tasks"`
-	OngoingTasks    int        `json:"ongoing_tasks"`
-	CompletedTasks  int        `json:"completed_tasks"`
-	AbandonedTasks  int        `json:"abandoned_tasks"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       *time.Time `json:"updated_at"`
+	Role            string
+	UnassignedTasks int
+	OngoingTasks    int
+	CompletedTasks  int
+	AbandonedTasks  int
+	CreatedAt       time.Time
+	UpdatedAt       *time.Time
 }
 
 const (
