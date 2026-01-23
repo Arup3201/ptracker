@@ -138,3 +138,17 @@ type JoinRequest struct {
 type JoinRequestsResponse struct {
 	Requests []JoinRequest `json:"join_requests"`
 }
+
+type ExploredProjectDetailsResponse struct {
+	Id              string  `json:"id"`
+	Name            string  `json:"name"`
+	Description     *string `json:"description"`
+	Skills          *string `json:"skills"`
+	Owner           Owner
+	UnassignedTasks int        `json:"unassigned_tasks"`
+	OngoingTasks    int        `json:"ongoing_tasks"`
+	CompletedTasks  int        `json:"completed_tasks"`
+	AbandonedTasks  int        `json:"abandoned_tasks"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       *time.Time `json:"updated_at"`
+}

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/ptracker/models"
 	"github.com/ptracker/services"
 	"github.com/ptracker/utils"
 )
@@ -86,5 +87,62 @@ func (eh *ExploreHandler) GetExploreProjects(w http.ResponseWriter, r *http.Requ
 			HasNext:  false,
 		},
 	})
+	return nil
+}
+
+func (eh *ExploreHandler) GetProject(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query project 'id' can't be empty",
+			Err:     fmt.Errorf("get project id: empty project 'id'"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get context user: %w", err)
+	}
+
+	exploreService := &services.ExploreService{
+		DB:     eh.DB,
+		UserId: userId,
+	}
+
+	project, err := exploreService.GetProject(projectId)
+	if err != nil {
+		return fmt.Errorf("database get project details: %w", err)
+	}
+
+	userStore := &models.UserStore{
+		DB: eh.DB,
+	}
+	user, err := userStore.Get(userId)
+	if err != nil {
+		return fmt.Errorf("database get user: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ExploredProjectDetailsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ExploredProjectDetailsResponse{
+			Id:          project.Id,
+			Name:        project.Name,
+			Description: project.Description,
+			Skills:      project.Skills,
+			Owner: Owner{
+				Id:          user.Id,
+				DisplayName: user.DisplayName,
+				Username:    user.Username,
+			},
+			UnassignedTasks: project.UnassignedTasks,
+			OngoingTasks:    project.OngoingTasks,
+			CompletedTasks:  project.CompletedTasks,
+			AbandonedTasks:  project.AbandonedTasks,
+			CreatedAt:       project.CreatedAt,
+			UpdatedAt:       project.UpdatedAt,
+		},
+	})
+
 	return nil
 }

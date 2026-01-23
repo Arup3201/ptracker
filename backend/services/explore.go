@@ -25,6 +25,20 @@ type JoinRequest struct {
 	CreatedAt string
 }
 
+type ExploredProjectDetails struct {
+	Id              string
+	Name            string
+	Description     *string
+	Skills          *string
+	Owner           string
+	UnassignedTasks int
+	OngoingTasks    int
+	CompletedTasks  int
+	AbandonedTasks  int
+	CreatedAt       time.Time
+	UpdatedAt       *time.Time
+}
+
 type ExploreService struct {
 	DB     *sql.DB
 	UserId string
@@ -104,4 +118,24 @@ func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) 
 	}
 
 	return results, nil
+}
+
+func (ps *ExploreService) GetProject(projectId string) (*ExploredProjectDetails, error) {
+	var p ExploredProjectDetails
+	err := ps.DB.QueryRow(
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, p.owner, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects as p "+
+			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
+			"WHERE p.id=($1)",
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner,
+		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
+		&p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query project details: %w", err)
+	}
+
+	return &p, nil
 }
