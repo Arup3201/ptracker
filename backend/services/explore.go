@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"time"
+
+	"github.com/ptracker/models"
 )
 
 type ExploredProject struct {
@@ -14,6 +16,13 @@ type ExploredProject struct {
 	Role        string
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
+}
+
+type JoinRequest struct {
+	ProjectId string
+	User      models.User
+	Status    string
+	CreatedAt string
 }
 
 type ExploreService struct {
@@ -65,4 +74,34 @@ func (ps *ExploreService) RequestToJoinProject(projectId string) error {
 	}
 
 	return nil
+}
+
+func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) {
+	rows, err := ps.DB.Query("SELECT r.project_id, r.status, u.id, u.username, "+
+		"u.display_name, u.email, u.is_active, u.created_at "+
+		"FROM join_requests as r "+
+		"INNER JOIN users as u ON u.id=r.user_id "+
+		"WHERE r.project_id=($1)",
+		projectId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get join requests: %w", err)
+	}
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres get join requests: %w", err)
+	}
+
+	results := []JoinRequest{}
+	for rows.Next() {
+		var r JoinRequest
+		rows.Scan(&r.ProjectId, &r.Status, &r.User.Id,
+			&r.User.Username, &r.User.DisplayName, &r.User.Email, &r.User.Email,
+			&r.User.IsActive, &r.User.CreatedAt)
+
+		results = append(results, r)
+	}
+
+	return results, nil
 }

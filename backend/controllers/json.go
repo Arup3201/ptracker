@@ -118,3 +118,23 @@ type ProjectOverviewsResponse struct {
 	Limit    int               `json:"limit"`
 	HasNext  bool              `json:"has_next"`
 }
+
+type User struct {
+	Id          string    `json:"id"`
+	Username    string    `json:"username"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
+	IsActive    bool      `json:"is_active"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type JoinRequest struct {
+	ProjectId string `json:"project_id"`
+	User      User   `json:"user"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+}
+
+type JoinRequestsResponse struct {
+	Requests []JoinRequest `json:"join_requests"`
+}

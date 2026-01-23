@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/models"
+	"github.com/ptracker/services"
 	"github.com/ptracker/utils"
 )
 
@@ -234,6 +235,91 @@ func (ph *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) error {
 			AbandonedTasks:  project.AbandonedTasks,
 			CreatedAt:       project.CreatedAt,
 			UpdatedAt:       project.UpdatedAt,
+		},
+	})
+
+	return nil
+}
+
+func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	exploreService := &services.ExploreService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+
+	err = exploreService.RequestToJoinProject(projectId)
+	if err != nil {
+		return fmt.Errorf("explore service project join request: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Join request created for the user",
+	})
+
+	return nil
+}
+
+func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	exploreService := &services.ExploreService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+
+	requests, err := exploreService.JoinRequests(projectId)
+	if err != nil {
+		return fmt.Errorf("explore service get join request: %w", err)
+	}
+
+	joinRequests := []JoinRequest{}
+	for _, r := range requests {
+		joinRequests = append(joinRequests, JoinRequest{
+			ProjectId: r.ProjectId,
+			User: User{
+				Id:          r.User.Id,
+				Username:    r.User.Username,
+				DisplayName: r.User.DisplayName,
+				Email:       r.User.Email,
+				IsActive:    r.User.IsActive,
+				CreatedAt:   r.User.CreatedAt,
+			},
+		})
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[JoinRequestsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &JoinRequestsResponse{
+			Requests: joinRequests,
 		},
 	})
 
