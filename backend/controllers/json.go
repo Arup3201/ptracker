@@ -140,11 +140,11 @@ type JoinRequestsResponse struct {
 }
 
 type ExploredProjectDetailsResponse struct {
-	Id              string  `json:"id"`
-	Name            string  `json:"name"`
-	Description     *string `json:"description"`
-	Skills          *string `json:"skills"`
-	Owner           Owner
+	Id              string     `json:"id"`
+	Name            string     `json:"name"`
+	Description     *string    `json:"description"`
+	Skills          *string    `json:"skills"`
+	Owner           Owner      `json:"owner"`
 	UnassignedTasks int        `json:"unassigned_tasks"`
 	OngoingTasks    int        `json:"ongoing_tasks"`
 	CompletedTasks  int        `json:"completed_tasks"`
