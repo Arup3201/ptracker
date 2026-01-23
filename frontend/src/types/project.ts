@@ -6,13 +6,13 @@ export const ROLES: Record<string, Role> = {
 
 export type Role = "Owner" | "Assignee" | "Member";
 
-type OwnerApi = {
+export type OwnerApi = {
   id: string;
   username: string;
   display_name: string;
 };
 
-type Owner = {
+export type Owner = {
   id: string;
   username: string;
   displayName: string;
