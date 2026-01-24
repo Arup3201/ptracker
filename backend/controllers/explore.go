@@ -73,6 +73,7 @@ func (eh *ExploreHandler) GetExploreProjects(w http.ResponseWriter, r *http.Requ
 			Description: po.Description,
 			Skills:      po.Skills,
 			Role:        po.Role,
+			JoinStatus:  po.JoinStatus,
 			CreatedAt:   po.CreatedAt,
 			UpdatedAt:   po.UpdatedAt,
 		})

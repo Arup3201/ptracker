@@ -108,6 +108,7 @@ type ProjectOverview struct {
 	Description *string    `json:"description"`
 	Skills      *string    `json:"skills"`
 	Role        string     `json:"role"`
+	JoinStatus  string     `json:"join_status"`
 	CreatedAt   time.Time  `json:"created_at"`
 	UpdatedAt   *time.Time `json:"updated_at"`
 }

@@ -112,7 +112,7 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		}
 		suite.Cleanup(t)
 	})
-	t.Run("should have join request status as null", func(t *testing.T) {
+	t.Run("should have join request status as 'Not Requested'", func(t *testing.T) {
 		projectStore := &models.ProjectStore{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
@@ -138,7 +138,7 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 			t.Log(err)
 		}
 		for _, p := range projects {
-			assert.Equal(t, (*string)(nil), p.JoinStatus)
+			assert.Equal(t, "Not Requested", p.JoinStatus)
 		}
 		suite.Cleanup(t)
 	})
@@ -167,7 +167,7 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		projects, err := exploreService.GetExploredProjects(1, 10)
 
 		actual := projects[0]
-		assert.Equal(t, "Pending", *actual.JoinStatus)
+		assert.Equal(t, "Pending", actual.JoinStatus)
 	})
 }
 

@@ -14,7 +14,7 @@ type ExploredProject struct {
 	Description *string
 	Skills      *string
 	Role        string
-	JoinStatus  *string
+	JoinStatus  string
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
 }
@@ -56,12 +56,16 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 			"WHEN r.role='Member' THEN 'Member' "+
 			"ELSE 'User' "+
 			"END AS role, "+
-			"jr.status as join_status, "+
+			"CASE "+
+			"WHEN jr.status='Pending' THEN 'Pending' "+
+			"WHEN jr.status='Accepted' THEN 'Accepted' "+
+			"ELSE 'Not Requested' "+
+			"END AS join_status, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects AS p "+
 			"CROSS JOIN users AS u "+
 			"LEFT JOIN roles AS r ON r.user_id=u.id "+
-			"LEFT JOIN join_requests as jr ON jr.project_id=p.id "+
+			"LEFT JOIN join_requests AS jr ON jr.project_id=p.id "+
 			"WHERE u.id=($1)",
 		ps.UserId)
 	if err != nil {
