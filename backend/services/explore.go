@@ -138,9 +138,9 @@ func (ps *ExploreService) GetProject(projectId string) (*ExploredProjectDetails,
 			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
 			"LEFT JOIN join_requests AS jr ON p.id=jr.project_id "+
 			"WHERE p.id=($1)",
-		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner, &p.JoinStatus,
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner,
 		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
-		&p.CreatedAt, &p.UpdatedAt)
+		&p.JoinStatus, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("postgres query project details: %w", err)
 	}
