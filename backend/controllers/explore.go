@@ -73,7 +73,6 @@ func (eh *ExploreHandler) GetExploreProjects(w http.ResponseWriter, r *http.Requ
 			Description: po.Description,
 			Skills:      po.Skills,
 			Role:        po.Role,
-			JoinStatus:  po.JoinStatus,
 			CreatedAt:   po.CreatedAt,
 			UpdatedAt:   po.UpdatedAt,
 		})
@@ -136,6 +135,7 @@ func (eh *ExploreHandler) GetProject(w http.ResponseWriter, r *http.Request) err
 				DisplayName: user.DisplayName,
 				Username:    user.Username,
 			},
+			JoinStatus:      project.JoinStatus,
 			UnassignedTasks: project.UnassignedTasks,
 			OngoingTasks:    project.OngoingTasks,
 			CompletedTasks:  project.CompletedTasks,

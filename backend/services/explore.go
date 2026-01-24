@@ -14,7 +14,6 @@ type ExploredProject struct {
 	Description *string
 	Skills      *string
 	Role        string
-	JoinStatus  string
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
 }
@@ -32,6 +31,7 @@ type ExploredProjectDetails struct {
 	Description     *string
 	Skills          *string
 	Owner           string
+	JoinStatus      string
 	UnassignedTasks int
 	OngoingTasks    int
 	CompletedTasks  int
@@ -56,11 +56,6 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 			"WHEN r.role='Member' THEN 'Member' "+
 			"ELSE 'User' "+
 			"END AS role, "+
-			"CASE "+
-			"WHEN jr.status='Pending' THEN 'Pending' "+
-			"WHEN jr.status='Accepted' THEN 'Accepted' "+
-			"ELSE 'Not Requested' "+
-			"END AS join_status, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects AS p "+
 			"CROSS JOIN users AS u "+
@@ -75,7 +70,7 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 
 	for rows.Next() {
 		var p ExploredProject
-		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role, &p.JoinStatus,
+		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
 			&p.CreatedAt, &p.UpdatedAt)
 		projects = append(projects, p)
 	}
@@ -133,11 +128,17 @@ func (ps *ExploreService) GetProject(projectId string) (*ExploredProjectDetails,
 		"SELECT "+
 			"p.id, p.name, p.description, p.skills, p.owner, "+
 			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"CASE "+
+			"WHEN jr.status='Pending' THEN 'Pending' "+
+			"WHEN jr.status='Accepted' THEN 'Accepted' "+
+			"ELSE 'Not Requested' "+
+			"END AS join_status, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects as p "+
 			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
+			"LEFT JOIN join_requests AS jr ON p.id=jr.project_id "+
 			"WHERE p.id=($1)",
-		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner,
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner, &p.JoinStatus,
 		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
 		&p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
