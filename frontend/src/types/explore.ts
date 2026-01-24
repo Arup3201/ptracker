@@ -1,11 +1,5 @@
 import type { Owner, OwnerApi } from "./project";
 
-export interface JoinRequest {
-  id: string;
-  name: string;
-  note: string;
-}
-
 export type JoinStatus = "Not Requested" | "Pending" | "Accepted";
 
 export const JOIN_STATUS: Record<string, JoinStatus> = {
