@@ -14,6 +14,7 @@ type ExploredProject struct {
 	Description *string
 	Skills      *string
 	Role        string
+	JoinStatus  *string
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
 }
@@ -55,10 +56,12 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 			"WHEN r.role='Member' THEN 'Member' "+
 			"ELSE 'User' "+
 			"END AS role, "+
+			"jr.status as join_status, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects AS p "+
 			"CROSS JOIN users AS u "+
 			"LEFT JOIN roles AS r ON r.user_id=u.id "+
+			"LEFT JOIN join_requests as jr ON jr.project_id=p.id "+
 			"WHERE u.id=($1)",
 		ps.UserId)
 	if err != nil {
@@ -68,7 +71,7 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 
 	for rows.Next() {
 		var p ExploredProject
-		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
+		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role, &p.JoinStatus,
 			&p.CreatedAt, &p.UpdatedAt)
 		projects = append(projects, p)
 	}

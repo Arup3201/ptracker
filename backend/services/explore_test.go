@@ -112,6 +112,63 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 		}
 		suite.Cleanup(t)
 	})
+	t.Run("should have join request status as null", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		for i := range 2 {
+			projectName := fmt.Sprintf("Project %d", i+1)
+			projectDescription := fmt.Sprintf("Project Description %d", i+1)
+			_, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+			if err != nil {
+				t.Fail()
+				t.Log(err)
+			}
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+
+		projects, err := exploreService.GetExploredProjects(1, 10)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		for _, p := range projects {
+			assert.Equal(t, (*string)(nil), p.JoinStatus)
+		}
+		suite.Cleanup(t)
+	})
+	t.Run("should have join request status pending", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.RequestToJoinProject(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		projects, err := exploreService.GetExploredProjects(1, 10)
+
+		actual := projects[0]
+		assert.Equal(t, "Pending", *actual.JoinStatus)
+	})
 }
 
 func (suite *ServiceTestSuite) TestJoinProjectRequest() {
