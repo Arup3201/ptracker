@@ -120,12 +120,11 @@ type ProjectOverviewsResponse struct {
 }
 
 type User struct {
-	Id          string    `json:"id"`
-	Username    string    `json:"username"`
-	DisplayName string    `json:"display_name"`
-	Email       string    `json:"email"`
-	IsActive    bool      `json:"is_active"`
-	CreatedAt   time.Time `json:"created_at"`
+	Id          string `json:"id"`
+	Username    string `json:"username"`
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	IsActive    bool   `json:"is_active"`
 }
 
 type JoinRequest struct {

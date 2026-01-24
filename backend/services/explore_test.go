@@ -211,3 +211,71 @@ func (suite *ServiceTestSuite) TestGetExploredProjectDetails() {
 		assert.Equal(t, "Pending", project.JoinStatus)
 	})
 }
+
+func (suite *ServiceTestSuite) TestGetJoinRequests() {
+	t := suite.T()
+
+	t.Run("should have 1 join request", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.RequestToJoinProject(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		requests, err := exploreService.JoinRequests(projectId)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, 1, len(requests))
+	})
+	t.Run("should have join request with user", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ExploreService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.RequestToJoinProject(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		requests, err := exploreService.JoinRequests(projectId)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		actual := requests[0]
+		assert.Equal(t, USER_FIXTURES[1].Id, actual.User.Id)
+		assert.Equal(t, USER_FIXTURES[1].Username, actual.User.Username)
+		assert.Equal(t, USER_FIXTURES[1].DisplayName, actual.User.DisplayName)
+	})
+}

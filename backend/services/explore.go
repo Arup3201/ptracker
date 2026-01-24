@@ -94,7 +94,7 @@ func (ps *ExploreService) RequestToJoinProject(projectId string) error {
 
 func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) {
 	rows, err := ps.DB.Query("SELECT r.project_id, r.status, u.id, u.username, "+
-		"u.display_name, u.email, u.is_active, u.created_at "+
+		"u.display_name, u.email, u.is_active, r.created_at "+
 		"FROM join_requests as r "+
 		"INNER JOIN users as u ON u.id=r.user_id "+
 		"WHERE r.project_id=($1)",
@@ -113,8 +113,8 @@ func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) 
 	for rows.Next() {
 		var r JoinRequest
 		rows.Scan(&r.ProjectId, &r.Status, &r.User.Id,
-			&r.User.Username, &r.User.DisplayName, &r.User.Email, &r.User.Email,
-			&r.User.IsActive, &r.User.CreatedAt)
+			&r.User.Username, &r.User.DisplayName, &r.User.Email,
+			&r.User.IsActive, &r.CreatedAt)
 
 		results = append(results, r)
 	}
