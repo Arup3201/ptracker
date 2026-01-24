@@ -6,6 +6,14 @@ export interface JoinRequest {
   note: string;
 }
 
+export type JoinStatus = "Not Requested" | "Pending" | "Accepted";
+
+export const JOIN_STATUS: Record<string, JoinStatus> = {
+  NOT_REQUESTED: "Not Requested",
+  PENDING: "Pending",
+  ACCEPTED: "Accepted",
+};
+
 export interface ExploreProject {
   id: string;
   title: string;
@@ -53,6 +61,7 @@ export interface ExploredProjectDetailsApi {
   ongoing_tasks: number;
   completed_tasks: number;
   abandoned_tasks: number;
+  join_status: JoinStatus;
   created_at: string;
   updated_at?: string;
 }
@@ -67,6 +76,7 @@ export interface ExploredProjectDetails {
   ongoingTasks: number;
   completedTasks: number;
   abandonedTasks: number;
+  joinStatus: JoinStatus;
   createdAt: string;
   updatedAt?: string;
 }
@@ -85,6 +95,7 @@ export const MapExploredProjectDetails = (p: ExploredProjectDetailsApi) => ({
   ongoingTasks: p.ongoing_tasks,
   completedTasks: p.completed_tasks,
   abandonedTasks: p.abandoned_tasks,
+  joinStatus: p.join_status,
   createdAt: p.created_at,
   updatedAt: p.updated_at,
 });

@@ -4,14 +4,19 @@ import { TopBar } from "../components/topbar";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
 import {
+  JOIN_STATUS,
   MapExploredProjectDetails,
   type ExploredProjectDetails,
   type ExploredProjectDetailsApi,
+  type JoinStatus,
 } from "../types/explore";
 
 export default function ProjectExplorePage() {
   const { id: projectId } = useParams();
   const [details, setDetails] = useState<ExploredProjectDetails>();
+  const [joinStatus, setJoinStatus] = useState<JoinStatus>(
+    JOIN_STATUS.NOT_REQUESTED,
+  );
 
   async function getProjectDetails(id: string) {
     try {
@@ -22,6 +27,7 @@ export default function ProjectExplorePage() {
       );
       if (data) {
         setDetails(MapExploredProjectDetails(data));
+        setJoinStatus(data.join_status);
       }
     } catch (err) {
       console.error(err);
@@ -34,7 +40,18 @@ export default function ProjectExplorePage() {
     }
   }, [projectId]);
 
-  const handleJoin = () => {};
+  const handleJoin = async () => {
+    try {
+      await ApiRequest<null>(
+        `/projects/${projectId}/join-requests`,
+        "POST",
+        null,
+      );
+      setJoinStatus(() => JOIN_STATUS.PENDING);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <>
@@ -42,7 +59,14 @@ export default function ProjectExplorePage() {
         title="Projects / Project Details"
         actions={
           <div className="flex gap-1">
-            <Button onClick={handleJoin}>Join Project</Button>
+            <Button
+              disabled={joinStatus !== JOIN_STATUS.NOT_REQUESTED}
+              onClick={handleJoin}
+            >
+              {joinStatus === JOIN_STATUS.NOT_REQUESTED
+                ? "Join Project"
+                : joinStatus}
+            </Button>
           </div>
         }
       />
