@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/ptracker/apierr"
 	"github.com/ptracker/models"
 	"github.com/stretchr/testify/assert"
 )
@@ -148,6 +149,19 @@ func (suite *ServiceTestSuite) TestJoinProjectRequest() {
 		}
 		assert.Equal(t, "Pending", requestStatus)
 		suite.Cleanup(t)
+	})
+	t.Run("should return error for duplicate join request", func(t *testing.T) {
+		var projectName, projectDesc, projectSkills = "Test Project 1", "Test Project Description", "Python"
+		projectId, err := projectStore.Create(projectName, projectDesc, projectSkills)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		err = exploreService.RequestToJoinProject(projectId)
+
+		err = exploreService.RequestToJoinProject(projectId)
+
+		assert.Equal(t, apierr.ErrDuplicate, err)
 	})
 }
 

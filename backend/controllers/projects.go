@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -264,6 +265,14 @@ func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) er
 
 	err = exploreService.RequestToJoinProject(projectId)
 	if err != nil {
+		if errors.Is(err, apierr.ErrDuplicate) {
+			return &HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: "Join request has already been sent",
+				ErrId:   ERR_INVALID_BODY,
+				Err:     fmt.Errorf("attempted for duplicate join request"),
+			}
+		}
 		return fmt.Errorf("explore service project join request: %w", err)
 	}
 

@@ -3,8 +3,10 @@ package services
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/ptracker/apierr"
 	"github.com/ptracker/models"
 )
 
@@ -86,6 +88,9 @@ func (ps *ExploreService) RequestToJoinProject(projectId string) error {
 		"VALUES($1, $2)", ps.UserId, projectId)
 
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return apierr.ErrDuplicate
+		}
 		return fmt.Errorf("postgres join project: %w", err)
 	}
 
