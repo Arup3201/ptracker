@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
@@ -158,7 +159,14 @@ func (ps *ProjectService) UpdateJoinRequestStatus(projectId, userId, joinStatus 
 		return apierr.ErrInvalidValue
 	}
 
-	_, err := ps.DB.Exec("UPDATE join_requests "+
+	ctx := context.Background()
+	tx, err := ps.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("database transaction begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	_, err = tx.ExecContext(ctx, "UPDATE join_requests "+
 		"SET status=($1) "+
 		"WHERE project_id=($2) AND user_id=($3)", joinStatus, projectId, userId)
 
@@ -167,6 +175,16 @@ func (ps *ProjectService) UpdateJoinRequestStatus(projectId, userId, joinStatus 
 			return apierr.ErrInvalidValue
 		}
 		return fmt.Errorf("service update join request query: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, "INSERT INTO roles(project_id, user_id, role) "+
+		"VALUES($1, $2, $3)", projectId, userId, models.ROLE_MEMBER)
+	if err != nil {
+		return fmt.Errorf("service insert member role: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("transaction commit: %w", err)
 	}
 
 	return nil

@@ -490,4 +490,47 @@ func (suite *ServiceTestSuite) TestUpdateJoinRequestStatus() {
 		assert.Equal(t, apierr.ErrInvalidValue, err)
 		suite.Cleanup(t)
 	})
+	t.Run("should add member role", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Accepted",
+		)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		var role string
+		err = suite.conn.QueryRow("SELECT role FROM roles "+
+			"WHERE user_id=($1) AND project_id=($2)", USER_FIXTURES[1].Id, projectId).
+			Scan(&role)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, models.ROLE_MEMBER, role)
+		suite.Cleanup(t)
+	})
 }
