@@ -258,12 +258,12 @@ func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	exploreService := &services.ExploreService{
+	exploreService := &services.ProjectService{
 		DB:     ph.DB,
 		UserId: userId,
 	}
 
-	err = exploreService.RequestToJoinProject(projectId)
+	err = exploreService.Join(projectId)
 	if err != nil {
 		if errors.Is(err, apierr.ErrDuplicate) {
 			return &HTTPError{
@@ -300,7 +300,7 @@ func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	exploreService := &services.ExploreService{
+	exploreService := &services.ProjectService{
 		DB:     ph.DB,
 		UserId: userId,
 	}

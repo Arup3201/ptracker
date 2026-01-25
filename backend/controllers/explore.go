@@ -56,11 +56,11 @@ func (eh *ExploreHandler) GetExploreProjects(w http.ResponseWriter, r *http.Requ
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	exploreService := &services.ExploreService{
+	exploreService := &services.ProjectService{
 		DB:     eh.DB,
 		UserId: userId,
 	}
-	projectOverviews, err := exploreService.GetExploredProjects(page, limit)
+	projectOverviews, err := exploreService.List(page, limit)
 	if err != nil {
 		return fmt.Errorf("service get explore projects: %w", err)
 	}
@@ -105,12 +105,12 @@ func (eh *ExploreHandler) GetProject(w http.ResponseWriter, r *http.Request) err
 		return fmt.Errorf("get context user: %w", err)
 	}
 
-	exploreService := &services.ExploreService{
+	exploreService := &services.ProjectService{
 		DB:     eh.DB,
 		UserId: userId,
 	}
 
-	project, err := exploreService.GetProject(projectId)
+	project, err := exploreService.Get(projectId)
 	if err != nil {
 		return fmt.Errorf("database get project details: %w", err)
 	}
