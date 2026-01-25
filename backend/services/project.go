@@ -10,7 +10,7 @@ import (
 	"github.com/ptracker/models"
 )
 
-type ExploredProject struct {
+type Project struct {
 	Id          string
 	Name        string
 	Description *string
@@ -27,7 +27,7 @@ type JoinRequest struct {
 	CreatedAt string
 }
 
-type ExploredProjectDetails struct {
+type ProjectDetails struct {
 	Id              string
 	Name            string
 	Description     *string
@@ -42,13 +42,13 @@ type ExploredProjectDetails struct {
 	UpdatedAt       *time.Time
 }
 
-type ExploreService struct {
+type ProjectService struct {
 	DB     *sql.DB
 	UserId string
 }
 
-func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProject, error) {
-	var projects = []ExploredProject{}
+func (ps *ProjectService) List(page, limit int) ([]Project, error) {
+	var projects = []Project{}
 
 	rows, err := ps.DB.Query(
 		"SELECT "+
@@ -71,7 +71,7 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 	defer rows.Close()
 
 	for rows.Next() {
-		var p ExploredProject
+		var p Project
 		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
 			&p.CreatedAt, &p.UpdatedAt)
 		projects = append(projects, p)
@@ -83,7 +83,7 @@ func (ps *ExploreService) GetExploredProjects(page, limit int) ([]ExploredProjec
 	return projects, nil
 }
 
-func (ps *ExploreService) RequestToJoinProject(projectId string) error {
+func (ps *ProjectService) Join(projectId string) error {
 	_, err := ps.DB.Exec("INSERT INTO join_requests(user_id, project_id) "+
 		"VALUES($1, $2)", ps.UserId, projectId)
 
@@ -97,7 +97,7 @@ func (ps *ExploreService) RequestToJoinProject(projectId string) error {
 	return nil
 }
 
-func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) {
+func (ps *ProjectService) JoinRequests(projectId string) ([]JoinRequest, error) {
 	rows, err := ps.DB.Query("SELECT r.project_id, r.status, u.id, u.username, "+
 		"u.display_name, u.email, u.is_active, r.created_at "+
 		"FROM join_requests as r "+
@@ -127,8 +127,8 @@ func (ps *ExploreService) JoinRequests(projectId string) ([]JoinRequest, error) 
 	return results, nil
 }
 
-func (ps *ExploreService) GetProject(projectId string) (*ExploredProjectDetails, error) {
-	var p ExploredProjectDetails
+func (ps *ProjectService) Get(projectId string) (*ProjectDetails, error) {
+	var p ProjectDetails
 	err := ps.DB.QueryRow(
 		"SELECT "+
 			"p.id, p.name, p.description, p.skills, p.owner, "+

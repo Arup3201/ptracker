@@ -12,12 +12,12 @@ import (
 func (suite *ServiceTestSuite) TestExploreProjects() {
 	t := suite.T()
 	t.Run("explore list is empty", func(t *testing.T) {
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[0].Id,
 		}
 
-		projects, err := exploreService.GetExploredProjects(1, 10)
+		projects, err := exploreService.List(1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -30,7 +30,7 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[0].Id,
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[0].Id,
 		}
@@ -44,7 +44,7 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 			}
 		}
 
-		projects, err := exploreService.GetExploredProjects(1, 10)
+		projects, err := exploreService.List(1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -67,12 +67,12 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 				t.Log(err)
 			}
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
 
-		projects, err := exploreService.GetExploredProjects(1, 10)
+		projects, err := exploreService.List(1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -97,12 +97,12 @@ func (suite *ServiceTestSuite) TestExploreProjects() {
 				t.Log(err)
 			}
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
 
-		projects, err := exploreService.GetExploredProjects(1, 10)
+		projects, err := exploreService.List(1, 10)
 
 		if err != nil {
 			t.Fail()
@@ -120,7 +120,7 @@ func (suite *ServiceTestSuite) TestJoinProjectRequest() {
 		DB:     suite.conn,
 		UserId: USER_FIXTURES[1].Id,
 	}
-	exploreService := &ExploreService{
+	exploreService := &ProjectService{
 		DB:     suite.conn,
 		UserId: USER_FIXTURES[1].Id,
 	}
@@ -133,7 +133,7 @@ func (suite *ServiceTestSuite) TestJoinProjectRequest() {
 			t.Log(err)
 		}
 
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 
 		if err != nil {
 			t.Fail()
@@ -157,9 +157,9 @@ func (suite *ServiceTestSuite) TestJoinProjectRequest() {
 			t.Fail()
 			t.Log(err)
 		}
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 
 		assert.Equal(t, apierr.ErrDuplicate, err)
 	})
@@ -180,12 +180,12 @@ func (suite *ServiceTestSuite) TestGetExploredProjectDetails() {
 			t.Fail()
 			t.Log(err)
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
 
-		project, err := exploreService.GetProject(projectId)
+		project, err := exploreService.Get(projectId)
 
 		if err != nil {
 			t.Fail()
@@ -206,17 +206,17 @@ func (suite *ServiceTestSuite) TestGetExploredProjectDetails() {
 			t.Fail()
 			t.Log(err)
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
 		}
 
-		project, err := exploreService.GetProject(projectId)
+		project, err := exploreService.Get(projectId)
 
 		if err != nil {
 			t.Fail()
@@ -241,11 +241,11 @@ func (suite *ServiceTestSuite) TestGetJoinRequests() {
 			t.Fail()
 			t.Log(err)
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
@@ -271,11 +271,11 @@ func (suite *ServiceTestSuite) TestGetJoinRequests() {
 			t.Fail()
 			t.Log(err)
 		}
-		exploreService := &ExploreService{
+		exploreService := &ProjectService{
 			DB:     suite.conn,
 			UserId: USER_FIXTURES[1].Id,
 		}
-		err = exploreService.RequestToJoinProject(projectId)
+		err = exploreService.Join(projectId)
 		if err != nil {
 			t.Fail()
 			t.Log(err)
