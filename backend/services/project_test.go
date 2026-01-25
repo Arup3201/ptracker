@@ -294,6 +294,47 @@ func (suite *ServiceTestSuite) TestGetJoinRequests() {
 		assert.Equal(t, USER_FIXTURES[1].DisplayName, actual.User.DisplayName)
 		suite.Cleanup(t)
 	})
+	t.Run("should return join request with status accepted", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Accepted",
+		)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		requests, err := exploreService.JoinRequests(projectId)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		actual := requests[0]
+		assert.Equal(t, "Accepted", actual.Status)
+		suite.Cleanup(t)
+	})
 }
 
 func (suite *ServiceTestSuite) TestUpdateJoinRequestStatus() {
@@ -340,7 +381,7 @@ func (suite *ServiceTestSuite) TestUpdateJoinRequestStatus() {
 			t.Fail()
 			t.Log(err)
 		}
-		assert.Equal(t, status, "Accepted")
+		assert.Equal(t, "Accepted", status)
 		suite.Cleanup(t)
 	})
 	t.Run("should update join status to rejected", func(t *testing.T) {
@@ -384,7 +425,7 @@ func (suite *ServiceTestSuite) TestUpdateJoinRequestStatus() {
 			t.Fail()
 			t.Log(err)
 		}
-		assert.Equal(t, status, "Rejected")
+		assert.Equal(t, "Rejected", status)
 		suite.Cleanup(t)
 	})
 	t.Run("should give invalid value error when join status updated to pending", func(t *testing.T) {

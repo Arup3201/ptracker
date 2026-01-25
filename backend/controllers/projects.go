@@ -321,6 +321,7 @@ func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request
 				Email:       r.User.Email,
 				IsActive:    r.User.IsActive,
 			},
+			Status:    r.Status,
 			CreatedAt: r.CreatedAt,
 		})
 	}
