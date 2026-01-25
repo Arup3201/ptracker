@@ -27,6 +27,7 @@ import type { Member } from "../types/member";
 import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";
+import { JOIN_STATUS } from "../types/explore";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
@@ -322,14 +323,18 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
     }
   };
 
+  const pendingRequests = requests.filter(
+    (r) => r.status === JOIN_STATUS.PENDING,
+  );
+
   return (
     <div className="divide-y divide-(--border-muted) rounded-md border border-(--border-default)">
-      {requests.length === 0 && (
+      {pendingRequests.length === 0 && (
         <div className="px-3 py-6 text-center text-sm text-(--text-muted)">
           No join requests found
         </div>
       )}
-      {requests.map((req) => (
+      {pendingRequests.map((req) => (
         <div
           key={req.projectId + req.user.id}
           className="flex items-start justify-between p-4"
