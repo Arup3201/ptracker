@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router";
 import { Button } from "../components/button";
 import { TopBar } from "../components/topbar";
 import { Input } from "../components/input";
@@ -8,8 +9,19 @@ import {
   type ExploreProject,
   type ExploreProjectsApiResponse,
 } from "../types/explore";
+import { ROLES } from "../types/project";
 
 function ProjectCard({ project }: { project: ExploreProject }) {
+  const navigate = useNavigate();
+
+  const handleView = () => {
+    if (project.role === ROLES.OWNER || project.role == ROLES.MEMBER) {
+      navigate(`/projects/${project.id}`);
+    } else {
+      navigate(`/explore/${project.id}`);
+    }
+  };
+
   return (
     <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
       <div className="flex items-start justify-between gap-2">
@@ -33,7 +45,9 @@ function ProjectCard({ project }: { project: ExploreProject }) {
       </span>
 
       <div className="mt-4">
-        <Button variant="secondary">View Project</Button>
+        <Button variant="secondary" onClick={handleView}>
+          View Project
+        </Button>
       </div>
     </div>
   );
@@ -48,7 +62,7 @@ export default function ExploreProjectsPage() {
       const data = await ApiRequest<ExploreProjectsApiResponse>(
         "/explore/projects",
         "GET",
-        null
+        null,
       );
       if (data?.projects) {
         const projects = data.projects.map(MapExploreProject);
@@ -66,7 +80,7 @@ export default function ExploreProjectsPage() {
   const filteredProjects = projects.filter(
     (project) =>
       project.title.toLowerCase().includes(query.toLowerCase()) ||
-      project.description.toLowerCase().includes(query.toLowerCase())
+      project.description.toLowerCase().includes(query.toLowerCase()),
   );
 
   return (

@@ -6,13 +6,13 @@ export const ROLES: Record<string, Role> = {
 
 export type Role = "Owner" | "Assignee" | "Member";
 
-type OwnerApi = {
+export type OwnerApi = {
   id: string;
   username: string;
   display_name: string;
 };
 
-type Owner = {
+export type Owner = {
   id: string;
   username: string;
   displayName: string;
@@ -124,3 +124,55 @@ export const MapProjectDetails = (p: ProjectDetailsApi): ProjectDetails => ({
   createdAt: p.created_at,
   updatedAt: p.updated_at,
 });
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+type JoinStatus = "Pending" | "Accepted";
+
+export interface JoinRequest {
+  projectId: string;
+  user: User;
+  status: JoinStatus;
+  createdAt: string;
+}
+
+interface UserApi {
+  id: string;
+  username: string;
+  display_name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface JoinRequestApi {
+  project_id: string;
+  user: UserApi;
+  status: JoinStatus;
+  created_at: string;
+}
+
+export const MapJoinRequest = (request: JoinRequestApi): JoinRequest => ({
+  projectId: request.project_id,
+  user: {
+    id: request.user.id,
+    username: request.user.username,
+    displayName: request.user.display_name,
+    email: request.user.email,
+    isActive: request.user.is_active,
+    createdAt: request.user.created_at,
+  },
+  status: request.status,
+  createdAt: request.created_at,
+});
+
+export interface JoinRequestsResponseApi {
+  join_requests: JoinRequestApi[];
+}

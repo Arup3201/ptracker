@@ -14,21 +14,24 @@ import { Button } from "../components/button";
 import { Input } from "../components/input";
 import { Tab } from "../components/tab";
 import {
+  MapJoinRequest,
   MapProjectDetails,
   ROLES,
+  type JoinRequest,
+  type JoinRequestsResponseApi,
   type ProjectDetails,
   type ProjectDetailsApi,
 } from "../types/project";
 import { MapTask, type Task, type TasksResponseApi } from "../types/task";
 import type { Member } from "../types/member";
-import type { JoinRequest } from "../types/explore";
 import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";
+import { JOIN_STATUS } from "../types/explore";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
-    "tasks"
+    "tasks",
   );
 
   const { id: projectId } = useParams();
@@ -37,7 +40,7 @@ export default function ProjectDetailsPage() {
   const [details, setDetails] = useState<ProjectDetails>();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, __] = useState<Member[]>([]);
-  const [requests, ___] = useState<JoinRequest[]>([]);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 
   const [addTask, setAddTask] = useState<boolean>(false);
   const [editProject, setEditProject] = useState<boolean>(false);
@@ -47,7 +50,7 @@ export default function ProjectDetailsPage() {
       const data = await ApiRequest<ProjectDetailsApi>(
         `/projects/${id}`,
         "GET",
-        null
+        null,
       );
       if (data) {
         setDetails(MapProjectDetails(data));
@@ -62,10 +65,25 @@ export default function ProjectDetailsPage() {
       const data = await ApiRequest<TasksResponseApi>(
         `/projects/${id}/tasks`,
         "GET",
-        null
+        null,
       );
       if (data) {
         setTasks(data.tasks.map(MapTask));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  async function getJoinRequests(id: string) {
+    try {
+      const data = await ApiRequest<JoinRequestsResponseApi>(
+        `/projects/${id}/join-requests`,
+        "GET",
+        null,
+      );
+      if (data) {
+        setJoinRequests(data.join_requests.map(MapJoinRequest));
       }
     } catch (err) {
       console.error(err);
@@ -76,6 +94,7 @@ export default function ProjectDetailsPage() {
     if (projectId) {
       getProjectDetails(projectId);
       getProjectTasks(projectId);
+      getJoinRequests(projectId);
     }
   }, [projectId]);
 
@@ -175,7 +194,7 @@ export default function ProjectDetailsPage() {
         )}
         {activeTab === "members" && <MembersSection members={members} />}
         {activeTab === "requests" && (
-          <JoinRequestsSection requests={requests} />
+          <JoinRequestsSection requests={joinRequests} />
         )}
       </div>
       <AddTaskModal
@@ -289,23 +308,60 @@ function MembersSection({ members }: { members: Member[] }) {
 }
 
 function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
+  const handleUpdate = async (
+    projectId: string,
+    userId: string,
+    joinStatus: string,
+  ) => {
+    try {
+      await ApiRequest<null>(`/projects/${projectId}/join-requests`, "PUT", {
+        user_id: userId,
+        join_status: joinStatus,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const pendingRequests = requests.filter(
+    (r) => r.status === JOIN_STATUS.PENDING,
+  );
+
   return (
     <div className="divide-y divide-(--border-muted) rounded-md border border-(--border-default)">
-      {requests.length === 0 && (
+      {pendingRequests.length === 0 && (
         <div className="px-3 py-6 text-center text-sm text-(--text-muted)">
           No join requests found
         </div>
       )}
-      {requests.map((req) => (
-        <div key={req.id} className="flex items-start justify-between p-4">
+      {pendingRequests.map((req) => (
+        <div
+          key={req.projectId + req.user.id}
+          className="flex items-start justify-between p-4"
+        >
           <div className="space-y-1">
-            <div className="text-sm font-medium">{req.name}</div>
-            <p className="text-sm text-(--text-secondary)">{req.note}</p>
+            <div className="text-sm font-medium">{req.user.username}</div>
+            <p className="text-sm text-(--text-secondary)">
+              {req.user.displayName}
+            </p>
           </div>
 
           <div className="flex gap-2">
-            <Button variant="secondary">Reject</Button>
-            <Button>Accept</Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                handleUpdate(req.projectId, req.user.id, "Rejected")
+              }
+            >
+              Reject
+            </Button>
+            <Button
+              onClick={() =>
+                handleUpdate(req.projectId, req.user.id, "Accepted")
+              }
+            >
+              Accept
+            </Button>
           </div>
         </div>
       ))}

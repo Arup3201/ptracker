@@ -168,6 +168,9 @@ func main() {
 
 	attacher.attach("GET /api/projects", projectHandler.All)
 	attacher.attach("GET /api/projects/{id}", projectHandler.Get)
+	attacher.attach("POST /api/projects/{id}/join-requests", projectHandler.JoinProject)
+	attacher.attach("GET /api/projects/{id}/join-requests", projectHandler.GetJoinRequests)
+	attacher.attach("PUT /api/projects/{id}/join-requests", projectHandler.UpdateJoinRequests)
 
 	taskHandler := &controllers.TaskHandler{
 		DB: connection,
@@ -180,6 +183,7 @@ func main() {
 		DB: connection,
 	}
 	attacher.attach("GET /api/explore/projects", exploreHandler.GetExploreProjects)
+	attacher.attach("GET /api/explore/projects/{id}", exploreHandler.GetProject)
 
 	// cors
 	cors := cors.New(cors.Options{

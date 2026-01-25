@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/models"
+	"github.com/ptracker/services"
 	"github.com/ptracker/utils"
 )
 
@@ -235,6 +237,204 @@ func (ph *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) error {
 			CreatedAt:       project.CreatedAt,
 			UpdatedAt:       project.UpdatedAt,
 		},
+	})
+
+	return nil
+}
+
+func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	exploreService := &services.ProjectService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+
+	err = exploreService.Join(projectId)
+	if err != nil {
+		if errors.Is(err, apierr.ErrDuplicate) {
+			return &HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: "Join request has already been sent",
+				ErrId:   ERR_INVALID_BODY,
+				Err:     fmt.Errorf("attempted for duplicate join request"),
+			}
+		}
+		return fmt.Errorf("explore service project join request: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Join request created for the user",
+	})
+
+	return nil
+}
+
+func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	exploreService := &services.ProjectService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+
+	requests, err := exploreService.JoinRequests(projectId)
+	if err != nil {
+		return fmt.Errorf("explore service get join request: %w", err)
+	}
+
+	joinRequests := []JoinRequest{}
+	for _, r := range requests {
+		joinRequests = append(joinRequests, JoinRequest{
+			ProjectId: r.ProjectId,
+			User: User{
+				Id:          r.User.Id,
+				Username:    r.User.Username,
+				DisplayName: r.User.DisplayName,
+				Email:       r.User.Email,
+				IsActive:    r.User.IsActive,
+			},
+			Status:    r.Status,
+			CreatedAt: r.CreatedAt,
+		})
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[JoinRequestsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &JoinRequestsResponse{
+			Requests: joinRequests,
+		},
+	})
+
+	return nil
+}
+
+func (ph *ProjectHandler) UpdateJoinRequests(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	var payload UpdateJoinRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Operation needs two fields: user_id and join_status",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("join request update payload decode: %w", err),
+		}
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Either user_id or join_status is missing or has invalid type",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("join request update payload validate: %w", err),
+		}
+	}
+
+	if payload.UserId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Payload 'user_id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'user_id' provided"),
+		}
+	}
+	if payload.JoinStatus == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Payload 'join_status' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'join_status' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	roleStore := &models.RoleStore{
+		DB:        ph.DB,
+		UserId:    userId,
+		ProjectId: projectId,
+	}
+
+	access, err := roleStore.CanEdit()
+	if err != nil {
+		return fmt.Errorf("role store can edit check: %w", err)
+	}
+	if !access {
+		return &HTTPError{
+			Code:    http.StatusForbidden,
+			ErrId:   ERR_ACCESS_DENIED,
+			Message: "User is not the owner of this project",
+		}
+	}
+
+	exploreService := &services.ProjectService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+	err = exploreService.UpdateJoinRequestStatus(
+		projectId,
+		payload.UserId,
+		payload.JoinStatus,
+	)
+
+	if err != nil {
+		switch err {
+		case apierr.ErrInvalidValue:
+			return &HTTPError{
+				Code:    http.StatusBadRequest,
+				Message: "Payload 'join_status' has invalid value",
+				ErrId:   ERR_INVALID_BODY,
+				Err:     fmt.Errorf("invalid 'join_status' value provided"),
+			}
+		default:
+			return fmt.Errorf("service update join request status: %w", err)
+		}
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Join request status updated",
 	})
 
 	return nil
