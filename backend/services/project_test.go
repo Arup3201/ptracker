@@ -258,6 +258,7 @@ func (suite *ServiceTestSuite) TestGetJoinRequests() {
 			t.Log(err)
 		}
 		assert.Equal(t, 1, len(requests))
+		suite.Cleanup(t)
 	})
 	t.Run("should have join request with user", func(t *testing.T) {
 		projectStore := &models.ProjectStore{
@@ -291,5 +292,161 @@ func (suite *ServiceTestSuite) TestGetJoinRequests() {
 		assert.Equal(t, USER_FIXTURES[1].Id, actual.User.Id)
 		assert.Equal(t, USER_FIXTURES[1].Username, actual.User.Username)
 		assert.Equal(t, USER_FIXTURES[1].DisplayName, actual.User.DisplayName)
+		suite.Cleanup(t)
+	})
+}
+
+func (suite *ServiceTestSuite) TestUpdateJoinRequestStatus() {
+	t := suite.T()
+
+	t.Run("should update join request status to accepted", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Accepted",
+		)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		var status string
+		err = suite.conn.QueryRow("SELECT status FROM join_requests "+
+			"WHERE user_id=($1) AND project_id=($2)",
+			USER_FIXTURES[1].Id, projectId).
+			Scan(&status)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, status, "Accepted")
+		suite.Cleanup(t)
+	})
+	t.Run("should update join status to rejected", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Rejected",
+		)
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		var status string
+		err = suite.conn.QueryRow("SELECT status FROM join_requests "+
+			"WHERE user_id=($1) AND project_id=($2)",
+			USER_FIXTURES[1].Id, projectId).
+			Scan(&status)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		assert.Equal(t, status, "Rejected")
+		suite.Cleanup(t)
+	})
+	t.Run("should give invalid value error when join status updated to pending", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Pending",
+		)
+
+		assert.Equal(t, apierr.ErrInvalidValue, err)
+		suite.Cleanup(t)
+	})
+	t.Run("should give invalid value error for join status invalid", func(t *testing.T) {
+		projectStore := &models.ProjectStore{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[0].Id,
+		}
+		projectName := fmt.Sprintf("Project %d", 1)
+		projectDescription := fmt.Sprintf("Project Description %d", 1)
+		projectId, err := projectStore.Create(projectName, projectDescription, "C++, Python")
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		exploreService := &ProjectService{
+			DB:     suite.conn,
+			UserId: USER_FIXTURES[1].Id,
+		}
+		err = exploreService.Join(projectId)
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+
+		err = exploreService.UpdateJoinRequestStatus(
+			projectId,
+			USER_FIXTURES[1].Id,
+			"Invalid",
+		)
+
+		assert.Equal(t, apierr.ErrInvalidValue, err)
+		suite.Cleanup(t)
 	})
 }

@@ -110,7 +110,7 @@ CREATE TABLE comments (
     deleted_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE TYPE request_status AS ENUM('Pending', 'Accepted');
+CREATE TYPE request_status AS ENUM('Pending', 'Accepted', 'Rejected');
 
 CREATE TABLE join_requests (
 	project_id UUID NOT NULL REFERENCES projects(id),

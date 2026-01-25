@@ -152,3 +152,22 @@ func (ps *ProjectService) Get(projectId string) (*ProjectDetails, error) {
 
 	return &p, nil
 }
+
+func (ps *ProjectService) UpdateJoinRequestStatus(projectId, userId, joinStatus string) error {
+	if joinStatus == "Pending" {
+		return apierr.ErrInvalidValue
+	}
+
+	_, err := ps.DB.Exec("UPDATE join_requests "+
+		"SET status=($1) "+
+		"WHERE project_id=($2) AND user_id=($3)", joinStatus, projectId, userId)
+
+	if err != nil {
+		if strings.Contains(err.Error(), "invalid input value") {
+			return apierr.ErrInvalidValue
+		}
+		return fmt.Errorf("service update join request query: %w", err)
+	}
+
+	return nil
+}

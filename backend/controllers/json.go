@@ -152,3 +152,8 @@ type ExploredProjectDetailsResponse struct {
 	CreatedAt       time.Time  `json:"created_at"`
 	UpdatedAt       *time.Time `json:"updated_at"`
 }
+
+type UpdateJoinRequest struct {
+	UserId     string `json:"user_id" validate:"required"`
+	JoinStatus string `json:"join_status" validate:"required"`
+}
