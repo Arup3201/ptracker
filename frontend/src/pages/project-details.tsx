@@ -307,6 +307,21 @@ function MembersSection({ members }: { members: Member[] }) {
 }
 
 function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
+  const handleUpdate = async (
+    projectId: string,
+    userId: string,
+    joinStatus: string,
+  ) => {
+    try {
+      await ApiRequest<null>(`/projects/${projectId}/join-requests`, "PUT", {
+        user_id: userId,
+        join_status: joinStatus,
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="divide-y divide-(--border-muted) rounded-md border border-(--border-default)">
       {requests.length === 0 && (
@@ -327,8 +342,21 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
           </div>
 
           <div className="flex gap-2">
-            <Button variant="secondary">Reject</Button>
-            <Button>Accept</Button>
+            <Button
+              variant="secondary"
+              onClick={() =>
+                handleUpdate(req.projectId, req.user.id, "Rejected")
+              }
+            >
+              Reject
+            </Button>
+            <Button
+              onClick={() =>
+                handleUpdate(req.projectId, req.user.id, "Accepted")
+              }
+            >
+              Accept
+            </Button>
           </div>
         </div>
       ))}
