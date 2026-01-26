@@ -132,10 +132,14 @@ export default function ProjectDetailsPage() {
         title="Projects / Project Details"
         actions={
           <div className="flex gap-1">
-            <Button variant="secondary" onClick={() => setEditProject(true)}>
-              Edit Project
-            </Button>
-            <Button onClick={() => setAddTask(true)}>Add Task</Button>
+            {details?.role === ROLES.OWNER && (
+              <Button variant="secondary" onClick={() => setEditProject(true)}>
+                Edit Project
+              </Button>
+            )}
+            {details?.role === ROLES.OWNER && (
+              <Button onClick={() => setAddTask(true)}>Add Task</Button>
+            )}
           </div>
         }
       />

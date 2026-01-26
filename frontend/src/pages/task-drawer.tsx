@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 
-import { ROLES, type Role } from "../types/project";
+import { ROLES, type TaskRole } from "../types/project";
 import { TASK_STATUS, type TaskDetailApi } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
@@ -17,7 +17,7 @@ export function TaskDrawer({
   taskId: string | null;
   projectId?: string;
   onClose: () => void;
-  role: Role;
+  role: TaskRole;
 }) {
   const canEditAll = role === ROLES.OWNER;
   const canEditPartial = role === ROLES.ASSIGNEE;
@@ -27,7 +27,7 @@ export function TaskDrawer({
 
   const [title, setTitle] = useState("Set up database migrations");
   const [description, setDescription] = useState(
-    "Add initial migration setup and ensure versioning is correct."
+    "Add initial migration setup and ensure versioning is correct.",
   );
   const [status, setStatus] = useState("Ongoing");
   const [assignee, setAssignee] = useState("Rahul");
@@ -37,7 +37,7 @@ export function TaskDrawer({
       const taskDetails = await ApiRequest<TaskDetailApi>(
         `/projects/${projectId}/tasks/${taskId}`,
         "GET",
-        null
+        null,
       );
       setTitle(taskDetails?.title || "");
       setDescription(taskDetails?.description || "");
