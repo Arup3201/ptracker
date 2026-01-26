@@ -43,6 +43,18 @@ type ProjectDetails struct {
 	UpdatedAt       *time.Time
 }
 
+type Member struct {
+	ProjectId   string
+	UserId      string
+	Username    string
+	DisplayName string
+	Email       string
+	AvaterURL   *string
+	IsActive    bool
+	Role        string
+	JoinedAt    time.Time
+}
+
 type ProjectService struct {
 	DB     *sql.DB
 	UserId string
@@ -188,4 +200,33 @@ func (ps *ProjectService) UpdateJoinRequestStatus(projectId, userId, joinStatus 
 	}
 
 	return nil
+}
+
+func (ps *ProjectService) Members(projectId string) ([]Member, error) {
+	var members []Member
+
+	rows, err := ps.DB.Query("SELECT "+
+		"r.project_id, u.id, u.username, u.display_name, u.email, "+
+		"u.avatar_url, u.is_active, r.role, r.created_at "+
+		"FROM roles AS r "+
+		"INNER JOIN users AS u ON r.user_id=u.id "+
+		"WHERE r.project_id=($1)", projectId)
+	if err != nil {
+		return nil, fmt.Errorf("service get members query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var m Member
+		rows.Scan(&m.ProjectId, &m.UserId, &m.Username, &m.DisplayName, &m.Email,
+			&m.AvaterURL, &m.IsActive, &m.Role, &m.JoinedAt)
+
+		members = append(members, m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("service rows scan: %w", err)
+	}
+
+	return members, nil
 }

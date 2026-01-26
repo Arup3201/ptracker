@@ -157,3 +157,19 @@ type UpdateJoinRequest struct {
 	UserId     string `json:"user_id" validate:"required"`
 	JoinStatus string `json:"join_status" validate:"required"`
 }
+
+type Member struct {
+	ProjectId   string    `json:"project_id"`
+	UserId      string    `json:"user_id"`
+	Username    string    `json:"username"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
+	AvaterURL   *string   `json:"avatar_url"`
+	IsActive    bool      `json:"is_active"`
+	Role        string    `json:"role"`
+	JoinedAt    time.Time `json:"joined_at"`
+}
+
+type MembersResponse struct {
+	Members []Member `json:"members"`
+}

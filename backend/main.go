@@ -171,6 +171,7 @@ func main() {
 	attacher.attach("POST /api/projects/{id}/join-requests", projectHandler.JoinProject)
 	attacher.attach("GET /api/projects/{id}/join-requests", projectHandler.GetJoinRequests)
 	attacher.attach("PUT /api/projects/{id}/join-requests", projectHandler.UpdateJoinRequests)
+	attacher.attach("GET /api/projects/{id}/members", projectHandler.GetMembers)
 
 	taskHandler := &controllers.TaskHandler{
 		DB: connection,

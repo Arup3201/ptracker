@@ -439,3 +439,53 @@ func (ph *ProjectHandler) UpdateJoinRequests(w http.ResponseWriter, r *http.Requ
 
 	return nil
 }
+
+func (ph *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) error {
+	projectId := r.PathValue("id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Project 'id' can't be empty",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("empty 'id' provided"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	projectService := &services.ProjectService{
+		DB:     ph.DB,
+		UserId: userId,
+	}
+	rows, err := projectService.Members(projectId)
+	if err != nil {
+		return fmt.Errorf("service members: %w", err)
+	}
+
+	members := []Member{}
+	for _, r := range rows {
+		members = append(members, Member{
+			ProjectId:   r.ProjectId,
+			UserId:      r.UserId,
+			Username:    r.Username,
+			DisplayName: r.DisplayName,
+			Email:       r.Email,
+			AvaterURL:   r.AvaterURL,
+			IsActive:    r.IsActive,
+			Role:        r.Role,
+			JoinedAt:    r.JoinedAt,
+		})
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[MembersResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &MembersResponse{
+			Members: members,
+		},
+	})
+
+	return nil
+}
