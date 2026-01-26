@@ -65,18 +65,15 @@ func (ps *ProjectService) List(page, limit int) ([]Project, error) {
 
 	rows, err := ps.DB.Query(
 		"SELECT "+
-			"DISTINCT p.id, p.name, p.description, p.skills, "+
+			"p.id, p.name, p.description, p.skills, "+
 			"CASE "+
-			"WHEN r.role='Owner' THEN 'Owner' "+
-			"WHEN r.role='Member' THEN 'Member' "+
+			"WHEN p.owner=($1) THEN 'Owner' "+
+			"WHEN r.user_id=($1) THEN 'Member' "+
 			"ELSE 'User' "+
 			"END AS role, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects AS p "+
-			"CROSS JOIN users AS u "+
-			"LEFT JOIN roles AS r ON r.user_id=u.id "+
-			"LEFT JOIN join_requests AS jr ON jr.project_id=p.id "+
-			"WHERE u.id=($1)",
+			"LEFT JOIN roles AS r ON p.id=r.project_id AND r.user_id=($1)",
 		ps.UserId)
 	if err != nil {
 		return projects, fmt.Errorf("postgres get task query: %w", err)
