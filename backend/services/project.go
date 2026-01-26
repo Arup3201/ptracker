@@ -210,7 +210,7 @@ func (ps *ProjectService) Members(projectId string) ([]Member, error) {
 		"u.avatar_url, u.is_active, r.role, r.created_at "+
 		"FROM roles AS r "+
 		"INNER JOIN users AS u ON r.user_id=u.id "+
-		"WHERE r.project_id=($1)", projectId)
+		"WHERE r.project_id=($1) AND r.role!=($2)", projectId, models.ROLE_OWNER)
 	if err != nil {
 		return nil, fmt.Errorf("service get members query: %w", err)
 	}
