@@ -1,10 +1,9 @@
 export const ROLES: Record<string, Role> = {
   OWNER: "Owner",
-  ASSIGNEE: "Assignee",
   MEMBER: "Member",
 };
 
-export type Role = "Owner" | "Assignee" | "Member";
+export type Role = "Owner" | "Member";
 
 export type OwnerApi = {
   id: string;
@@ -176,3 +175,43 @@ export const MapJoinRequest = (request: JoinRequestApi): JoinRequest => ({
 export interface JoinRequestsResponseApi {
   join_requests: JoinRequestApi[];
 }
+
+export interface Member {
+  projectId: string;
+  userId: string;
+  username: string;
+  displayName: string;
+  email: string;
+  avatarUrl: string;
+  isActive: boolean;
+  role: Role;
+  joinedAt: string;
+}
+
+export interface MemberApi {
+  project_id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  email: string;
+  avatar_url: string;
+  is_active: boolean;
+  role: Role;
+  joined_at: string;
+}
+
+export interface MembersResponse {
+  members: MemberApi[];
+}
+
+export const MapMember = (m: MemberApi): Member => ({
+  projectId: m.project_id,
+  userId: m.user_id,
+  username: m.username,
+  displayName: m.display_name,
+  email: m.email,
+  avatarUrl: m.avatar_url,
+  isActive: m.is_active,
+  role: m.role,
+  joinedAt: m.joined_at,
+});

@@ -15,15 +15,17 @@ import { Input } from "../components/input";
 import { Tab } from "../components/tab";
 import {
   MapJoinRequest,
+  MapMember,
   MapProjectDetails,
   ROLES,
   type JoinRequest,
   type JoinRequestsResponseApi,
+  type Member,
+  type MembersResponse,
   type ProjectDetails,
   type ProjectDetailsApi,
 } from "../types/project";
 import { MapTask, type Task, type TasksResponseApi } from "../types/task";
-import type { Member } from "../types/member";
 import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";
@@ -39,7 +41,7 @@ export default function ProjectDetailsPage() {
 
   const [details, setDetails] = useState<ProjectDetails>();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [members, __] = useState<Member[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 
   const [addTask, setAddTask] = useState<boolean>(false);
@@ -75,6 +77,21 @@ export default function ProjectDetailsPage() {
     }
   }
 
+  async function getProjectMembers(id: string) {
+    try {
+      const data = await ApiRequest<MembersResponse>(
+        `/projects/${id}/members`,
+        "GET",
+        null,
+      );
+      if (data) {
+        setMembers(data.members.map(MapMember));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   async function getJoinRequests(id: string) {
     try {
       const data = await ApiRequest<JoinRequestsResponseApi>(
@@ -94,6 +111,7 @@ export default function ProjectDetailsPage() {
     if (projectId) {
       getProjectDetails(projectId);
       getProjectTasks(projectId);
+      getProjectMembers(projectId);
       getJoinRequests(projectId);
     }
   }, [projectId]);
@@ -292,9 +310,9 @@ function MembersSection({ members }: { members: Member[] }) {
           </tr>
         )}
         {members.map((member) => (
-          <TableRow key={member.id}>
+          <TableRow key={member.userId}>
             <TableCell>
-              <span className="font-medium">{member.name}</span>
+              <span className="font-medium">{member.displayName}</span>
             </TableCell>
             <TableCell muted>{member.role}</TableCell>
             <TableCell align="right" muted>
