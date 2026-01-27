@@ -90,3 +90,14 @@ func (ts *TaskStore) Get(id string) (ProjectTask, error) {
 
 	return pt, nil
 }
+
+func (ts *TaskStore) Update(id string, changes *ProjectTask) error {
+	_, err := ts.DB.Exec("UPDATE tasks "+
+		"SET title=($1), description=($2), status=($3), updated_at=CURRENT_TIMESTAMP "+
+		"WHERE id=($4)", changes.Title, changes.Description, changes.Status, id)
+	if err != nil {
+		return fmt.Errorf("db exec: %w", err)
+	}
+
+	return nil
+}
