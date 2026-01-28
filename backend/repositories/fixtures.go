@@ -3,6 +3,8 @@ package repositories
 import (
 	"context"
 	"log"
+
+	"github.com/ptracker/domain"
 )
 
 var USER_ONE = map[string]string{
@@ -44,6 +46,7 @@ var PROJECT_FIXTURES = []string{}
 func CreatFixtures(db Execer) {
 	userRepo := NewUserRepo(db)
 	projectRepo := NewProjectRepo(db)
+	roleRepo := NewRoleRepo(db)
 
 	user_fixture_data := []map[string]string{USER_ONE, USER_TWO}
 
@@ -74,6 +77,10 @@ func CreatFixtures(db Execer) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		err = roleRepo.Create(ctx, id, USER_FIXTURES[0], domain.ROLE_OWNER)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		PROJECT_FIXTURES = append(PROJECT_FIXTURES, id)
 	}
@@ -86,6 +93,10 @@ func CreatFixtures(db Execer) {
 			fixture["name"],
 			&description, &skills,
 			USER_FIXTURES[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+		err = roleRepo.Create(ctx, id, USER_FIXTURES[1], domain.ROLE_OWNER)
 		if err != nil {
 			log.Fatal(err)
 		}

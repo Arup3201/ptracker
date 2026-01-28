@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +10,6 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 	t := suite.T()
 
 	fakeStore := &fakeStore{}
-	ctx := context.Background()
 
 	t.Run("should create project with user one as owner", func(t *testing.T) {
 		sample_name := "Test Project"
@@ -19,7 +17,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_skills := "C++, Java"
 
 		service := NewProjectService(fakeStore)
-		id, err := service.CreateProject(ctx,
+		id, err := service.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,

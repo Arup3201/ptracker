@@ -1,11 +1,16 @@
 package services
 
-import "context"
+import (
+	"context"
+
+	"github.com/ptracker/domain"
+)
 
 type ProjectRepository interface {
 	Create(ctx context.Context, title string,
 		description, skills *string,
 		owner string) (string, error)
+	All(ctx context.Context, userId string) ([]domain.ProjectSummary, error)
 }
 
 type RoleRepository interface {

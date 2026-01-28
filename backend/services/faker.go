@@ -51,6 +51,37 @@ func (f *fakeProjectRepo) Create(ctx context.Context,
 	return id, nil
 }
 
+func (f *fakeProjectRepo) All(ctx context.Context, userId string) ([]domain.ProjectSummary, error) {
+	projects := []domain.ProjectSummary{}
+	for _, p := range f.projects {
+		// include project when the user is the owner or otherwise (fake repo doesn't track roles)
+		if p.Owner != userId {
+			continue
+		}
+
+		role := domain.ROLE_MEMBER
+		if p.Owner == userId {
+			role = domain.ROLE_OWNER
+		}
+
+		projects = append(projects, domain.ProjectSummary{
+			Id:              p.Id,
+			Name:            p.Name,
+			Description:     p.Description,
+			Skills:          p.Skills,
+			Role:            role,
+			UnassignedTasks: 0,
+			OngoingTasks:    0,
+			CompletedTasks:  0,
+			AbandonedTasks:  0,
+			CreatedAt:       p.CreatedAt,
+			UpdatedAt:       p.UpdatedAt,
+		})
+	}
+
+	return projects, nil
+}
+
 type fakeRoleRepo struct {
 	roles map[string]*domain.Role
 }

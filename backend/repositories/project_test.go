@@ -24,5 +24,23 @@ func (suite *RepositoryTestSuite) TestProjectCreate() {
 			t.Log(err)
 		}
 		assert.NotEqual(t, "", id)
+		repo.Delete(suite.ctx, id)
+	})
+}
+
+func (suite *RepositoryTestSuite) TestProjectAll() {
+	t := suite.T()
+
+	t.Run("should return 2 projects", func(t *testing.T) {
+		repo := NewProjectRepo(suite.db)
+		projects, err := repo.All(suite.ctx, USER_FIXTURES[0])
+
+		if err != nil {
+			t.Fail()
+			t.Log(err)
+		}
+		expected := 2
+		actual := len(projects)
+		assert.Equal(t, expected, actual)
 	})
 }
