@@ -4,19 +4,22 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/ptracker/domain"
+	"github.com/ptracker/stores"
 )
 
-type roleRepo struct {
+type RoleRepo struct {
 	DB Execer
 }
 
-func NewRoleRepo(db Execer) *roleRepo {
-	return &roleRepo{
+func NewRoleRepo(db Execer) stores.RoleRepository {
+	return &RoleRepo{
 		DB: db,
 	}
 }
 
-func (r *roleRepo) Create(ctx context.Context,
+func (r *RoleRepo) Create(ctx context.Context,
 	projectId, userId, role string) error {
 	now := time.Now()
 
@@ -29,4 +32,38 @@ func (r *roleRepo) Create(ctx context.Context,
 	}
 
 	return nil
+}
+
+func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (string, error) {
+	var role string
+	err := r.DB.QueryRowContext(
+		ctx,
+		"SELECT "+
+			"role "+
+			"FROM roles "+
+			"WHERE project_id=($1) AND user_id=($2)",
+		projectId, userId).
+		Scan(&role)
+	if err != nil {
+		return "", fmt.Errorf("postgres query user role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (r *RoleRepo) CountMembers(ctx context.Context, projectId string) (int, error) {
+	var count int
+	err := r.DB.QueryRowContext(
+		ctx,
+		"SELECT "+
+			"COUNT(user_id) "+
+			"FROM roles "+
+			"WHERE project_id=($1) AND role!=($2)",
+		projectId, domain.ROLE_OWNER,
+	).Scan(&count)
+	if err != nil {
+		return -1, fmt.Errorf("postgres query total members: %w", err)
+	}
+
+	return count, nil
 }

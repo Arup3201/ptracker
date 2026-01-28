@@ -7,13 +7,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ptracker/domain"
+	"github.com/ptracker/stores"
 )
 
 type projectRepo struct {
 	DB Execer
 }
 
-func NewProjectRepo(db Execer) *projectRepo {
+func NewProjectRepo(db Execer) stores.ProjectRepository {
 	return &projectRepo{
 		DB: db,
 	}
@@ -35,6 +36,27 @@ func (r *projectRepo) Create(ctx context.Context,
 	}
 
 	return id, nil
+}
+
+func (r *projectRepo) Get(ctx context.Context, projectId string) (*domain.ListedProject, error) {
+	var p domain.ListedProject
+	err := r.DB.QueryRowContext(
+		ctx,
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects as p "+
+			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
+			"WHERE p.id=($1)",
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills,
+		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
+		&p.CreatedAt, &p.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("postgres query project details: %w", err)
+	}
+
+	return &p, nil
 }
 
 func (r *projectRepo) All(ctx context.Context, userId string) ([]*domain.ListedProject, error) {

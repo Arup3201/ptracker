@@ -7,6 +7,9 @@ import (
 )
 
 type UserRepository interface {
+	Create(ctx context.Context,
+		idpSubject, idpProvider, username, email string,
+		displayName, avatarUrl *string) (string, error)
 	Get(ctx context.Context, id string) (*domain.User, error)
 }
 
@@ -16,6 +19,7 @@ type ProjectRepository interface {
 		owner string) (string, error)
 	All(ctx context.Context, userId string) ([]*domain.ListedProject, error)
 	Get(ctx context.Context, id string) (*domain.ListedProject, error)
+	Delete(ctx context.Context, id string) error
 }
 
 type RoleRepository interface {
