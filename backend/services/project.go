@@ -14,7 +14,7 @@ type projectService struct {
 	projectPermission *ProjectPermissionService
 }
 
-func NewProjectService(store Store) *projectService {
+func NewProjectService(store stores.Store) *projectService {
 	permissionService := &ProjectPermissionService{
 		store: store,
 	}
@@ -29,7 +29,7 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	owner string) (string, error) {
 	var projectId string
 
-	err := s.store.WithTx(ctx, func(txStore Store) error {
+	err := s.store.WithTx(ctx, func(txStore stores.Store) error {
 		var err error
 
 		projectId, err = s.store.Project().Create(ctx, name, description, skills, owner)
