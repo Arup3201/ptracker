@@ -44,11 +44,15 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	return projectId, nil
 }
 
-func (s *projectService) ListProjects(ctx context.Context, userId string) ([]domain.ProjectSummary, error) {
+func (s *projectService) ListProjects(ctx context.Context, userId string) ([]domain.ListedProject, error) {
 	projects, err := s.store.Project().All(ctx, userId)
 	if err != nil {
 		return projects, fmt.Errorf("store project all: %w", err)
 	}
 
 	return projects, nil
+}
+
+func (s *projectService) GetPrivateProject(ctx context.Context) {
+
 }

@@ -37,7 +37,7 @@ func (r *projectRepo) Create(ctx context.Context,
 	return id, nil
 }
 
-func (r *projectRepo) All(ctx context.Context, userId string) ([]*domain.ProjectSummary, error) {
+func (r *projectRepo) All(ctx context.Context, userId string) ([]*domain.ListedProject, error) {
 	rows, err := r.DB.QueryContext(
 		ctx,
 		"SELECT "+
@@ -53,9 +53,9 @@ func (r *projectRepo) All(ctx context.Context, userId string) ([]*domain.Project
 	}
 	defer rows.Close()
 
-	var projects []*domain.ProjectSummary
+	var projects []*domain.ListedProject
 	for rows.Next() {
-		var p domain.ProjectSummary
+		var p domain.ListedProject
 		err := rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
 			&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
 			&p.CreatedAt, &p.UpdatedAt)

@@ -10,7 +10,7 @@ type ProjectRepository interface {
 	Create(ctx context.Context, title string,
 		description, skills *string,
 		owner string) (string, error)
-	All(ctx context.Context, userId string) ([]domain.ProjectSummary, error)
+	All(ctx context.Context, userId string) ([]domain.ListedProject, error)
 }
 
 type RoleRepository interface {

@@ -51,8 +51,8 @@ func (f *fakeProjectRepo) Create(ctx context.Context,
 	return id, nil
 }
 
-func (f *fakeProjectRepo) All(ctx context.Context, userId string) ([]domain.ProjectSummary, error) {
-	projects := []domain.ProjectSummary{}
+func (f *fakeProjectRepo) All(ctx context.Context, userId string) ([]domain.ListedProject, error) {
+	projects := []domain.ListedProject{}
 	for _, p := range f.projects {
 		// include project when the user is the owner or otherwise (fake repo doesn't track roles)
 		if p.Owner != userId {
@@ -64,7 +64,7 @@ func (f *fakeProjectRepo) All(ctx context.Context, userId string) ([]domain.Proj
 			role = domain.ROLE_OWNER
 		}
 
-		projects = append(projects, domain.ProjectSummary{
+		projects = append(projects, domain.ListedProject{
 			Id:              p.Id,
 			Name:            p.Name,
 			Description:     p.Description,
