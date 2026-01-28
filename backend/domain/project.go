@@ -12,7 +12,7 @@ type Project struct {
 	UpdatedAt   *time.Time
 }
 
-type ProjectSummary struct {
+type ListedProject struct {
 	Id              string
 	Name            string
 	Description     *string
