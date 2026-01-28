@@ -54,7 +54,7 @@ func (r *UserRepo) Get(ctx context.Context, id string) (*domain.User, error) {
 			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginTime)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, apierr.ErrResourceNotFound
+			return nil, apierr.ErrNotFound
 		}
 		return nil, fmt.Errorf("store get user: %w", err)
 	}

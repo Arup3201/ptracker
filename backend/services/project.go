@@ -72,7 +72,7 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, apierr.ErrForbidden
 	}
 
-	project, err := s.store.Project().Get(ctx, userId)
+	project, err := s.store.Project().Get(ctx, projectId)
 	if err != nil {
 		return nil, fmt.Errorf("store project all: %w", err)
 	}

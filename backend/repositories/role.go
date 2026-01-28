@@ -2,9 +2,11 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
+	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
 	"github.com/ptracker/stores"
 )
@@ -45,6 +47,9 @@ func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (string, e
 		projectId, userId).
 		Scan(&role)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", apierr.ErrNotFound
+		}
 		return "", fmt.Errorf("postgres query user role: %w", err)
 	}
 

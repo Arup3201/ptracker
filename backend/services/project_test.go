@@ -2,8 +2,6 @@ package services
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func (suite *ServiceTestSuite) TestCreateProject() {
@@ -19,14 +17,13 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 			sample_name,
 			&sample_description,
 			&sample_skills,
-			"u1",
+			USER_ONE,
 		)
 
-		if err != nil {
-			t.Fail()
-			t.Log(err)
-		}
-		assert.NotEqual(t, "", id)
+		suite.Require().NoError(err)
+		suite.Require().NotEqual("", id)
+
+		service.store.Project().Delete(suite.ctx, id)
 	})
 }
 
@@ -34,15 +31,22 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 	t := suite.T()
 
 	t.Run("should return project correctly", func(t *testing.T) {
+		sample_name := "Test Project"
+		sample_description := "Test Description"
+		sample_skills := "C++, Java"
 		service := NewProjectService(suite.store)
+		id, err := service.CreateProject(suite.ctx,
+			sample_name,
+			&sample_description,
+			&sample_skills,
+			USER_ONE,
+		)
 
-		project, err := service.GetPrivateProject(suite.ctx, "p1", "u1")
+		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
 
-		if err != nil {
-			t.Fail()
-			t.Log(err)
-		}
-		assert.Equal(t, "p1", project.Id)
-		assert.Equal(t, "Project A", project.Name)
+		suite.Require().NoError(err)
+		suite.Require().Equal(id, project.Id)
+
+		service.store.Project().Delete(suite.ctx, id)
 	})
 }

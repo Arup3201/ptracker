@@ -7,18 +7,24 @@ import (
 	"testing"
 
 	"github.com/ptracker/db"
+	"github.com/ptracker/domain"
 	"github.com/ptracker/stores"
 	"github.com/ptracker/testhelpers"
+	"github.com/ptracker/testhelpers/fixtures"
 	"github.com/stretchr/testify/suite"
 )
 
 type ServiceTestSuite struct {
 	suite.Suite
+	ctx         context.Context
 	pgContainer *testhelpers.PostgresContainer
 	db          *sql.DB
 	store       stores.Store
-	ctx         context.Context
+	fixtures    *fixtures.Fixtures
 }
+
+var USER_ONE, USER_TWO string
+var PROJECT_ONE, PROJECT_TWO string
 
 func (suite *ServiceTestSuite) SetupSuite() {
 	var err error
@@ -36,6 +42,30 @@ func (suite *ServiceTestSuite) SetupSuite() {
 	}
 
 	suite.store = NewSQLStore(suite.db)
+	suite.fixtures = fixtures.New(suite.ctx, suite.store)
+
+	USER_ONE = suite.fixtures.User(fixtures.UserParams{
+		IDPSubject:  "sub-234",
+		IDPProvider: "facebook",
+		Username:    "bob",
+		Email:       "bob@example.com",
+	})
+	USER_TWO = suite.fixtures.User(fixtures.UserParams{
+		IDPSubject:  "sub-345",
+		IDPProvider: "twitter",
+		Username:    "alice",
+		Email:       "alice@example.com",
+	})
+	PROJECT_ONE = suite.fixtures.Project(fixtures.ProjectParams{
+		Title:   "Project Fixture A",
+		OwnerID: USER_ONE,
+	})
+	suite.fixtures.Role(PROJECT_ONE, USER_ONE, domain.ROLE_OWNER)
+	PROJECT_TWO = suite.fixtures.Project(fixtures.ProjectParams{
+		Title:   "Project Fixture B",
+		OwnerID: USER_TWO,
+	})
+	suite.fixtures.Role(PROJECT_TWO, USER_TWO, domain.ROLE_OWNER)
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {
