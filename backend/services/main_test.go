@@ -13,7 +13,6 @@ type ServiceTestSuite struct {
 }
 
 func (suite *ServiceTestSuite) SetupSuite() {
-	CreatFixtures()
 	suite.ctx = context.Background()
 }
 
