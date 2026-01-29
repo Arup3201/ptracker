@@ -72,6 +72,11 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 	}
 }
 
+func (suite *ServiceTestSuite) Cleanup() {
+	_, err := suite.db.Exec("DELETE FROM projects")
+	suite.Require().NoError(err)
+}
+
 func TestServices(t *testing.T) {
 	suite.Run(t, new(ServiceTestSuite))
 }

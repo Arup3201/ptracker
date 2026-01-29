@@ -10,4 +10,5 @@ type Store interface {
 	Project() ProjectRepository
 	Role() RoleRepository
 	List() ListRepository
+	JoinRequest() JoinRequestRepository
 }

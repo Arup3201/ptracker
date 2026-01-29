@@ -13,11 +13,12 @@ import (
 type SQLStore struct {
 	mu sync.Mutex
 
-	db          repositories.Execer
-	userRepo    interfaces.UserRepository
-	projectRepo interfaces.ProjectRepository
-	roleRepo    interfaces.RoleRepository
-	listRepo    interfaces.ListRepository
+	db              repositories.Execer
+	userRepo        interfaces.UserRepository
+	projectRepo     interfaces.ProjectRepository
+	roleRepo        interfaces.RoleRepository
+	listRepo        interfaces.ListRepository
+	joinRequestRepo interfaces.JoinRequestRepository
 }
 
 func NewSQLStore(db repositories.Execer) interfaces.Store {
@@ -27,6 +28,7 @@ func NewSQLStore(db repositories.Execer) interfaces.Store {
 	s.projectRepo = repositories.NewProjectRepo(db)
 	s.roleRepo = repositories.NewRoleRepo(db)
 	s.listRepo = repositories.NewListRepo(db)
+	s.joinRequestRepo = repositories.NewJoinRequestRepo(db)
 	return s
 }
 
@@ -76,6 +78,10 @@ func (s *SQLStore) Role() interfaces.RoleRepository {
 
 func (s *SQLStore) List() interfaces.ListRepository {
 	return s.listRepo
+}
+
+func (s *SQLStore) JoinRequest() interfaces.JoinRequestRepository {
+	return s.joinRequestRepo
 }
 
 func (s *SQLStore) clone(tx *sql.Tx) interfaces.Store {

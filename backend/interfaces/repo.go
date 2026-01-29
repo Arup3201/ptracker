@@ -32,3 +32,7 @@ type ListRepository interface {
 	Members(ctx context.Context, projectId string) ([]*domain.Member, error)
 	PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error)
 }
+
+type JoinRequestRepository interface {
+	Create(ctx context.Context, projectId, userId, joinStatus string) error
+}
