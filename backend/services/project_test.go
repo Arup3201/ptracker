@@ -298,3 +298,211 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 		service.store.Project().Delete(suite.ctx, p)
 	})
 }
+
+func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
+	t := suite.T()
+
+	t.Run("should accept join request", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should accept join request", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		var status string
+		suite.db.QueryRow(
+			"SELECT "+
+				"status "+
+				"FROM join_requests "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan(&status)
+		suite.Require().Equal(domain.JOIN_STATUS_ACCEPTED, status)
+	})
+	t.Run("should add role member after accepting join request", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		var role string
+		suite.db.QueryRow(
+			"SELECT "+
+				"role "+
+				"FROM roles "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan(&role)
+		suite.Require().Equal("Member", role)
+
+		suite.Cleanup()
+	})
+	t.Run("should reject join request", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		var status string
+		suite.db.QueryRow(
+			"SELECT "+
+				"status "+
+				"FROM join_requests "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan(&status)
+		suite.Require().Equal(domain.JOIN_STATUS_REJECTED, status)
+	})
+	t.Run("should reject join request without creating role", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		err := suite.db.QueryRow(
+			"SELECT "+
+				"role "+
+				"FROM roles "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan()
+		suite.Require().ErrorContains(err, "no rows in result set")
+
+		suite.Cleanup()
+	})
+	t.Run("should not transition join status from accepted to pending", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+
+		suite.Require().EqualError(err, "invalid value")
+	})
+	t.Run("should not transition join status from rejected to accepted", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		suite.Require().EqualError(err, "invalid value")
+	})
+	t.Run("should transition join status from rejected to pending", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+
+		var status string
+		suite.db.QueryRow(
+			"SELECT "+
+				"status "+
+				"FROM join_requests "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan(&status)
+		suite.Require().Equal(domain.JOIN_STATUS_PENDING, status)
+	})
+	t.Run("should not change join status from pending due to transaction error", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		// just for testing transaction working fine...
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		projectService := NewProjectService(suite.store)
+
+		err := projectService.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		suite.Require().ErrorContains(err, "transaction: store role create")
+		var status string
+		suite.db.QueryRow(
+			"SELECT "+
+				"status "+
+				"FROM join_requests "+
+				"WHERE project_id=($1) AND user_id=($2)",
+			p, USER_TWO,
+		).Scan(&status)
+		suite.Require().Equal(status, domain.JOIN_STATUS_PENDING)
+
+		suite.Cleanup()
+	})
+	t.Run("should be forbidden to change the join status by non-member", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		suite.Require().ErrorContains(err, "forbidden")
+	})
+	t.Run("should be forbidden to change the join status by member", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		service := NewProjectService(suite.store)
+
+		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		suite.Require().ErrorContains(err, "forbidden")
+	})
+}

@@ -9,3 +9,8 @@ type PublicProjectListed struct {
 	*Project
 	Role string
 }
+
+type JoinRequestListed struct {
+	*JoinRequest
+	*Member
+}

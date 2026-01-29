@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ptracker/apierr"
@@ -145,4 +146,91 @@ func (s *projectService) GetProjectMembers(ctx context.Context,
 	}
 
 	return members, nil
+}
+
+func (s *projectService) ListJoinRequests(ctx context.Context,
+	projectId, userId string) ([]*domain.JoinRequestListed, error) {
+
+	permitted, err := s.projectPermission.CanSeeMembers(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can access: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	joinRequests, err := s.store.List().JoinRequests(ctx, projectId)
+
+	return joinRequests, nil
+}
+
+func (s *projectService) AccessOrRejectJoinRequest(ctx context.Context,
+	projectId, ownerId, requestorId, joinStatus string) error {
+
+	permitted, err := s.projectPermission.CanRespondToJoinRequests(ctx, projectId, ownerId)
+	if err != nil {
+		return fmt.Errorf("permission service can access: %w", err)
+	}
+	if !permitted {
+		return apierr.ErrForbidden
+	}
+
+	if !slices.Contains([]string{
+		domain.JOIN_STATUS_PENDING,
+		domain.JOIN_STATUS_ACCEPTED,
+		domain.JOIN_STATUS_REJECTED,
+	}, joinStatus) {
+		return apierr.ErrInvalidValue
+	}
+
+	userRole := domain.ROLE_MEMBER
+
+	status, err := s.store.JoinRequest().Get(ctx, projectId, requestorId)
+	if err != nil {
+		return fmt.Errorf("store join request get: %w", err)
+	}
+
+	if status == joinStatus {
+		return apierr.ErrInvalidValue
+	}
+
+	// Y Rejected -> Pending
+	// X Rejected -> Accepted
+	// X Accepted -> Pending|Rejected
+
+	if (status == domain.JOIN_STATUS_REJECTED &&
+		slices.Contains([]string{
+			domain.JOIN_STATUS_ACCEPTED,
+		}, joinStatus)) ||
+		(status == domain.JOIN_STATUS_ACCEPTED &&
+			slices.Contains([]string{
+				domain.JOIN_STATUS_PENDING,
+				domain.JOIN_STATUS_REJECTED,
+			}, joinStatus)) {
+		return apierr.ErrInvalidValue
+	}
+
+	err = s.store.WithTx(ctx, func(txStore interfaces.Store) error {
+		var err error
+
+		err = txStore.JoinRequest().Update(ctx, projectId, requestorId, joinStatus)
+		if err != nil {
+			return fmt.Errorf("store join request update: %w", err)
+		}
+
+		if joinStatus == domain.JOIN_STATUS_ACCEPTED {
+			err = txStore.Role().Create(ctx, projectId, requestorId, userRole)
+			if err != nil {
+				return fmt.Errorf("store role create: %w", err)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("transaction: %w", err)
+	}
+
+	return nil
 }

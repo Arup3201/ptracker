@@ -47,3 +47,20 @@ func (s *ProjectPermissionService) CanSeeMembers(ctx context.Context,
 
 	return false, nil
 }
+
+func (s *ProjectPermissionService) CanRespondToJoinRequests(ctx context.Context,
+	projectId, userId string) (bool, error) {
+	role, err := s.store.Role().Get(ctx, projectId, userId)
+	if err != nil {
+		if errors.Is(err, apierr.ErrNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("role store get: %w", err)
+	}
+
+	if role == domain.ROLE_OWNER {
+		return true, nil
+	}
+
+	return false, nil
+}

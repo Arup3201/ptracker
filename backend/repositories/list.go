@@ -123,3 +123,37 @@ func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain
 
 	return projects, nil
 }
+
+func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error) {
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT r.project_id, r.status, u.id, u.username, "+
+			"u.display_name, u.email, u.is_active, r.created_at, r.updated_at "+
+			"FROM join_requests as r "+
+			"INNER JOIN users as u ON u.id=r.user_id "+
+			"WHERE r.project_id=($1)",
+		projectId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get join requests: %w", err)
+	}
+	defer rows.Close()
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("postgres get join requests: %w", err)
+	}
+
+	results := []*domain.JoinRequestListed{}
+	for rows.Next() {
+		var r = domain.JoinRequestListed{
+			JoinRequest: &domain.JoinRequest{},
+			Member:      &domain.Member{},
+		}
+		rows.Scan(&r.ProjectId, &r.Status, &r.Member.Id,
+			&r.Member.Username, &r.Member.DisplayName, &r.Member.Email,
+			&r.Member.IsActive, &r.Member.CreatedAt, &r.Member.UpdatedAt)
+
+		results = append(results, &r)
+	}
+
+	return results, nil
+}
