@@ -3,7 +3,7 @@ package repositories
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/ptracker/testhelpers/repo_fixtures"
 )
 
 func (suite *RepositoryTestSuite) TestProjectCreate() {
@@ -23,7 +23,8 @@ func (suite *RepositoryTestSuite) TestProjectCreate() {
 			t.Fail()
 			t.Log(err)
 		}
-		assert.NotEqual(t, "", id)
+		suite.Require().NotEqual(t, "", id)
+
 		repo.Delete(suite.ctx, id)
 	})
 }
@@ -32,6 +33,10 @@ func (suite *RepositoryTestSuite) TestProjectAll() {
 	t := suite.T()
 
 	t.Run("should return 2 projects", func(t *testing.T) {
+		p1 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p1, USER_ONE))
+		p2 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p2, USER_ONE))
 		repo := NewProjectRepo(suite.db)
 		projects, err := repo.All(suite.ctx, USER_ONE)
 
@@ -41,6 +46,9 @@ func (suite *RepositoryTestSuite) TestProjectAll() {
 		}
 		expected := 2
 		actual := len(projects)
-		assert.Equal(t, expected, actual)
+		suite.Require().Equal(expected, actual)
+
+		repo.Delete(suite.ctx, p1)
+		repo.Delete(suite.ctx, p2)
 	})
 }

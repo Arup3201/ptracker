@@ -21,7 +21,6 @@ type RepositoryTestSuite struct {
 }
 
 var USER_ONE, USER_TWO string
-var PROJECT_ONE, PROJECT_TWO, PROJECT_THREE string
 
 func (suite *RepositoryTestSuite) SetupSuite() {
 	var err error
@@ -42,15 +41,6 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 
 	USER_ONE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
 	USER_TWO = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
-
-	PROJECT_ONE = suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-	suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(PROJECT_ONE, USER_ONE))
-
-	PROJECT_TWO = suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-	suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(PROJECT_TWO, USER_ONE))
-
-	PROJECT_THREE = suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_TWO))
-	suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(PROJECT_THREE, USER_TWO))
 }
 
 func (suite *RepositoryTestSuite) TearDownSuite() {
