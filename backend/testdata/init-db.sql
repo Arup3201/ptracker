@@ -49,7 +49,7 @@ CREATE INDEX idx_sessions_active ON sessions(user_id) WHERE revoked_at IS NULL;
 
 CREATE TABLE projects (
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	owner UUID NOT NULL REFERENCES users(id),
+	owner UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	name VARCHAR(255) NOT NULL,
 	description TEXT,
 	skills TEXT,
@@ -62,7 +62,7 @@ CREATE TYPE task_status AS ENUM('Unassigned', 'Ongoing', 'Completed', 'Abandoned
 
 CREATE TABLE tasks (
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	project_id UUID NOT NULL REFERENCES projects(id),
+	project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
 	title VARCHAR(255) NOT NULL,
 	description TEXT,
 	status task_status NOT NULL,
@@ -74,8 +74,8 @@ CREATE TABLE tasks (
 CREATE TYPE user_role AS ENUM('Owner', 'Member'); 
 
 CREATE TABLE roles (
-	project_id UUID NOT NULL REFERENCES projects(id),
-	user_id UUID NOT NULL REFERENCES users(id),
+	project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	role user_role NOT NULL,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE,
@@ -87,9 +87,9 @@ CREATE UNIQUE INDEX ux_project_roles
 	ON roles(project_id, user_id);
 
 CREATE TABLE assignees (
-	project_id UUID NOT NULL REFERENCES projects(id),
-    task_id UUID NOT NULL REFERENCES tasks(id),
-	user_id UUID NOT NULL REFERENCES users(id),
+	project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE,
     deleted_at TIMESTAMP WITH TIME ZONE
@@ -101,9 +101,9 @@ CREATE UNIQUE INDEX ux_project_task_assignee
 
 CREATE TABLE comments (
 	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	project_id UUID NOT NULL REFERENCES projects(id),
-    task_id UUID NOT NULL REFERENCES tasks(id),
-	user_id UUID NOT NULL REFERENCES users(id),
+	project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE,
@@ -113,8 +113,8 @@ CREATE TABLE comments (
 CREATE TYPE request_status AS ENUM('Pending', 'Accepted', 'Rejected');
 
 CREATE TABLE join_requests (
-	project_id UUID NOT NULL REFERENCES projects(id),
-	user_id UUID NOT NULL REFERENCES users(id),
+	project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+	user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 	status request_status NOT NULL DEFAULT 'Pending',
 	created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 	updated_at TIMESTAMP WITH TIME ZONE,

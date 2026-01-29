@@ -45,12 +45,16 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 
 func (suite *RepositoryTestSuite) TearDownSuite() {
 	_, err := suite.db.Exec("TRUNCATE users CASCADE")
-	if err != nil {
-		log.Fatal(err)
-	}
+	suite.Require().NoError(err)
+
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
-		log.Fatal(err)
+		suite.Require().NoError(err)
 	}
+}
+
+func (suite *RepositoryTestSuite) Cleanup() {
+	_, err := suite.db.Exec("DELETE FROM projects")
+	suite.Require().NoError(err)
 }
 
 func TestModel(t *testing.T) {

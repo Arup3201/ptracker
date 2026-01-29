@@ -2,7 +2,7 @@ package domain
 
 import "time"
 
-type PrivateProject struct {
+type Project struct {
 	Id          string
 	Name        string
 	Description *string
@@ -13,7 +13,7 @@ type PrivateProject struct {
 }
 
 type ProjectSummary struct {
-	PrivateProject
+	*Project
 	UnassignedTasks int
 	OngoingTasks    int
 	CompletedTasks  int
@@ -21,7 +21,7 @@ type ProjectSummary struct {
 }
 
 type ProjectDetail struct {
-	ProjectSummary
+	*ProjectSummary
 	Role        string
 	MemberCount int
 	Owner       *Member

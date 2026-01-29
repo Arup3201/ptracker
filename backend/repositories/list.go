@@ -36,7 +36,12 @@ func (r *ListRepo) PrivateProjects(ctx context.Context, userId string) ([]*domai
 
 	var projects []*domain.PrivateProjectListed
 	for rows.Next() {
-		var p domain.PrivateProjectListed
+		var p = domain.PrivateProjectListed{
+			ProjectSummary: &domain.ProjectSummary{
+				Project: &domain.Project{},
+			},
+		}
+
 		err := rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
 			&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
 			&p.CreatedAt, &p.UpdatedAt)
@@ -81,4 +86,40 @@ func (r *ListRepo) Members(ctx context.Context,
 	}
 
 	return members, nil
+}
+
+func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error) {
+	var projects = []*domain.PublicProjectListed{}
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"CASE "+
+			"WHEN p.owner=($1) THEN 'Owner' "+
+			"WHEN r.user_id=($1) THEN 'Member' "+
+			"ELSE 'User' "+
+			"END AS role, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects AS p "+
+			"LEFT JOIN roles AS r ON p.id=r.project_id AND r.user_id=($1)",
+		userId)
+	if err != nil {
+		return projects, fmt.Errorf("postgres get task query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var p = domain.PublicProjectListed{
+			Project: &domain.Project{},
+		}
+		rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Role,
+			&p.CreatedAt, &p.UpdatedAt)
+		projects = append(projects, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("postgres scan project overview results: %w", err)
+	}
+
+	return projects, nil
 }

@@ -42,7 +42,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.PrivateProject
+		var p domain.Project
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
@@ -70,7 +70,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.PrivateProject
+		var p domain.Project
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
@@ -98,7 +98,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.PrivateProject
+		var p domain.Project
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+

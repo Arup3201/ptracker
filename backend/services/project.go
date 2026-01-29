@@ -98,8 +98,8 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 	}
 
 	return &domain.ProjectDetail{
-		ProjectSummary: domain.ProjectSummary{
-			PrivateProject: domain.PrivateProject{
+		ProjectSummary: &domain.ProjectSummary{
+			Project: &domain.Project{
 				Id:          project.Id,
 				Name:        project.Name,
 				Description: project.Description,

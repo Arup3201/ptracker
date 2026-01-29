@@ -1,6 +1,11 @@
 package domain
 
 type PrivateProjectListed struct {
-	ProjectSummary
+	*ProjectSummary
+	Role string
+}
+
+type PublicProjectListed struct {
+	*Project
 	Role string
 }
