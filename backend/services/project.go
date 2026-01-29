@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
@@ -28,6 +29,10 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	description, skills *string,
 	owner string) (string, error) {
 	var projectId string
+
+	if strings.Trim(name, " ") == "" {
+		return "", apierr.ErrInvalidValue
+	}
 
 	err := s.store.WithTx(ctx, func(txStore stores.Store) error {
 		var err error
@@ -99,7 +104,7 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 			Username:    owner.Username,
 			DisplayName: owner.DisplayName,
 			Email:       owner.Email,
-			AvaterURL:   owner.AvaterURL,
+			AvatarURL:   owner.AvatarURL,
 			IsActive:    owner.IsActive,
 			CreatedAt:   owner.CreatedAt,
 			UpdatedAt:   owner.UpdatedAt,

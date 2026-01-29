@@ -9,7 +9,7 @@ type User struct {
 	Username      string
 	DisplayName   *string // nullable
 	Email         string
-	AvaterURL     *string // nullable
+	AvatarURL     *string // nullable
 	IsActive      bool
 	CreatedAt     time.Time
 	UpdatedAt     *time.Time // nullable

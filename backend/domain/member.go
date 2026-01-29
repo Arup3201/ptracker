@@ -7,7 +7,7 @@ type Member struct {
 	Username    string
 	DisplayName *string
 	Email       string
-	AvaterURL   *string
+	AvatarURL   *string
 	IsActive    bool
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
