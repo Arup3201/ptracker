@@ -41,7 +41,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.Project
+		var p domain.PrivateProject
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
@@ -69,7 +69,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.Project
+		var p domain.PrivateProject
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
@@ -97,7 +97,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.Project
+		var p domain.PrivateProject
 		suite.db.QueryRow(
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
@@ -171,6 +171,25 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		suite.Require().Equal(sample_name, project.Name)
 		suite.Require().Equal(sample_description, *project.Description)
 		suite.Require().Equal(sample_skills, *project.Skills)
+
+		service.store.Project().Delete(suite.ctx, id)
+	})
+	t.Run("should get project with role owner", func(t *testing.T) {
+		sample_name := "Test Project"
+		sample_description := "Test Description"
+		sample_skills := "C++, Java"
+		service := NewProjectService(suite.store)
+		id, err := service.CreateProject(suite.ctx,
+			sample_name,
+			&sample_description,
+			&sample_skills,
+			USER_ONE,
+		)
+
+		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(domain.ROLE_OWNER, project.Role)
 
 		service.store.Project().Delete(suite.ctx, id)
 	})

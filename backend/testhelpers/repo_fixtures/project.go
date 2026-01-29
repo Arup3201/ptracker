@@ -8,13 +8,13 @@ import (
 	"github.com/ptracker/domain"
 )
 
-func RandomProjectRow(ownerID string) domain.Project {
+func RandomProjectRow(ownerID string) domain.PrivateProject {
 	pId := uuid.NewString()
 
 	desc := "Description " + pId
 	skills := "C++, Python"
 
-	return domain.Project{
+	return domain.PrivateProject{
 		Id:          pId,
 		Name:        "Test Project" + pId,
 		Description: &desc,
@@ -23,7 +23,7 @@ func RandomProjectRow(ownerID string) domain.Project {
 	}
 }
 
-func (f *Fixtures) InsertProject(p domain.Project) string {
+func (f *Fixtures) InsertProject(p domain.PrivateProject) string {
 	now := time.Now()
 	_, err := f.db.ExecContext(
 		f.ctx,

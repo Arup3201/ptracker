@@ -17,6 +17,7 @@ type SQLStore struct {
 	userRepo    stores.UserRepository
 	projectRepo stores.ProjectRepository
 	roleRepo    stores.RoleRepository
+	listRepo    stores.ListRepository
 }
 
 func NewSQLStore(db repositories.Execer) stores.Store {
@@ -25,6 +26,7 @@ func NewSQLStore(db repositories.Execer) stores.Store {
 	s.userRepo = repositories.NewUserRepo(db)
 	s.projectRepo = repositories.NewProjectRepo(db)
 	s.roleRepo = repositories.NewRoleRepo(db)
+	s.listRepo = repositories.NewListRepo(db)
 	return s
 }
 
@@ -70,6 +72,10 @@ func (s *SQLStore) Project() stores.ProjectRepository {
 
 func (s *SQLStore) Role() stores.RoleRepository {
 	return s.roleRepo
+}
+
+func (s *SQLStore) List() stores.ListRepository {
+	return s.listRepo
 }
 
 func (s *SQLStore) clone(tx *sql.Tx) stores.Store {

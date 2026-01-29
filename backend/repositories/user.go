@@ -13,12 +13,12 @@ import (
 )
 
 type UserRepo struct {
-	DB Execer
+	db Execer
 }
 
 func NewUserRepo(db Execer) stores.UserRepository {
 	return &UserRepo{
-		DB: db,
+		db: db,
 	}
 }
 
@@ -28,7 +28,7 @@ func (r *UserRepo) Create(ctx context.Context,
 	id := uuid.NewString()
 	now := time.Now()
 
-	_, err := r.DB.ExecContext(ctx,
+	_, err := r.db.ExecContext(ctx,
 		"INSERT INTO users"+
 			"(id, idp_subject, idp_provider, username, display_name, email, "+
 			"avatar_url, created_at, updated_at) "+
@@ -43,7 +43,7 @@ func (r *UserRepo) Create(ctx context.Context,
 
 func (r *UserRepo) Get(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User
-	err := r.DB.QueryRowContext(ctx, "SELECT "+
+	err := r.db.QueryRowContext(ctx, "SELECT "+
 		"id, idp_subject, idp_provider, username, display_name, email, "+
 		"avatar_url, is_active, created_at, updated_at, last_login_at "+
 		"FROM users "+

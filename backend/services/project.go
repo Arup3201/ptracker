@@ -56,8 +56,8 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	return projectId, nil
 }
 
-func (s *projectService) ListProjects(ctx context.Context, userId string) ([]*domain.ListedProject, error) {
-	projects, err := s.store.Project().All(ctx, userId)
+func (s *projectService) ListProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error) {
+	projects, err := s.store.List().PrivateProjects(ctx, userId)
 	if err != nil {
 		return projects, fmt.Errorf("store project all: %w", err)
 	}
@@ -66,7 +66,7 @@ func (s *projectService) ListProjects(ctx context.Context, userId string) ([]*do
 }
 
 func (s *projectService) GetPrivateProject(ctx context.Context,
-	projectId, userId string) (*domain.ProjectSummary, error) {
+	projectId, userId string) (*domain.ProjectDetail, error) {
 
 	permitted, err := s.projectPermission.CanAccess(ctx, projectId, userId)
 	if err != nil {
@@ -82,6 +82,11 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, fmt.Errorf("store project all: %w", err)
 	}
 
+	userRole, err := s.store.Role().Get(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("store role get: %w", err)
+	}
+
 	owner, err := s.store.User().Get(ctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("store user get: %w", err)
@@ -92,12 +97,22 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, fmt.Errorf("store role count members: %w", err)
 	}
 
-	return &domain.ProjectSummary{
-		Id:          project.Id,
-		Name:        project.Name,
-		Description: project.Description,
-		Skills:      project.Skills,
-		Role:        project.Role,
+	return &domain.ProjectDetail{
+		ProjectSummary: domain.ProjectSummary{
+			PrivateProject: domain.PrivateProject{
+				Id:          project.Id,
+				Name:        project.Name,
+				Description: project.Description,
+				Skills:      project.Skills,
+				CreatedAt:   project.CreatedAt,
+				UpdatedAt:   project.UpdatedAt,
+			},
+			UnassignedTasks: project.UnassignedTasks,
+			OngoingTasks:    project.OngoingTasks,
+			CompletedTasks:  project.CompletedTasks,
+			AbandonedTasks:  project.AbandonedTasks,
+		},
+		Role:        userRole,
 		MemberCount: memberCount,
 		Owner: &domain.Member{
 			Id:          owner.Id,
@@ -109,11 +124,5 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 			CreatedAt:   owner.CreatedAt,
 			UpdatedAt:   owner.UpdatedAt,
 		},
-		UnassignedTasks: project.UnassignedTasks,
-		OngoingTasks:    project.OngoingTasks,
-		CompletedTasks:  project.CompletedTasks,
-		AbandonedTasks:  project.AbandonedTasks,
-		CreatedAt:       project.CreatedAt,
-		UpdatedAt:       project.UpdatedAt,
 	}, nil
 }

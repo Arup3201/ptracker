@@ -17,8 +17,7 @@ type ProjectRepository interface {
 	Create(ctx context.Context, title string,
 		description, skills *string,
 		owner string) (string, error)
-	All(ctx context.Context, userId string) ([]*domain.ListedProject, error)
-	Get(ctx context.Context, id string) (*domain.ListedProject, error)
+	Get(ctx context.Context, id string) (*domain.ProjectSummary, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -28,9 +27,14 @@ type RoleRepository interface {
 	CountMembers(ctx context.Context, projectId string) (int, error)
 }
 
+type ListRepository interface {
+	PrivateProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error)
+}
+
 type Store interface {
 	WithTx(ctx context.Context, fn func(txStore Store) error) error
 	User() UserRepository
 	Project() ProjectRepository
 	Role() RoleRepository
+	List() ListRepository
 }

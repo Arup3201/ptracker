@@ -12,12 +12,12 @@ import (
 )
 
 type RoleRepo struct {
-	DB Execer
+	db Execer
 }
 
 func NewRoleRepo(db Execer) stores.RoleRepository {
 	return &RoleRepo{
-		DB: db,
+		db: db,
 	}
 }
 
@@ -25,7 +25,7 @@ func (r *RoleRepo) Create(ctx context.Context,
 	projectId, userId, role string) error {
 	now := time.Now()
 
-	_, err := r.DB.ExecContext(ctx, "INSERT INTO "+
+	_, err := r.db.ExecContext(ctx, "INSERT INTO "+
 		"roles(project_id, user_id, role, created_at, updated_at) "+
 		"VALUES($1, $2, $3, $4, $4)",
 		projectId, userId, role, now)
@@ -38,7 +38,7 @@ func (r *RoleRepo) Create(ctx context.Context,
 
 func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (string, error) {
 	var role string
-	err := r.DB.QueryRowContext(
+	err := r.db.QueryRowContext(
 		ctx,
 		"SELECT "+
 			"role "+
@@ -58,7 +58,7 @@ func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (string, e
 
 func (r *RoleRepo) CountMembers(ctx context.Context, projectId string) (int, error) {
 	var count int
-	err := r.DB.QueryRowContext(
+	err := r.db.QueryRowContext(
 		ctx,
 		"SELECT "+
 			"COUNT(user_id) "+
