@@ -37,12 +37,12 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	err := s.store.WithTx(ctx, func(txStore interfaces.Store) error {
 		var err error
 
-		projectId, err = s.store.Project().Create(ctx, name, description, skills, owner)
+		projectId, err = txStore.Project().Create(ctx, name, description, skills, owner)
 		if err != nil {
 			return fmt.Errorf("store project create: %w", err)
 		}
 
-		err = s.store.Role().Create(ctx, projectId, owner, domain.ROLE_OWNER)
+		err = txStore.Role().Create(ctx, projectId, owner, domain.ROLE_OWNER)
 		if err != nil {
 			return fmt.Errorf("store role create: %w", err)
 		}
