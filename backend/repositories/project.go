@@ -39,7 +39,9 @@ func (r *projectRepo) Create(ctx context.Context,
 }
 
 func (r *projectRepo) Get(ctx context.Context, projectId string) (*domain.ProjectSummary, error) {
-	var p domain.ProjectSummary
+	var p = domain.ProjectSummary{
+		Project: &domain.Project{},
+	}
 	err := r.db.QueryRowContext(
 		ctx,
 		"SELECT "+
