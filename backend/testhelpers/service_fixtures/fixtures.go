@@ -1,4 +1,4 @@
-package fixtures
+package service_fixtures
 
 import (
 	"context"

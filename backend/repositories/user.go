@@ -50,7 +50,7 @@ func (r *UserRepo) Get(ctx context.Context, id string) (*domain.User, error) {
 		"WHERE id=($1)",
 		id).
 		Scan(&user.Id, &user.IDPSubject, &user.IDPProvider, &user.Username,
-			&user.DisplayName, &user.Email, &user.AvaterURL, &user.IsActive,
+			&user.DisplayName, &user.Email, &user.AvatarURL, &user.IsActive,
 			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginTime)
 	if err != nil {
 		if err == sql.ErrNoRows {

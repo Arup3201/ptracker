@@ -17,7 +17,7 @@ func (suite *RepositoryTestSuite) TestProjectCreate() {
 		repo := NewProjectRepo(suite.db)
 		id, err := repo.Create(suite.ctx,
 			sample_name, &sample_description, &sample_skills,
-			USER_FIXTURES[0])
+			USER_ONE)
 
 		if err != nil {
 			t.Fail()
@@ -33,7 +33,7 @@ func (suite *RepositoryTestSuite) TestProjectAll() {
 
 	t.Run("should return 2 projects", func(t *testing.T) {
 		repo := NewProjectRepo(suite.db)
-		projects, err := repo.All(suite.ctx, USER_FIXTURES[0])
+		projects, err := repo.All(suite.ctx, USER_ONE)
 
 		if err != nil {
 			t.Fail()
