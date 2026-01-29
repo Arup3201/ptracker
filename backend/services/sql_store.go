@@ -6,21 +6,21 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/ptracker/interfaces"
 	"github.com/ptracker/repositories"
-	"github.com/ptracker/stores"
 )
 
 type SQLStore struct {
 	mu sync.Mutex
 
 	db          repositories.Execer
-	userRepo    stores.UserRepository
-	projectRepo stores.ProjectRepository
-	roleRepo    stores.RoleRepository
-	listRepo    stores.ListRepository
+	userRepo    interfaces.UserRepository
+	projectRepo interfaces.ProjectRepository
+	roleRepo    interfaces.RoleRepository
+	listRepo    interfaces.ListRepository
 }
 
-func NewSQLStore(db repositories.Execer) stores.Store {
+func NewSQLStore(db repositories.Execer) interfaces.Store {
 	s := &SQLStore{}
 	s.db = db
 	s.userRepo = repositories.NewUserRepo(db)
@@ -30,7 +30,7 @@ func NewSQLStore(db repositories.Execer) stores.Store {
 	return s
 }
 
-func (s *SQLStore) WithTx(ctx context.Context, fn func(txStore stores.Store) error) error {
+func (s *SQLStore) WithTx(ctx context.Context, fn func(txStore interfaces.Store) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -62,22 +62,22 @@ func (s *SQLStore) WithTx(ctx context.Context, fn func(txStore stores.Store) err
 	return tx.Commit()
 }
 
-func (s *SQLStore) User() stores.UserRepository {
+func (s *SQLStore) User() interfaces.UserRepository {
 	return s.userRepo
 }
 
-func (s *SQLStore) Project() stores.ProjectRepository {
+func (s *SQLStore) Project() interfaces.ProjectRepository {
 	return s.projectRepo
 }
 
-func (s *SQLStore) Role() stores.RoleRepository {
+func (s *SQLStore) Role() interfaces.RoleRepository {
 	return s.roleRepo
 }
 
-func (s *SQLStore) List() stores.ListRepository {
+func (s *SQLStore) List() interfaces.ListRepository {
 	return s.listRepo
 }
 
-func (s *SQLStore) clone(tx *sql.Tx) stores.Store {
+func (s *SQLStore) clone(tx *sql.Tx) interfaces.Store {
 	return NewSQLStore(tx)
 }

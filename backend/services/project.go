@@ -7,15 +7,15 @@ import (
 
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type projectService struct {
-	store             stores.Store
+	store             interfaces.Store
 	projectPermission *ProjectPermissionService
 }
 
-func NewProjectService(store stores.Store) *projectService {
+func NewProjectService(store interfaces.Store) *projectService {
 	permissionService := &ProjectPermissionService{
 		store: store,
 	}
@@ -34,7 +34,7 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 		return "", apierr.ErrInvalidValue
 	}
 
-	err := s.store.WithTx(ctx, func(txStore stores.Store) error {
+	err := s.store.WithTx(ctx, func(txStore interfaces.Store) error {
 		var err error
 
 		projectId, err = s.store.Project().Create(ctx, name, description, skills, owner)

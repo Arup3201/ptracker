@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/db"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/service_fixtures"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +18,7 @@ type ServiceTestSuite struct {
 	ctx         context.Context
 	pgContainer *testhelpers.PostgresContainer
 	db          *sql.DB
-	store       stores.Store
+	store       interfaces.Store
 	fixtures    *service_fixtures.Fixtures
 }
 

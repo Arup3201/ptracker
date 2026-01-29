@@ -3,15 +3,15 @@ package service_fixtures
 import (
 	"context"
 
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type Fixtures struct {
 	ctx   context.Context
-	store stores.Store
+	store interfaces.Store
 }
 
-func New(ctx context.Context, store stores.Store) *Fixtures {
+func New(ctx context.Context, store interfaces.Store) *Fixtures {
 	return &Fixtures{
 		ctx:   ctx,
 		store: store,

@@ -7,11 +7,11 @@ import (
 
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type ProjectPermissionService struct {
-	store stores.Store
+	store interfaces.Store
 }
 
 func (s *ProjectPermissionService) CanAccess(ctx context.Context,

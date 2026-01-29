@@ -8,14 +8,14 @@ import (
 
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type RoleRepo struct {
 	db Execer
 }
 
-func NewRoleRepo(db Execer) stores.RoleRepository {
+func NewRoleRepo(db Execer) interfaces.RoleRepository {
 	return &RoleRepo{
 		db: db,
 	}

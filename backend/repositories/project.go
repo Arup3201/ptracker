@@ -7,14 +7,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type projectRepo struct {
 	db Execer
 }
 
-func NewProjectRepo(db Execer) stores.ProjectRepository {
+func NewProjectRepo(db Execer) interfaces.ProjectRepository {
 	return &projectRepo{
 		db: db,
 	}

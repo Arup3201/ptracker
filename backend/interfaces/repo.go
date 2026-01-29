@@ -1,4 +1,4 @@
-package stores
+package interfaces
 
 import (
 	"context"
@@ -30,12 +30,4 @@ type RoleRepository interface {
 type ListRepository interface {
 	PrivateProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error)
 	Members(ctx context.Context, projectId string) ([]*domain.Member, error)
-}
-
-type Store interface {
-	WithTx(ctx context.Context, fn func(txStore Store) error) error
-	User() UserRepository
-	Project() ProjectRepository
-	Role() RoleRepository
-	List() ListRepository
 }

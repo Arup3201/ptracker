@@ -9,14 +9,14 @@ import (
 	"github.com/google/uuid"
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type UserRepo struct {
 	db Execer
 }
 
-func NewUserRepo(db Execer) stores.UserRepository {
+func NewUserRepo(db Execer) interfaces.UserRepository {
 	return &UserRepo{
 		db: db,
 	}

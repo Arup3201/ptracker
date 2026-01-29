@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/ptracker/domain"
-	"github.com/ptracker/stores"
+	"github.com/ptracker/interfaces"
 )
 
 type ListRepo struct {
 	db Execer
 }
 
-func NewListRepo(db Execer) stores.ListRepository {
+func NewListRepo(db Execer) interfaces.ListRepository {
 	return &ListRepo{
 		db: db,
 	}
