@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/ptracker/db"
-	"github.com/ptracker/domain"
 	"github.com/ptracker/stores"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/service_fixtures"
@@ -23,8 +22,7 @@ type ServiceTestSuite struct {
 	fixtures    *service_fixtures.Fixtures
 }
 
-var USER_ONE, USER_TWO string
-var PROJECT_ONE, PROJECT_TWO string
+var USER_ONE, USER_TWO, USER_THREE string
 
 func (suite *ServiceTestSuite) SetupSuite() {
 	var err error
@@ -56,16 +54,12 @@ func (suite *ServiceTestSuite) SetupSuite() {
 		Username:    "alice",
 		Email:       "alice@example.com",
 	})
-	PROJECT_ONE = suite.fixtures.Project(service_fixtures.ProjectParams{
-		Title:   "Project Fixture A",
-		OwnerID: USER_ONE,
+	USER_THREE = suite.fixtures.User(service_fixtures.UserParams{
+		IDPSubject:  "sub-456",
+		IDPProvider: "twitter",
+		Username:    "mevis",
+		Email:       "mevis@example.com",
 	})
-	suite.fixtures.Role(PROJECT_ONE, USER_ONE, domain.ROLE_OWNER)
-	PROJECT_TWO = suite.fixtures.Project(service_fixtures.ProjectParams{
-		Title:   "Project Fixture B",
-		OwnerID: USER_TWO,
-	})
-	suite.fixtures.Role(PROJECT_TWO, USER_TWO, domain.ROLE_OWNER)
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {

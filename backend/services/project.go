@@ -126,3 +126,23 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		},
 	}, nil
 }
+
+func (s *projectService) GetProjectMembers(ctx context.Context,
+	projectId, userId string) ([]*domain.Member, error) {
+
+	permitted, err := s.projectPermission.CanSeeMembers(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can access: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	members, err := s.store.List().Members(ctx, projectId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service members: %w", err)
+	}
+
+	return members, nil
+}

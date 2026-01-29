@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/domain"
+	"github.com/ptracker/testhelpers/service_fixtures"
 )
 
 func (suite *ServiceTestSuite) TestCreateProject() {
@@ -240,5 +241,60 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		_, err = service.GetPrivateProject(suite.ctx, id, USER_TWO)
 
 		suite.Require().EqualError(err, "forbidden")
+
+		service.store.Project().Delete(suite.ctx, id)
+	})
+}
+
+func (suite *ServiceTestSuite) TestGetMembers() {
+	t := suite.T()
+
+	t.Run("should get 1 member", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+
+		service := NewProjectService(suite.store)
+		members, err := service.GetProjectMembers(suite.ctx, p, USER_TWO)
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(members))
+
+		service.store.Project().Delete(suite.ctx, p)
+	})
+	t.Run("should get 2 members", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+
+		service := NewProjectService(suite.store)
+		members, err := service.GetProjectMembers(suite.ctx, p, USER_TWO)
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(2, len(members))
+
+		service.store.Project().Delete(suite.ctx, p)
+	})
+	t.Run("should get forbidden error", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+
+		service := NewProjectService(suite.store)
+		_, err := service.GetProjectMembers(suite.ctx, p, USER_THREE)
+
+		suite.Require().EqualError(err, "forbidden")
+
+		service.store.Project().Delete(suite.ctx, p)
 	})
 }

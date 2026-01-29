@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/ptracker/domain"
+	"github.com/ptracker/stores"
 )
 
 type ListRepo struct {
 	db Execer
 }
 
-func NewListRepo(db Execer) *ListRepo {
+func NewListRepo(db Execer) stores.ListRepository {
 	return &ListRepo{
 		db: db,
 	}
@@ -49,4 +50,35 @@ func (r *ListRepo) PrivateProjects(ctx context.Context, userId string) ([]*domai
 	}
 
 	return projects, nil
+}
+
+func (r *ListRepo) Members(ctx context.Context,
+	projectId string) ([]*domain.Member, error) {
+	var members []*domain.Member
+
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT "+
+			"u.id, u.username, u.display_name, u.email, "+
+			"u.avatar_url, u.is_active, r.created_at, r.updated_at "+
+			"FROM roles AS r "+
+			"INNER JOIN users AS u ON r.user_id=u.id "+
+			"WHERE r.project_id=($1) AND r.role!=($2)", projectId, domain.ROLE_OWNER)
+	if err != nil {
+		return nil, fmt.Errorf("service get members query: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var m domain.Member
+		rows.Scan(&m.Id, &m.Username, &m.DisplayName, &m.Email,
+			&m.AvatarURL, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
+
+		members = append(members, &m)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("service rows scan: %w", err)
+	}
+
+	return members, nil
 }
