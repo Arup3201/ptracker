@@ -23,7 +23,7 @@ type ProjectRepository interface {
 
 type RoleRepository interface {
 	Create(ctx context.Context, projectId, userId, role string) error
-	Get(ctx context.Context, projectId, userId string) (string, error)
+	Get(ctx context.Context, projectId, userId string) (*domain.Role, error)
 	CountMembers(ctx context.Context, projectId string) (int, error)
 }
 
@@ -38,4 +38,8 @@ type JoinRequestRepository interface {
 	Create(ctx context.Context, projectId, userId, joinStatus string) error
 	Get(ctx context.Context, projectId, userId string) (string, error)
 	Update(ctx context.Context, projectId, userId, joinStatus string) error
+}
+
+type PublicRepository interface {
+	Get(ctx context.Context, projectId string) (*domain.PublicProjectSummary, error)
 }

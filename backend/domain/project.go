@@ -26,3 +26,10 @@ type ProjectDetail struct {
 	MemberCount int
 	Owner       *Member
 }
+
+type PublicProjectSummary struct {
+	*ProjectSummary
+	MemberCount int
+	Owner       *Member
+	JoinStatus  string
+}

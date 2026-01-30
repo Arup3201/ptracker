@@ -36,24 +36,25 @@ func (r *RoleRepo) Create(ctx context.Context,
 	return nil
 }
 
-func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (string, error) {
-	var role string
+func (r *RoleRepo) Get(ctx context.Context, projectId, userId string) (*domain.Role, error) {
+	var roleRow domain.Role
 	err := r.db.QueryRowContext(
 		ctx,
 		"SELECT "+
-			"role "+
+			"project_id, user_id, role, created_at, updated_at "+
 			"FROM roles "+
 			"WHERE project_id=($1) AND user_id=($2)",
 		projectId, userId).
-		Scan(&role)
+		Scan(&roleRow.ProjectId, &roleRow.UserId, &roleRow.Role,
+			&roleRow.CreatedAt, &roleRow.UpdatedAt)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return "", apierr.ErrNotFound
+			return nil, apierr.ErrNotFound
 		}
-		return "", fmt.Errorf("postgres query user role: %w", err)
+		return nil, fmt.Errorf("postgres query user role: %w", err)
 	}
 
-	return role, nil
+	return &roleRow, nil
 }
 
 func (r *RoleRepo) CountMembers(ctx context.Context, projectId string) (int, error) {

@@ -29,6 +29,36 @@ func (s *publicService) ListPublicProjects(ctx context.Context, userId string) (
 	return projects, nil
 }
 
+func (s *publicService) GetPublicProject(ctx context.Context, projectId string) (*domain.PublicProjectSummary, error) {
+	project, err := s.store.Public().Get(ctx, projectId)
+	if err != nil {
+		return nil, fmt.Errorf("store public get: %w", err)
+	}
+
+	owner, err := s.store.User().Get(ctx, project.Owner.Id)
+	if err != nil {
+		return nil, fmt.Errorf("store user get: %w", err)
+	}
+
+	role, err := s.store.Role().Get(ctx, projectId, project.Owner.Id)
+	if err != nil {
+		return nil, fmt.Errorf("store role get: %w", err)
+	}
+
+	project.Owner = &domain.Member{
+		Id:          project.Owner.Id,
+		Username:    owner.Username,
+		DisplayName: owner.DisplayName,
+		Email:       owner.Email,
+		AvatarURL:   owner.AvatarURL,
+		IsActive:    owner.IsActive,
+		CreatedAt:   role.CreatedAt,
+		UpdatedAt:   role.UpdatedAt,
+	}
+
+	return project, nil
+}
+
 func (s *publicService) JoinProject(ctx context.Context,
 	projectId, userId string) error {
 

@@ -19,6 +19,7 @@ type SQLStore struct {
 	roleRepo        interfaces.RoleRepository
 	listRepo        interfaces.ListRepository
 	joinRequestRepo interfaces.JoinRequestRepository
+	publicRepo      interfaces.PublicRepository
 }
 
 func NewSQLStore(db repositories.Execer) interfaces.Store {
@@ -29,6 +30,8 @@ func NewSQLStore(db repositories.Execer) interfaces.Store {
 	s.roleRepo = repositories.NewRoleRepo(db)
 	s.listRepo = repositories.NewListRepo(db)
 	s.joinRequestRepo = repositories.NewJoinRequestRepo(db)
+	s.publicRepo = repositories.NewPublicRepo(db)
+
 	return s
 }
 
@@ -82,6 +85,10 @@ func (s *SQLStore) List() interfaces.ListRepository {
 
 func (s *SQLStore) JoinRequest() interfaces.JoinRequestRepository {
 	return s.joinRequestRepo
+}
+
+func (s *SQLStore) Public() interfaces.PublicRepository {
+	return s.publicRepo
 }
 
 func (s *SQLStore) clone(tx *sql.Tx) interfaces.Store {

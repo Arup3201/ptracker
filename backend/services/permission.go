@@ -24,7 +24,7 @@ func (s *ProjectPermissionService) CanAccess(ctx context.Context,
 		return false, fmt.Errorf("role store get: %w", err)
 	}
 
-	if role == domain.ROLE_OWNER || role == domain.ROLE_MEMBER {
+	if role.Role == domain.ROLE_OWNER || role.Role == domain.ROLE_MEMBER {
 		return true, nil
 	}
 
@@ -41,7 +41,7 @@ func (s *ProjectPermissionService) CanSeeMembers(ctx context.Context,
 		return false, fmt.Errorf("role store get: %w", err)
 	}
 
-	if role == domain.ROLE_OWNER || role == domain.ROLE_MEMBER {
+	if role.Role == domain.ROLE_OWNER || role.Role == domain.ROLE_MEMBER {
 		return true, nil
 	}
 
@@ -58,7 +58,7 @@ func (s *ProjectPermissionService) CanRespondToJoinRequests(ctx context.Context,
 		return false, fmt.Errorf("role store get: %w", err)
 	}
 
-	if role == domain.ROLE_OWNER {
+	if role.Role == domain.ROLE_OWNER {
 		return true, nil
 	}
 
