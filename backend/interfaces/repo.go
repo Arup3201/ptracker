@@ -25,6 +25,7 @@ type TaskRepository interface {
 	Create(ctx context.Context, projectId, title string,
 		description *string,
 		status string) (string, error)
+	Get(ctx context.Context, id string) (*domain.Task, error)
 }
 
 type RoleRepository interface {

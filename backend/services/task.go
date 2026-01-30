@@ -43,7 +43,7 @@ func (s *taskService) CreateTask(ctx context.Context,
 		return "", apierr.ErrInvalidValue
 	}
 
-	taskStatus := "Unassigned"
+	taskStatus := domain.TASK_STATUS_UNASSIGNED
 	taskId, err := s.store.Task().Create(ctx,
 		projectId, title, description, taskStatus)
 	if err != nil {
@@ -71,4 +71,24 @@ func (s *taskService) ListTasks(ctx context.Context,
 	}
 
 	return tasks, nil
+}
+
+func (s *taskService) GetTask(ctx context.Context,
+	projectId, taskId, userId string) (*domain.Task, error) {
+
+	permitted, err := s.permissionService.CanAccessTask(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can create task: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	task, err := s.store.Task().Get(ctx, taskId)
+	if err != nil {
+		return nil, fmt.Errorf("store task get: %w", err)
+	}
+
+	return task, err
 }

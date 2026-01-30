@@ -14,7 +14,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		sample_title := "sample task"
 		sample_description := "sample description"
-		sample_status := "Unassigned"
+		sample_status := domain.TASK_STATUS_UNASSIGNED
 
 		taskRepo := NewTaskRepo(suite.db)
 		_, err := taskRepo.Create(suite.ctx, p,
@@ -28,7 +28,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		sample_title := "sample task"
 		sample_description := "sample description"
-		sample_status := "Unassigned"
+		sample_status := domain.TASK_STATUS_UNASSIGNED
 
 		taskRepo := NewTaskRepo(suite.db)
 		id, _ := taskRepo.Create(suite.ctx, p,
@@ -52,7 +52,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 	t.Run("should create task without description", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		sample_title := "sample task"
-		sample_status := "Unassigned"
+		sample_status := domain.TASK_STATUS_UNASSIGNED
 
 		taskRepo := NewTaskRepo(suite.db)
 		_, err := taskRepo.Create(suite.ctx, p,

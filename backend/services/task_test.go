@@ -46,7 +46,7 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 
 		suite.Cleanup()
 
-		suite.Require().Equal("Unassigned", status)
+		suite.Require().Equal(domain.TASK_STATUS_UNASSIGNED, status)
 	})
 	t.Run("should be forbidden for user two", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -92,7 +92,7 @@ func (suite *ServiceTestSuite) TestListTasks() {
 		suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: p,
-			Status:    "Unassigned",
+			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		service := NewTaskService(suite.store)
 
@@ -110,7 +110,7 @@ func (suite *ServiceTestSuite) TestListTasks() {
 		suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: p,
-			Status:    "Unassigned",
+			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		service := NewTaskService(suite.store)
@@ -129,11 +129,74 @@ func (suite *ServiceTestSuite) TestListTasks() {
 		suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: p,
-			Status:    "Unassigned",
+			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		service := NewTaskService(suite.store)
 
 		_, err := service.ListTasks(suite.ctx, p, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "forbidden")
+	})
+}
+
+func (suite *ServiceTestSuite) TestGetTask() {
+	t := suite.T()
+
+	t.Run("should get task", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+
+		_, err := service.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should get task with id title status", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		sample_title := "sample task"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     sample_title,
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+
+		task, _ := service.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(taskId, task.Id)
+		suite.Require().Equal(sample_title, task.Title)
+		suite.Require().Equal(domain.TASK_STATUS_UNASSIGNED, task.Status)
+	})
+	t.Run("should be forbidden for non-member", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		sample_title := "sample task"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     sample_title,
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+
+		_, err := service.GetTask(suite.ctx, projectId, taskId, USER_TWO)
 
 		suite.Cleanup()
 
