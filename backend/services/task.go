@@ -92,3 +92,23 @@ func (s *taskService) GetTask(ctx context.Context,
 
 	return task, err
 }
+
+func (s *taskService) GetTaskAssignees(ctx context.Context,
+	projectId, taskId, userId string) ([]*domain.Assignee, error) {
+
+	permitted, err := s.permissionService.CanAccessTask(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can access task: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	assignees, err := s.store.List().Assignees(ctx, taskId)
+	if err != nil {
+		return nil, fmt.Errorf("store list assignees: %w", err)
+	}
+
+	return assignees, nil
+}

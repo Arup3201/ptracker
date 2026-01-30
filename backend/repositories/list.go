@@ -122,6 +122,44 @@ func (r *ListRepo) Tasks(ctx context.Context,
 	return tasks, nil
 }
 
+func (r *ListRepo) Assignees(ctx context.Context,
+	taskId string) ([]*domain.Assignee, error) {
+
+	rows, err := r.db.QueryContext(ctx,
+		"SELECT "+
+			"a.project_id, a.task_id, u.id, u.username, u.display_name, "+
+			"u.avatar_url, u.is_active, a.created_at, a.updated_at "+
+			"FROM assignees AS a "+
+			"INNER JOIN users AS u ON a.user_id=u.id "+
+			"WHERE a.task_id=($1)",
+		taskId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var assignees []*domain.Assignee
+	for rows.Next() {
+		var a domain.Assignee
+
+		err := rows.Scan(&a.ProjectId, &a.TaskId, &a.UserId, &a.Username,
+			&a.DisplayName, &a.AvatarURL, &a.IsActive,
+			&a.CreatedAt, &a.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		assignees = append(assignees, &a)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration: %w", err)
+	}
+
+	return assignees, nil
+}
+
 func (r *ListRepo) Members(ctx context.Context,
 	projectId string) ([]*domain.Member, error) {
 	var members []*domain.Member

@@ -37,6 +37,7 @@ type RoleRepository interface {
 type ListRepository interface {
 	PrivateProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error)
 	Tasks(ctx context.Context, projectId string) ([]*domain.TaskListed, error)
+	Assignees(ctx context.Context, taskId string) ([]*domain.Assignee, error)
 	Members(ctx context.Context, projectId string) ([]*domain.Member, error)
 	PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error)
 	JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error)

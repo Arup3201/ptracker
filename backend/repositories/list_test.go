@@ -150,3 +150,54 @@ func (suite *RepositoryTestSuite) TestListTasks() {
 		)
 	})
 }
+
+func (suite *RepositoryTestSuite) TestListAssignees() {
+	t := suite.T()
+
+	t.Run("should list assignees", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskId, USER_TWO))
+		repo := NewListRepo(suite.db)
+
+		_, err := repo.Assignees(suite.ctx, taskId)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should list 2 assignees", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_THREE, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskId, USER_TWO))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskId, USER_THREE))
+		repo := NewListRepo(suite.db)
+
+		assignees, _ := repo.Assignees(suite.ctx, taskId)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(2, len(assignees))
+	})
+	t.Run("should list 2 assignees with id", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_THREE, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskId, USER_TWO))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskId, USER_THREE))
+		repo := NewListRepo(suite.db)
+
+		assignees, _ := repo.Assignees(suite.ctx, taskId)
+
+		suite.Cleanup()
+
+		suite.ElementsMatch(
+			[]string{USER_TWO, USER_THREE},
+			[]string{assignees[0].UserId, assignees[1].UserId},
+		)
+	})
+}
