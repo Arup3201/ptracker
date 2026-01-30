@@ -21,6 +21,12 @@ type ProjectRepository interface {
 	Delete(ctx context.Context, id string) error
 }
 
+type TaskRepository interface {
+	Create(ctx context.Context, projectId, title string,
+		description *string,
+		status string) (string, error)
+}
+
 type RoleRepository interface {
 	Create(ctx context.Context, projectId, userId, role string) error
 	Get(ctx context.Context, projectId, userId string) (*domain.Role, error)

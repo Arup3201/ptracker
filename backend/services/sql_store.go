@@ -16,6 +16,7 @@ type SQLStore struct {
 	db              repositories.Execer
 	userRepo        interfaces.UserRepository
 	projectRepo     interfaces.ProjectRepository
+	taskRepo        interfaces.TaskRepository
 	roleRepo        interfaces.RoleRepository
 	listRepo        interfaces.ListRepository
 	joinRequestRepo interfaces.JoinRequestRepository
@@ -27,6 +28,7 @@ func NewSQLStore(db repositories.Execer) interfaces.Store {
 	s.db = db
 	s.userRepo = repositories.NewUserRepo(db)
 	s.projectRepo = repositories.NewProjectRepo(db)
+	s.taskRepo = repositories.NewTaskRepo(db)
 	s.roleRepo = repositories.NewRoleRepo(db)
 	s.listRepo = repositories.NewListRepo(db)
 	s.joinRequestRepo = repositories.NewJoinRequestRepo(db)
@@ -73,6 +75,10 @@ func (s *SQLStore) User() interfaces.UserRepository {
 
 func (s *SQLStore) Project() interfaces.ProjectRepository {
 	return s.projectRepo
+}
+
+func (s *SQLStore) Task() interfaces.TaskRepository {
+	return s.taskRepo
 }
 
 func (s *SQLStore) Role() interfaces.RoleRepository {
