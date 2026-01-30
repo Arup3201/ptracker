@@ -126,22 +126,17 @@ func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain
 
 func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error) {
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT r.project_id, r.status, jr.created_at, jr.updated_at, u.id, u.username, "+
-			"u.display_name, u.email, u.is_active, r.created_at, r.updated_at "+
+		"SELECT jr.project_id, jr.status, jr.created_at, jr.updated_at, u.id, u.username, "+
+			"u.display_name, u.email, u.is_active, u.created_at, u.updated_at "+
 			"FROM join_requests as jr "+
 			"INNER JOIN users as u ON u.id=jr.user_id "+
-			"INNER JOIN roles as r ON r.user_id=jr.user_id AND r.project_id=jr.project_id "+
-			"WHERE r.project_id=($1)",
+			"WHERE jr.project_id=($1) ",
 		projectId,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("postgres get join requests: %w", err)
+		return nil, fmt.Errorf("db query context: %w", err)
 	}
 	defer rows.Close()
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres get join requests: %w", err)
-	}
 
 	results := []*domain.JoinRequestListed{}
 	for rows.Next() {
@@ -156,6 +151,10 @@ func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domai
 			&r.Member.CreatedAt, &r.Member.UpdatedAt)
 
 		results = append(results, &r)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows scan: %w", err)
 	}
 
 	return results, nil

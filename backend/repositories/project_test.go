@@ -17,12 +17,9 @@ func (suite *RepositoryTestSuite) TestProjectCreate() {
 			sample_name, &sample_description, &sample_skills,
 			USER_ONE)
 
-		if err != nil {
-			t.Fail()
-			t.Log(err)
-		}
-		suite.Require().NotEqual(t, "", id)
+		suite.Cleanup()
 
-		repo.Delete(suite.ctx, id)
+		suite.Require().NoError(err)
+		suite.Require().NotEqual(t, "", id)
 	})
 }

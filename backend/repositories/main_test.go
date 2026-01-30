@@ -20,7 +20,7 @@ type RepositoryTestSuite struct {
 	ctx         context.Context
 }
 
-var USER_ONE, USER_TWO string
+var USER_ONE, USER_TWO, USER_THREE string
 
 func (suite *RepositoryTestSuite) SetupSuite() {
 	var err error
@@ -41,6 +41,7 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 
 	USER_ONE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
 	USER_TWO = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
+	USER_THREE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
 }
 
 func (suite *RepositoryTestSuite) TearDownSuite() {
@@ -57,6 +58,6 @@ func (suite *RepositoryTestSuite) Cleanup() {
 	suite.Require().NoError(err)
 }
 
-func TestModel(t *testing.T) {
+func TestRepositories(t *testing.T) {
 	suite.Run(t, new(RepositoryTestSuite))
 }
