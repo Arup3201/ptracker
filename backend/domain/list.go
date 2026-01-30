@@ -11,6 +11,6 @@ type PublicProjectListed struct {
 }
 
 type JoinRequestListed struct {
-	*JoinRequest
-	*Member
+	JoinRequest *JoinRequest
+	Member      *Member
 }

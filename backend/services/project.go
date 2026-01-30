@@ -142,7 +142,7 @@ func (s *projectService) GetProjectMembers(ctx context.Context,
 
 	members, err := s.store.List().Members(ctx, projectId)
 	if err != nil {
-		return nil, fmt.Errorf("permission service members: %w", err)
+		return nil, fmt.Errorf("store list members: %w", err)
 	}
 
 	return members, nil
@@ -161,6 +161,9 @@ func (s *projectService) ListJoinRequests(ctx context.Context,
 	}
 
 	joinRequests, err := s.store.List().JoinRequests(ctx, projectId)
+	if err != nil {
+		return nil, fmt.Errorf("store list join requests: %w", err)
+	}
 
 	return joinRequests, nil
 }
