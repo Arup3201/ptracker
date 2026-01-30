@@ -3,7 +3,6 @@ package services
 import (
 	"testing"
 
-	"github.com/ptracker/domain"
 	"github.com/ptracker/testhelpers/service_fixtures"
 )
 
@@ -15,7 +14,6 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewPublicService(suite.store)
 
 		err := service.JoinProject(suite.ctx, p, USER_TWO)
@@ -29,7 +27,6 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewPublicService(suite.store)
 
 		service.JoinProject(suite.ctx, p, USER_TWO)
@@ -51,7 +48,6 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewPublicService(suite.store)
 		service.JoinProject(suite.ctx, p, USER_TWO)
 

@@ -24,3 +24,8 @@ type JoinRequestListed struct {
 	CreatedAt   time.Time
 	UpdatedAt   *time.Time
 }
+
+type TaskListed struct {
+	*Task
+	Assignees []*Assignee `json:"assignees"`
+}

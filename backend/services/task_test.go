@@ -15,7 +15,6 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
@@ -31,7 +30,6 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
@@ -55,7 +53,6 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		service := NewTaskService(suite.store)
 		sample_title := "sample task"
@@ -72,7 +69,6 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		service := NewTaskService(suite.store)
 		sample_title := ""
 		sample_description := "sample description"
@@ -82,5 +78,65 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		suite.Cleanup()
 
 		suite.Require().ErrorContains(err, "invalid value")
+	})
+}
+
+func (suite *ServiceTestSuite) TestListTasks() {
+	t := suite.T()
+
+	t.Run("should get list of tasks", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: p,
+			Status:    "Unassigned",
+		})
+		service := NewTaskService(suite.store)
+
+		_, err := service.ListTasks(suite.ctx, p, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should get list of tasks for member", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: p,
+			Status:    "Unassigned",
+		})
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+
+		_, err := service.ListTasks(suite.ctx, p, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should get forbidden error for non-member", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: p,
+			Status:    "Unassigned",
+		})
+		service := NewTaskService(suite.store)
+
+		_, err := service.ListTasks(suite.ctx, p, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "forbidden")
 	})
 }

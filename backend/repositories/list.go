@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/ptracker/domain"
@@ -55,6 +56,70 @@ func (r *ListRepo) PrivateProjects(ctx context.Context, userId string) ([]*domai
 	}
 
 	return projects, nil
+}
+
+func (r *ListRepo) Tasks(ctx context.Context,
+	projectId string) ([]*domain.TaskListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		`SELECT 
+			t.id, t.title, t.status, t.created_at, t.updated_at, 
+			COALESCE(
+				json_agg(
+				json_build_object(
+					'project_id', a.project_id,
+					'task_id', a.task_id,
+					'user_id', a.user_id,
+					'username', u.username,
+					'display_name', u.display_name,
+					'email', u.email,
+					'avatar_url', u.avatar_url,
+					'is_active', u.is_active,
+					'created_at', a.created_at,
+					'updated_at', a.updated_at
+				)
+				) FILTER (WHERE a.user_id IS NOT NULL),
+				'[]'
+			) AS assignees 
+			FROM tasks AS t 
+			LEFT JOIN assignees AS a ON a.task_id=t.id 
+			LEFT JOIN users AS u ON u.id=a.user_id 
+			WHERE t.project_id=($1) AND t.deleted_at IS NULL
+			GROUP BY t.id`, projectId)
+	if err != nil {
+		return nil, fmt.Errorf("postgres get all projects query: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks []*domain.TaskListed
+	for rows.Next() {
+		var (
+			task      domain.Task
+			assignees []byte
+		)
+		err := rows.Scan(&task.Id, &task.Title,
+			&task.Status, &task.CreatedAt, &task.UpdatedAt,
+			&assignees)
+		if err != nil {
+			return nil, fmt.Errorf("postgres get all projects scan: %w", err)
+		}
+
+		var list []*domain.Assignee
+		if err := json.Unmarshal(assignees, &list); err != nil {
+			return nil, err
+		}
+
+		tasks = append(tasks, &domain.TaskListed{
+			Task:      &task,
+			Assignees: list,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
 }
 
 func (r *ListRepo) Members(ctx context.Context,

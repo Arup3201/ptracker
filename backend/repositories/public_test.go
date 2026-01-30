@@ -11,7 +11,6 @@ func (suite *RepositoryTestSuite) TestPublicProjectGet() {
 
 	t.Run("should get public project", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 
 		publicRepo := NewPublicRepo(suite.db)
 		_, err := publicRepo.Get(suite.ctx, p)
@@ -22,7 +21,6 @@ func (suite *RepositoryTestSuite) TestPublicProjectGet() {
 	})
 	t.Run("should get public project with id", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 
 		publicRepo := NewPublicRepo(suite.db)
 		project, _ := publicRepo.Get(suite.ctx, p)

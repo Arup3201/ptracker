@@ -254,7 +254,6 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 
 		service := NewProjectService(suite.store)
@@ -270,7 +269,6 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
 
@@ -287,7 +285,6 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 
 		service := NewProjectService(suite.store)
@@ -307,7 +304,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -320,7 +316,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -341,7 +336,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -364,7 +358,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -385,7 +378,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -407,7 +399,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
@@ -421,7 +412,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
@@ -435,7 +425,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
@@ -457,7 +446,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		// just for testing transaction working fine...
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
@@ -483,7 +471,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
@@ -496,7 +483,6 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)

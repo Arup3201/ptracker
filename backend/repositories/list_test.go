@@ -3,6 +3,7 @@ package repositories
 import (
 	"testing"
 
+	"github.com/ptracker/domain"
 	"github.com/ptracker/testhelpers/repo_fixtures"
 )
 
@@ -10,10 +11,8 @@ func (suite *RepositoryTestSuite) TestProjects() {
 	t := suite.T()
 
 	t.Run("should return 2 projects", func(t *testing.T) {
-		p1 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p1, USER_ONE))
-		p2 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p2, USER_ONE))
+		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 
 		listRepo := NewListRepo(suite.db)
 		projects, err := listRepo.PrivateProjects(suite.ctx, USER_ONE)
@@ -32,9 +31,7 @@ func (suite *RepositoryTestSuite) TestPublicProjects() {
 
 	t.Run("should get 2 public projects", func(t *testing.T) {
 		p1 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p1, USER_ONE))
 		p2 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p2, USER_ONE))
 
 		listRepo := NewListRepo(suite.db)
 		projects, err := listRepo.PublicProjects(suite.ctx, USER_TWO)
@@ -55,7 +52,6 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 
 	t.Run("should get list of join requests", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_TWO))
 
 		listRepo := NewListRepo(suite.db)
@@ -67,7 +63,6 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 	})
 	t.Run("should get 2 join requests", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_TWO))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_THREE))
 
@@ -80,7 +75,6 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 	})
 	t.Run("should get join requests from user two and three", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_TWO))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_THREE))
 
@@ -92,6 +86,67 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 		suite.Require().ElementsMatch(
 			[]string{joinRequests[0].UserId, joinRequests[1].UserId},
 			[]string{USER_TWO, USER_THREE},
+		)
+	})
+}
+
+func (suite *RepositoryTestSuite) TestListTasks() {
+	t := suite.T()
+
+	t.Run("should get list of tasks", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		repo := NewListRepo(suite.db)
+
+		_, err := repo.Tasks(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should get list of 2 tasks", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		repo := NewListRepo(suite.db)
+
+		tasks, _ := repo.Tasks(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(2, len(tasks))
+	})
+	t.Run("should get list of 2 tasks with ids", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		t1 := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		t2 := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		repo := NewListRepo(suite.db)
+
+		tasks, _ := repo.Tasks(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().ElementsMatch(
+			[]string{t1, t2},
+			[]string{tasks[0].Id, tasks[1].Id},
+		)
+	})
+	t.Run("should get 1 task with 2 assignees", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_THREE, domain.ROLE_MEMBER))
+		task := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, "Unassigned"))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, task, USER_TWO))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, task, USER_THREE))
+		repo := NewListRepo(suite.db)
+
+		tasks, _ := repo.Tasks(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().ElementsMatch(
+			[]string{USER_TWO, USER_THREE},
+			[]string{tasks[0].Assignees[0].UserId, tasks[0].Assignees[1].UserId},
 		)
 	})
 }

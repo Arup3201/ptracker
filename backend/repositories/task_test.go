@@ -12,7 +12,6 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 
 	t.Run("should create task", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		sample_title := "sample task"
 		sample_description := "sample description"
 		sample_status := "Unassigned"
@@ -27,7 +26,6 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 	})
 	t.Run("should create task with title description and status", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		sample_title := "sample task"
 		sample_description := "sample description"
 		sample_status := "Unassigned"
@@ -53,7 +51,6 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 	})
 	t.Run("should create task without description", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_ONE))
 		sample_title := "sample task"
 		sample_status := "Unassigned"
 

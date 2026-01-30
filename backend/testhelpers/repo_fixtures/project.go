@@ -43,5 +43,7 @@ func (f *Fixtures) InsertProject(p domain.Project) string {
 		panic(fmt.Sprintf("insert project fixture failed: %v", err))
 	}
 
+	f.InsertRole(GetRoleRow(p.Id, p.Owner, domain.ROLE_OWNER))
+
 	return p.Id
 }

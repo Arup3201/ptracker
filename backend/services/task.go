@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/ptracker/apierr"
+	"github.com/ptracker/domain"
 	"github.com/ptracker/interfaces"
 )
 
@@ -50,4 +51,24 @@ func (s *taskService) CreateTask(ctx context.Context,
 	}
 
 	return taskId, nil
+}
+
+func (s *taskService) ListTasks(ctx context.Context,
+	projectId, userId string) ([]*domain.TaskListed, error) {
+
+	permitted, err := s.permissionService.CanSeeTasks(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can create task: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	tasks, err := s.store.List().Tasks(ctx, projectId)
+	if err != nil {
+		return nil, fmt.Errorf("store list tasks: %w", err)
+	}
+
+	return tasks, nil
 }

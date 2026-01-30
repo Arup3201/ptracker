@@ -6,11 +6,11 @@ import (
 	"github.com/ptracker/domain"
 )
 
-func GetRoleRow(projectID, userID string) domain.Role {
+func GetRoleRow(projectID, userID, role string) domain.Role {
 	return domain.Role{
 		ProjectId: projectID,
 		UserId:    userID,
-		Role:      domain.ROLE_OWNER,
+		Role:      role,
 	}
 }
 

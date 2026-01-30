@@ -1,6 +1,10 @@
 package service_fixtures
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ptracker/domain"
+)
 
 type ProjectParams struct {
 	Title       string
@@ -26,6 +30,11 @@ func (f *Fixtures) Project(p ProjectParams) string {
 	)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create project fixture: %v", err))
+	}
+
+	err = f.store.Role().Create(f.ctx, id, p.OwnerID, domain.ROLE_OWNER)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create owner role fixture: %v", err))
 	}
 
 	return id
