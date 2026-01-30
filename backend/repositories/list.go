@@ -126,8 +126,9 @@ func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain
 
 func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error) {
 	rows, err := r.db.QueryContext(ctx,
-		"SELECT jr.project_id, jr.status, jr.created_at, jr.updated_at, u.id, u.username, "+
-			"u.display_name, u.email, u.is_active, u.created_at, u.updated_at "+
+		"SELECT jr.project_id, jr.status, u.id, u.username, "+
+			"u.display_name, u.email, u.avatar_url, u.is_active, "+
+			"jr.created_at, jr.updated_at "+
 			"FROM join_requests as jr "+
 			"INNER JOIN users as u ON u.id=jr.user_id "+
 			"WHERE jr.project_id=($1) ",
@@ -140,15 +141,11 @@ func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domai
 
 	results := []*domain.JoinRequestListed{}
 	for rows.Next() {
-		var r = domain.JoinRequestListed{
-			JoinRequest: &domain.JoinRequest{},
-			Member:      &domain.Member{},
-		}
-		rows.Scan(&r.JoinRequest.ProjectId, &r.JoinRequest.Status,
-			&r.JoinRequest.CreatedAt, &r.JoinRequest.UpdatedAt,
-			&r.Member.Id, &r.Member.Username, &r.Member.DisplayName,
-			&r.Member.Email, &r.Member.IsActive,
-			&r.Member.CreatedAt, &r.Member.UpdatedAt)
+		var r = domain.JoinRequestListed{}
+		rows.Scan(&r.ProjectId, &r.Status,
+			&r.UserId, &r.Username, &r.DisplayName,
+			&r.Email, &r.AvatarURL, &r.IsActive,
+			&r.CreatedAt, &r.UpdatedAt)
 
 		results = append(results, &r)
 	}

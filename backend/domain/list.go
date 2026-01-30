@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type PrivateProjectListed struct {
 	*ProjectSummary
 	Role string
@@ -11,6 +13,14 @@ type PublicProjectListed struct {
 }
 
 type JoinRequestListed struct {
-	JoinRequest *JoinRequest
-	Member      *Member
+	ProjectId   string
+	Status      string
+	UserId      string
+	Username    string
+	DisplayName *string
+	Email       string
+	AvatarURL   *string
+	IsActive    bool
+	CreatedAt   time.Time
+	UpdatedAt   *time.Time
 }

@@ -90,7 +90,7 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 		suite.Cleanup()
 
 		suite.Require().ElementsMatch(
-			[]string{joinRequests[0].Member.Id, joinRequests[1].Member.Id},
+			[]string{joinRequests[0].UserId, joinRequests[1].UserId},
 			[]string{USER_TWO, USER_THREE},
 		)
 	})
