@@ -299,7 +299,7 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 	})
 }
 
-func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
+func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 	t := suite.T()
 
 	t.Run("should accept join request", func(t *testing.T) {
@@ -311,7 +311,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().NoError(err)
 	})
@@ -324,7 +324,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var status string
 		suite.db.QueryRow(
@@ -345,7 +345,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var role string
 		suite.db.QueryRow(
@@ -368,7 +368,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
 		var status string
 		suite.db.QueryRow(
@@ -389,7 +389,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
 		err := suite.db.QueryRow(
 			"SELECT "+
@@ -410,9 +410,9 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
-		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
 		suite.Require().EqualError(err, "invalid value")
 	})
@@ -424,9 +424,9 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
-		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().EqualError(err, "invalid value")
 	})
@@ -438,9 +438,9 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		suite.fixtures.Role(p, USER_ONE, domain.ROLE_OWNER)
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
-		service.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
 		var status string
 		suite.db.QueryRow(
@@ -463,7 +463,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		projectService := NewProjectService(suite.store)
 
-		err := projectService.AccessOrRejectJoinRequest(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().ErrorContains(err, "transaction: store role create")
 		var status string
@@ -487,7 +487,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := service.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().ErrorContains(err, "forbidden")
 	})
@@ -501,7 +501,7 @@ func (suite *ServiceTestSuite) TestAcceptOrRejectJoinRequest() {
 		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
 		service := NewProjectService(suite.store)
 
-		err := service.AccessOrRejectJoinRequest(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := service.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().ErrorContains(err, "forbidden")
 	})

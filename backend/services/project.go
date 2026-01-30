@@ -168,7 +168,7 @@ func (s *projectService) ListJoinRequests(ctx context.Context,
 	return joinRequests, nil
 }
 
-func (s *projectService) AccessOrRejectJoinRequest(ctx context.Context,
+func (s *projectService) RespondToJoinRequests(ctx context.Context,
 	projectId, ownerId, requestorId, joinStatus string) error {
 
 	permitted, err := s.projectPermission.CanRespondToJoinRequests(ctx, projectId, ownerId)
