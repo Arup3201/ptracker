@@ -6,6 +6,7 @@ import (
 
 type Store interface {
 	WithTx(ctx context.Context, fn func(txStore Store) error) error
+	Session() SessionRepository
 	User() UserRepository
 	Project() ProjectRepository
 	Task() TaskRepository
@@ -13,4 +14,5 @@ type Store interface {
 	List() ListRepository
 	JoinRequest() JoinRequestRepository
 	Public() PublicRepository
+	InMemory() InMemory
 }

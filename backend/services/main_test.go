@@ -10,6 +10,7 @@ import (
 	"github.com/ptracker/interfaces"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/service_fixtures"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -39,7 +40,23 @@ func (suite *ServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.store = NewSQLStore(suite.db)
+	redisContainer, err := testhelpers.CreateRedisContainer(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	connString, err := redisContainer.ConnectionString(suite.ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	opt, err := redis.ParseURL(connString)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	redis := db.NewRedisInMemory(redis.NewClient(opt))
+	suite.store = NewStorage(suite.db, redis)
 	suite.fixtures = service_fixtures.New(suite.ctx, suite.store)
 
 	USER_ONE = suite.fixtures.User(service_fixtures.UserParams{

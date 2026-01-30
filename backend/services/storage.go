@@ -10,10 +10,12 @@ import (
 	"github.com/ptracker/repositories"
 )
 
-type SQLStore struct {
+type Storage struct {
 	mu sync.Mutex
 
-	db              repositories.Execer
+	db repositories.Execer
+
+	sessionRepo     interfaces.SessionRepository
 	userRepo        interfaces.UserRepository
 	projectRepo     interfaces.ProjectRepository
 	taskRepo        interfaces.TaskRepository
@@ -21,11 +23,15 @@ type SQLStore struct {
 	listRepo        interfaces.ListRepository
 	joinRequestRepo interfaces.JoinRequestRepository
 	publicRepo      interfaces.PublicRepository
+
+	inMemory interfaces.InMemory
 }
 
-func NewSQLStore(db repositories.Execer) interfaces.Store {
-	s := &SQLStore{}
+func NewStorage(db repositories.Execer,
+	memory interfaces.InMemory) interfaces.Store {
+	s := &Storage{}
 	s.db = db
+	s.sessionRepo = repositories.NewSessionRepo(db)
 	s.userRepo = repositories.NewUserRepo(db)
 	s.projectRepo = repositories.NewProjectRepo(db)
 	s.taskRepo = repositories.NewTaskRepo(db)
@@ -34,10 +40,12 @@ func NewSQLStore(db repositories.Execer) interfaces.Store {
 	s.joinRequestRepo = repositories.NewJoinRequestRepo(db)
 	s.publicRepo = repositories.NewPublicRepo(db)
 
+	s.inMemory = memory
+
 	return s
 }
 
-func (s *SQLStore) WithTx(ctx context.Context, fn func(txStore interfaces.Store) error) error {
+func (s *Storage) WithTx(ctx context.Context, fn func(txStore interfaces.Store) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -69,34 +77,42 @@ func (s *SQLStore) WithTx(ctx context.Context, fn func(txStore interfaces.Store)
 	return tx.Commit()
 }
 
-func (s *SQLStore) User() interfaces.UserRepository {
+func (s *Storage) Session() interfaces.SessionRepository {
+	return s.sessionRepo
+}
+
+func (s *Storage) User() interfaces.UserRepository {
 	return s.userRepo
 }
 
-func (s *SQLStore) Project() interfaces.ProjectRepository {
+func (s *Storage) Project() interfaces.ProjectRepository {
 	return s.projectRepo
 }
 
-func (s *SQLStore) Task() interfaces.TaskRepository {
+func (s *Storage) Task() interfaces.TaskRepository {
 	return s.taskRepo
 }
 
-func (s *SQLStore) Role() interfaces.RoleRepository {
+func (s *Storage) Role() interfaces.RoleRepository {
 	return s.roleRepo
 }
 
-func (s *SQLStore) List() interfaces.ListRepository {
+func (s *Storage) List() interfaces.ListRepository {
 	return s.listRepo
 }
 
-func (s *SQLStore) JoinRequest() interfaces.JoinRequestRepository {
+func (s *Storage) JoinRequest() interfaces.JoinRequestRepository {
 	return s.joinRequestRepo
 }
 
-func (s *SQLStore) Public() interfaces.PublicRepository {
+func (s *Storage) Public() interfaces.PublicRepository {
 	return s.publicRepo
 }
 
-func (s *SQLStore) clone(tx *sql.Tx) interfaces.Store {
-	return NewSQLStore(tx)
+func (s *Storage) clone(tx *sql.Tx) interfaces.Store {
+	return NewStorage(tx, s.inMemory)
+}
+
+func (s *Storage) InMemory() interfaces.InMemory {
+	return s.inMemory
 }

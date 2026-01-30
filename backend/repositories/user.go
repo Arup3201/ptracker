@@ -61,3 +61,27 @@ func (r *UserRepo) Get(ctx context.Context, id string) (*domain.User, error) {
 
 	return &user, nil
 }
+
+func (r *UserRepo) GetBySubject(ctx context.Context,
+	idpSubject, idpProvider string) (*domain.User, error) {
+
+	var user domain.User
+	err := r.db.QueryRowContext(ctx,
+		"SELECT "+
+			"id, idp_subject, idp_provider, username, display_name, email, "+
+			"avatar_url, is_active, created_at, updated_at, last_login_at "+
+			"FROM users "+
+			"WHERE idp_subject=($1) AND idp_provider=($2)",
+		idpSubject, idpProvider).
+		Scan(&user.Id, &user.IDPSubject, &user.IDPProvider, &user.Username,
+			&user.DisplayName, &user.Email, &user.AvatarURL, &user.IsActive,
+			&user.CreatedAt, &user.UpdatedAt, &user.LastLoginTime)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, apierr.ErrNotFound
+		}
+		return nil, fmt.Errorf("store get user with IDP: %w", err)
+	}
+
+	return &user, nil
+}

@@ -2,15 +2,31 @@ package interfaces
 
 import (
 	"context"
+	"time"
 
 	"github.com/ptracker/domain"
 )
+
+type SessionRepository interface {
+	Create(ctx context.Context,
+		userId string,
+		encryptedToken []byte,
+		userAgent, ipAddress, deviceName string,
+		expireAt time.Time) (string, error)
+	Get(ctx context.Context, id string) (*domain.Session, error)
+	Revoke(ctx context.Context, id string) error
+	Update(ctx context.Context, id string,
+		refreshTokenEncrypted []byte,
+		expiresAt time.Time) error
+}
 
 type UserRepository interface {
 	Create(ctx context.Context,
 		idpSubject, idpProvider, username, email string,
 		displayName, avatarUrl *string) (string, error)
 	Get(ctx context.Context, id string) (*domain.User, error)
+	GetBySubject(ctx context.Context,
+		idpSubject, idpProvider string) (*domain.User, error)
 }
 
 type ProjectRepository interface {
