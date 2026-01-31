@@ -50,15 +50,24 @@ func getAccessTokenKey(sessionId string) string {
 
 type authService struct {
 	store interfaces.Store
-	keycloakUrl, keycloakRealm,
+	keycloakURL, keycloakRealm,
 	keycloakClientId, keycloakClientSecret,
 	keycloakRedirectURI string
 	encryptionKey string
 }
 
-func NewAuthService(store interfaces.Store) *authService {
+func NewAuthService(store interfaces.Store,
+	keycloakURL, keycloakRealm string,
+	keycloakClientId, keycloakClientSecret string,
+	keycloakRedirectURI, encryptionKey string) interfaces.AuthService {
 	return &authService{
-		store: store,
+		store:                store,
+		keycloakURL:          keycloakURL,
+		keycloakRealm:        keycloakRealm,
+		keycloakClientId:     keycloakClientId,
+		keycloakClientSecret: keycloakClientSecret,
+		keycloakRedirectURI:  keycloakRedirectURI,
+		encryptionKey:        encryptionKey,
 	}
 }
 
@@ -86,7 +95,7 @@ func (s *authService) RedirectLogin(ctx context.Context) (string, error) {
 			"&state=%s"+
 			"&code_challenge_method=S256"+
 			"&code_challenge=%s",
-		s.keycloakUrl, s.keycloakRealm,
+		s.keycloakURL, s.keycloakRealm,
 		s.keycloakClientId, s.keycloakRedirectURI,
 		state, challenge)
 
@@ -94,7 +103,7 @@ func (s *authService) RedirectLogin(ctx context.Context) (string, error) {
 }
 
 func (s *authService) getToken(payload url.Values) (*Token, error) {
-	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", s.keycloakUrl, s.keycloakRealm)
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", s.keycloakURL, s.keycloakRealm)
 	res, err := http.PostForm(tokenEndpoint, payload)
 	if err != nil {
 		return nil, fmt.Errorf("http post form: %w", err)
@@ -119,7 +128,7 @@ func (s *authService) getToken(payload url.Values) (*Token, error) {
 }
 
 func (s *authService) getUserInfo(accessToken string) (*UserInfo, error) {
-	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", s.keycloakUrl, s.keycloakRealm)
+	userinfoEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", s.keycloakURL, s.keycloakRealm)
 	req, err := http.NewRequest("GET", userinfoEndpoint, nil)
 	if err != nil {
 		return nil, fmt.Errorf("http new request: %w", err)
@@ -127,7 +136,7 @@ func (s *authService) getUserInfo(accessToken string) (*UserInfo, error) {
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("http defailt client do: %w", err)
+		return nil, fmt.Errorf("http default client do: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -236,7 +245,7 @@ func (s *authService) Refresh(ctx context.Context,
 		return fmt.Errorf("decrypt aes: %w", err)
 	}
 
-	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", s.keycloakUrl, s.keycloakRealm)
+	tokenEndpoint := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", s.keycloakURL, s.keycloakRealm)
 	res, err := http.PostForm(tokenEndpoint, url.Values{
 		"grant_type":    []string{"refresh_token"},
 		"refresh_token": []string{string(refreshToken)},
