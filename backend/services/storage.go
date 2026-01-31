@@ -10,7 +10,7 @@ import (
 	"github.com/ptracker/repositories"
 )
 
-type Storage struct {
+type storage struct {
 	mu sync.Mutex
 
 	db repositories.Execer
@@ -29,7 +29,7 @@ type Storage struct {
 
 func NewStorage(db repositories.Execer,
 	memory interfaces.InMemory) interfaces.Store {
-	s := &Storage{}
+	s := &storage{}
 	s.db = db
 	s.sessionRepo = repositories.NewSessionRepo(db)
 	s.userRepo = repositories.NewUserRepo(db)
@@ -45,7 +45,7 @@ func NewStorage(db repositories.Execer,
 	return s
 }
 
-func (s *Storage) WithTx(ctx context.Context, fn func(txStore interfaces.Store) error) error {
+func (s *storage) WithTx(ctx context.Context, fn func(txStore interfaces.Store) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -77,42 +77,42 @@ func (s *Storage) WithTx(ctx context.Context, fn func(txStore interfaces.Store) 
 	return tx.Commit()
 }
 
-func (s *Storage) Session() interfaces.SessionRepository {
+func (s *storage) Session() interfaces.SessionRepository {
 	return s.sessionRepo
 }
 
-func (s *Storage) User() interfaces.UserRepository {
+func (s *storage) User() interfaces.UserRepository {
 	return s.userRepo
 }
 
-func (s *Storage) Project() interfaces.ProjectRepository {
+func (s *storage) Project() interfaces.ProjectRepository {
 	return s.projectRepo
 }
 
-func (s *Storage) Task() interfaces.TaskRepository {
+func (s *storage) Task() interfaces.TaskRepository {
 	return s.taskRepo
 }
 
-func (s *Storage) Role() interfaces.RoleRepository {
+func (s *storage) Role() interfaces.RoleRepository {
 	return s.roleRepo
 }
 
-func (s *Storage) List() interfaces.ListRepository {
+func (s *storage) List() interfaces.ListRepository {
 	return s.listRepo
 }
 
-func (s *Storage) JoinRequest() interfaces.JoinRequestRepository {
+func (s *storage) JoinRequest() interfaces.JoinRequestRepository {
 	return s.joinRequestRepo
 }
 
-func (s *Storage) Public() interfaces.PublicRepository {
+func (s *storage) Public() interfaces.PublicRepository {
 	return s.publicRepo
 }
 
-func (s *Storage) clone(tx *sql.Tx) interfaces.Store {
+func (s *storage) clone(tx *sql.Tx) interfaces.Store {
 	return NewStorage(tx, s.inMemory)
 }
 
-func (s *Storage) InMemory() interfaces.InMemory {
+func (s *storage) InMemory() interfaces.InMemory {
 	return s.inMemory
 }

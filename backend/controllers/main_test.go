@@ -1,170 +1,48 @@
 package controllers
 
 import (
-	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/ptracker/db"
-	"github.com/ptracker/models"
+	"github.com/ptracker/services"
 	"github.com/ptracker/testhelpers"
+	"github.com/ptracker/testhelpers/controller_fixtures"
 	"github.com/redis/go-redis/v9"
-	keycloak "github.com/stillya/testcontainers-keycloak"
 	"github.com/stretchr/testify/suite"
 )
 
-const (
-	IDPProvider       = "keycloak"
-	TestKCRealm       = "ptracker"
-	TestUsername      = "test_user"
-	TestFirstName     = "Test"
-	TestLastName      = "User"
-	TestEmail         = "test@example.com"
-	TestClientId      = "api"
-	TestClientSecret  = "cp50avHQeX18cESEraheJvr3RhUBMq2A"
-	TestPassword      = "1234"
-	TestUserAgent     = "Mozilla/5.0 (X11; Linux x86_64; rv:144.0) Gecko/20100101 Firefox/144.0"
-	TestIpAddress     = "127.0.0.1"
-	TestDevice        = "HP"
-	TestEncryptionKey = "ab9befcad6859b8d0e6740255bfd6e6f"
-)
-
-func createKCTestUser(serverUrl string) {
-	credentials := url.Values{
-		"grant_type": []string{"password"},
-		"client_id":  []string{"admin-cli"},
-		"username":   []string{"admin"},
-		"password":   []string{"admin"},
-	}
-	tokenUrl := serverUrl + "/realms/master/protocol/openid-connect/token"
-	res, err := http.PostForm(tokenUrl, credentials)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if res.StatusCode != http.StatusOK {
-		var kcError KCError
-		json.NewDecoder(res.Body).Decode(&kcError)
-		log.Fatalf("keycloak get token error: %v\n", kcError)
-	}
-
-	var accessToken struct {
-		Value string `json:"access_token"`
-	}
-	if err := json.NewDecoder(res.Body).Decode(&accessToken); err != nil {
-		log.Fatal(err)
-	}
-
-	type Credential struct {
-		Value     string `json:"value"`
-		Type      string `json:"type"`
-		Temporary bool   `json:"temporary"`
-	}
-	var user = struct {
-		Username      string       `json:"username"`
-		Firstname     string       `json:"firstName"`
-		Lastname      string       `json:"lastName"`
-		Email         string       `json:"email"`
-		Enabled       bool         `json:"enabled"`
-		EmailVerified bool         `json:"emailVerified"`
-		Credentials   []Credential `json:"credentials"`
-	}{
-		Username:      TestUsername,
-		Firstname:     TestFirstName,
-		Lastname:      TestLastName,
-		Email:         TestEmail,
-		Enabled:       true,
-		EmailVerified: true,
-		Credentials: []Credential{
-			{
-				Type:      "password",
-				Value:     TestPassword,
-				Temporary: false,
-			},
-		},
-	}
-	payload, err := json.Marshal(user)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	userUrl := fmt.Sprintf(serverUrl+"/admin/realms/%s/users", TestKCRealm)
-	req, err := http.NewRequest(
-		"POST",
-		userUrl,
-		bytes.NewBuffer(payload),
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken.Value))
-	req.Header.Set("Content-Type", "application/json")
-	res, err = http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if res.StatusCode != http.StatusCreated {
-		var kcError KCError
-		json.NewDecoder(res.Body).Decode(&kcError)
-		log.Fatalf("keycloak create user error: %v\n", kcError)
-	}
-}
-
-type attacher struct {
-	mux   *http.ServeMux
-	redis *redis.Client
-	db    *sql.DB
-	kcUrl string
-}
-
-func (atc *attacher) attachMiddleware(pattern string, handler HTTPErrorHandler) {
-	authMiddleware := Authorize(atc.db, atc.redis, atc.kcUrl, TestKCRealm)
-	atc.mux.Handle(pattern, HTTPErrorHandler(authMiddleware(handler)))
-}
-
-type ApiTestSuite struct {
+type ControllerTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
-	kcContainer *keycloak.KeycloakContainer
-	redis       *redis.Client
-	cookie      *http.Cookie
-	mux         *http.ServeMux
+	fixtures    *controller_fixtures.ControllerFixtures
+	db          *sql.DB
 	ctx         context.Context
 }
 
-func (suite *ApiTestSuite) SetupSuite() {
+var (
+	USER_ONE, USER_TWO string
+)
+
+func (suite *ControllerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
+
 	pgContainer, err := testhelpers.CreatePostgresContainer(suite.ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	db, err := db.ConnectPostgres(pgContainer.ConnectionString)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	kcContainer, err := testhelpers.CreateKeycloakContainer(suite.ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	suite.pgContainer = pgContainer
-	suite.kcContainer = kcContainer
 
-	adminClient, err := kcContainer.GetAdminClient(context.Background())
+	dbConnection, err := db.ConnectPostgres(pgContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	createKCTestUser(adminClient.ServerURL)
+	suite.db = dbConnection
 
 	redisContainer, err := testhelpers.CreateRedisContainer(suite.ctx)
 	if err != nil {
@@ -181,66 +59,46 @@ func (suite *ApiTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.redis = redis.NewClient(opt)
+	client := redis.NewClient(opt)
+	redis := db.NewRedisInMemory(client)
 
-	// Keycloak implicit flow, scope=openid otherwise 403 error in /userinfo
-	token, err := GetToken(adminClient.ServerURL, TestKCRealm, url.Values{
-		"grant_type":    []string{"password"},
-		"client_id":     []string{TestClientId},
-		"client_secret": []string{TestClientSecret},
-		"username":      []string{TestUsername},
-		"password":      []string{TestPassword},
-		"scope":         []string{"openid email profile"}, // IMPORTANT!
+	store := services.NewStorage(dbConnection, redis)
+
+	suite.fixtures = controller_fixtures.NewControllerFixtures(suite.ctx, store)
+
+	projectService := services.NewProjectService(store)
+	projectController := NewProjectController(projectService)
+
+	handler := http.NewServeMux()
+	handler.Handle("POST /projects", HTTPErrorHandler(projectController.Create))
+
+	suite.fixtures.Handler = handler
+
+	USER_ONE = suite.fixtures.User(controller_fixtures.UserParams{
+		IDPSubject:  "sub-123",
+		IDPProvider: "google",
+		Username:    "alice",
+		Email:       "alice@example.com",
 	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	userInfo, err := GetUserInfo(adminClient.ServerURL, TestKCRealm, token.AccessToken)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	userStore := &models.UserStore{
-		DB: db,
-	}
-
-	userId, err := userStore.Create(userInfo.Subject, IDPProvider,
-		userInfo.Username, userInfo.Name, userInfo.Email, userInfo.AvatarUrl)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	suite.cookie, err = GetSessionCookie(db, suite.redis, token.RefreshExpiresIn, token.AccessToken, token.RefreshToken, userId, TestUserAgent, TestIpAddress, TestDevice, TestEncryptionKey)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	suite.mux = http.NewServeMux()
-	atch := &attacher{
-		db:    db,
-		mux:   suite.mux,
-		redis: suite.redis,
-		kcUrl: adminClient.ServerURL,
-	}
-
-	handler := &ProjectHandler{
-		DB: db,
-	}
-	atch.attachMiddleware("POST /api/projects", handler.Create)
-	atch.attachMiddleware("GET /api/projects/{id}", handler.Get)
+	USER_TWO = suite.fixtures.User(controller_fixtures.UserParams{
+		IDPSubject:  "sub-234",
+		IDPProvider: "google",
+		Username:    "bob",
+		Email:       "bob@example.com",
+	})
 }
 
-func (suite *ApiTestSuite) TearDownSuite() {
+func (suite *ControllerTestSuite) TearDownSuite() {
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
 		log.Fatal(err)
 	}
+}
 
-	if err := suite.kcContainer.Terminate(suite.ctx); err != nil {
-		log.Fatal(err)
-	}
+func (suite *ControllerTestSuite) Cleanup() {
+	_, err := suite.db.Exec("DELETE FROM projects")
+	suite.Require().NoError(err)
 }
 
 func TestControllers(t *testing.T) {
-	suite.Run(t, new(ApiTestSuite))
+	suite.Run(t, new(ControllerTestSuite))
 }

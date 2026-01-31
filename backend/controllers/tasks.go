@@ -1,24 +1,29 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
 	"strconv"
-	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/ptracker/models"
+	"github.com/ptracker/domain"
+	"github.com/ptracker/interfaces"
 	"github.com/ptracker/utils"
 )
 
-type TaskHandler struct {
-	DB *sql.DB
+type taskController struct {
+	service interfaces.TaskService
 }
 
-func (th *TaskHandler) All(w http.ResponseWriter, r *http.Request) error {
+func NewTaskController(service interfaces.TaskService) *taskController {
+	return &taskController{
+		service: service,
+	}
+}
+
+func (c *taskController) ListTasks(w http.ResponseWriter, r *http.Request) error {
+
 	queryPage := r.URL.Query().Get("page")
 	queryLimit := r.URL.Query().Get("limit")
 
@@ -66,55 +71,18 @@ func (th *TaskHandler) All(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get context user: %w", err)
 	}
 
-	roleStore := &models.RoleStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-	taskStore := &models.TaskStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-	access, err := roleStore.CanAccess()
+	tasks, err := c.service.ListTasks(r.Context(), projectId, userId)
 	if err != nil {
-		return fmt.Errorf("database check access: %w", err)
-	}
-	if !access {
-		return &HTTPError{
-			Code:    http.StatusForbidden,
-			ErrId:   ERR_ACCESS_DENIED,
-			Message: "User is not a member of the project",
-		}
+		return fmt.Errorf("service list tasks: %w", err)
 	}
 
-	tasks, err := taskStore.All()
-	if err != nil {
-		return fmt.Errorf("database get project tasks: %w", err)
-	}
+	// TODO: count total tasks and check has next
+	hasNext := false
 
-	responseTasks := []ProjectTask{}
-	for _, t := range tasks {
-		responseTasks = append(responseTasks, ProjectTask{
-			Id:        t.Id,
-			Title:     t.Title,
-			Status:    t.Status,
-			CreatedAt: t.CreatedAt,
-			UpdatedAt: t.UpdatedAt,
-		})
-	}
-
-	cnt, err := taskStore.Count()
-	if err != nil {
-		return fmt.Errorf("database count project task: %w", err)
-	}
-
-	hasNext := cnt > page*limit
-
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectTasksResponse]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedTasksResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &ProjectTasksResponse{
-			ProjectTasks: responseTasks,
+		Data: &ListedTasksResponse{
+			ProjectTasks: tasks,
 			Page:         page,
 			Limit:        limit,
 			HasNext:      hasNext,
@@ -124,7 +92,8 @@ func (th *TaskHandler) All(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (th *TaskHandler) Create(w http.ResponseWriter, r *http.Request) error {
+func (c *taskController) CreateTask(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("project_id")
 	if projectId == "" {
 		return &HTTPError{
@@ -163,54 +132,20 @@ func (th *TaskHandler) Create(w http.ResponseWriter, r *http.Request) error {
 			Err:     fmt.Errorf("empty task 'title' provided"),
 		}
 	}
-	if payload.Status == "" {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Task 'status' can't be empty",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("empty task 'status' provided"),
-		}
-	}
-	if !slices.Contains(models.TASK_STATUS, payload.Status) {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Task 'status' is invalid, example: " + strings.Join(models.TASK_STATUS, ", "),
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("task 'status' invalid value provided"),
-		}
-	}
 
 	userId, err := utils.GetUserId(r)
 	if err != nil {
 		return fmt.Errorf("get userId: %w", err)
 	}
 
-	roleStore := &models.RoleStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-	taskStore := &models.TaskStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-
-	access, err := roleStore.CanEdit()
+	taskId, err := c.service.CreateTask(
+		r.Context(),
+		projectId,
+		payload.Title,
+		payload.Description,
+		userId)
 	if err != nil {
-		return fmt.Errorf("database check write permission: %w", err)
-	}
-	if !access {
-		return &HTTPError{
-			Code:    http.StatusForbidden,
-			ErrId:   ERR_ACCESS_DENIED,
-			Message: "User is not the owner of this project",
-		}
-	}
-
-	taskId, err := taskStore.Create(payload.Title, payload.Description, payload.Status)
-	if err != nil {
-		return fmt.Errorf("db create task: %w", err)
+		return fmt.Errorf("service create task: %w", err)
 	}
 
 	w.WriteHeader(http.StatusCreated)
@@ -222,7 +157,8 @@ func (th *TaskHandler) Create(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (th *TaskHandler) Get(w http.ResponseWriter, r *http.Request) error {
+func (c *taskController) GetTask(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("project_id")
 	if projectId == "" {
 		return &HTTPError{
@@ -246,44 +182,18 @@ func (th *TaskHandler) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get userId: %w", err)
 	}
 
-	roleStore := &models.RoleStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-	taskStore := &models.TaskStore{
-		DB:        th.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-
-	access, err := roleStore.CanAccess()
+	task, err := c.service.GetTask(
+		r.Context(),
+		projectId,
+		taskId,
+		userId)
 	if err != nil {
-		return fmt.Errorf("database check access: %w", err)
-	}
-	if !access {
-		return &HTTPError{
-			Code:    http.StatusForbidden,
-			ErrId:   ERR_ACCESS_DENIED,
-			Message: "User is not a member of the project",
-		}
+		return fmt.Errorf("service get task: %w", err)
 	}
 
-	task, err := taskStore.Get(taskId)
-	if err != nil {
-		return fmt.Errorf("db get task: %w", err)
-	}
-
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectTaskDetails]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.Task]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &ProjectTaskDetails{
-			Id:          task.Id,
-			Title:       task.Title,
-			Description: task.Description,
-			Status:      task.Status,
-			CreatedAt:   task.CreatedAt,
-			UpdatedAt:   task.UpdatedAt,
-		},
+		Data:   task,
 	})
 
 	return nil

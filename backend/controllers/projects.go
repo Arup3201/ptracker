@@ -1,25 +1,29 @@
 package controllers
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/apierr"
-	"github.com/ptracker/models"
-	"github.com/ptracker/services"
+	"github.com/ptracker/domain"
+	"github.com/ptracker/interfaces"
 	"github.com/ptracker/utils"
 )
 
-type ProjectHandler struct {
-	DB *sql.DB
+type projectController struct {
+	service interfaces.ProjectService
 }
 
-func (ph *ProjectHandler) All(w http.ResponseWriter, r *http.Request) error {
+func NewProjectController(service interfaces.ProjectService) *projectController {
+	return &projectController{
+		service: service,
+	}
+}
+
+func (c *projectController) List(w http.ResponseWriter, r *http.Request) error {
 	queryPage := r.URL.Query().Get("page")
 	queryLimit := r.URL.Query().Get("limit")
 
@@ -58,42 +62,19 @@ func (ph *ProjectHandler) All(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	projectStore := &models.ProjectStore{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-	projectSummaries, err := projectStore.All(page, limit)
+	summaries, err := c.service.ListProjects(r.Context(), userId)
 	if err != nil {
 		return fmt.Errorf("get projects from store: %w", err)
 	}
 
-	summaries := []ProjectSummary{}
-	for _, ps := range projectSummaries {
-		summaries = append(summaries, ProjectSummary{
-			Id:              ps.Id,
-			Name:            ps.Name,
-			Description:     ps.Description,
-			Skills:          ps.Skills,
-			Role:            ps.Role,
-			UnassignedTasks: ps.UnassignedTasks,
-			OngoingTasks:    ps.OngoingTasks,
-			CompletedTasks:  ps.CompletedTasks,
-			AbandonedTasks:  ps.AbandonedTasks,
-			CreatedAt:       ps.CreatedAt,
-			UpdatedAt:       ps.UpdatedAt,
-		})
-	}
-
-	cnt, err := projectStore.Count()
-	if err != apierr.ErrResourceNotFound && err != nil {
-		return fmt.Errorf("get projects from store: %w", err)
-	}
+	// TODO: count projects where the user is part of
+	cnt := 0
 
 	hasNext := cnt > page*limit
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectSummaryResponse]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedPrivateProjectsResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &ProjectSummaryResponse{
+		Data: &ListedPrivateProjectsResponse{
 			ProjectSummaries: summaries,
 			Page:             page,
 			Limit:            limit,
@@ -104,7 +85,8 @@ func (ph *ProjectHandler) All(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (ph *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) error {
+func (c *projectController) Create(w http.ResponseWriter, r *http.Request) error {
+
 	var payload CreateProjectRequest
 
 	dec := json.NewDecoder(r.Body)
@@ -114,7 +96,7 @@ func (ph *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) error {
 			Code:    http.StatusBadRequest,
 			Message: "Project must have 'name' with optional 'description' and 'skills' fields only",
 			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("store create project: decode payload: %w", err),
+			Err:     fmt.Errorf("decode payload: %w", err),
 		}
 	}
 	if err := validator.New().Struct(payload); err != nil {
@@ -122,16 +104,7 @@ func (ph *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) error {
 			Code:    http.StatusBadRequest,
 			Message: "Project 'name' is missing",
 			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("store create project: validate payload: %w", err),
-		}
-	}
-
-	if payload.Name == "" {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Project 'name' can't be empty",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("empty project 'name' provided"),
+			Err:     fmt.Errorf("validate payload: %w", err),
 		}
 	}
 
@@ -140,15 +113,13 @@ func (ph *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get userId: %w", err)
 	}
 
-	projectStore := &models.ProjectStore{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-	projectId, err := projectStore.Create(payload.Name, payload.Description, payload.Skills)
+	projectId, err := c.service.CreateProject(r.Context(),
+		payload.Name, payload.Description, payload.Skills, userId)
 	if err != nil {
 		return fmt.Errorf("store create project: %w", err)
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[string]{
 		Status: RESPONSE_SUCCESS_STATUS,
 		Data:   &projectId,
@@ -156,7 +127,8 @@ func (ph *ProjectHandler) Create(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (ph *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) error {
+func (c *projectController) Get(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("id")
 	if projectId == "" {
 		return &HTTPError{
@@ -171,78 +143,21 @@ func (ph *ProjectHandler) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get context user: %w", err)
 	}
 
-	projectStore := &models.ProjectStore{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-	roleStore := &models.RoleStore{
-		DB:        ph.DB,
-		ProjectId: projectId,
-		UserId:    userId,
-	}
-	userStore := &models.UserStore{
-		DB: ph.DB,
-	}
-
-	access, err := roleStore.CanAccess()
-	if err != nil {
-		return fmt.Errorf("database check access: %w", err)
-	}
-	if !access {
-		return &HTTPError{
-			Code:    http.StatusForbidden,
-			ErrId:   ERR_ACCESS_DENIED,
-			Message: "User is not a member of the project",
-		}
-	}
-
-	project, err := projectStore.Get(projectId)
+	project, err := c.service.GetPrivateProject(r.Context(), projectId, userId)
 	if err != nil {
 		return fmt.Errorf("database get project details: %w", err)
 	}
 
-	memberCount, err := projectStore.CountMembers(projectId)
-	if err != nil {
-		return fmt.Errorf("database get project member count: %w", err)
-	}
-
-	role, err := roleStore.Get()
-	if err != nil {
-		return fmt.Errorf("database get user role in project: %w", err)
-	}
-
-	user, err := userStore.Get(userId)
-	if err != nil {
-		return fmt.Errorf("database get user: %w", err)
-	}
-
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectDetails]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.ProjectDetail]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &ProjectDetails{
-			Id:          project.Id,
-			Name:        project.Name,
-			Description: project.Description,
-			Skills:      project.Skills,
-			Owner: Owner{
-				Id:          user.Id,
-				DisplayName: user.DisplayName,
-				Username:    user.Username,
-			},
-			Role:            role.Role,
-			MemberCount:     memberCount,
-			UnassignedTasks: project.UnassignedTasks,
-			OngoingTasks:    project.OngoingTasks,
-			CompletedTasks:  project.CompletedTasks,
-			AbandonedTasks:  project.AbandonedTasks,
-			CreatedAt:       project.CreatedAt,
-			UpdatedAt:       project.UpdatedAt,
-		},
+		Data:   project,
 	})
 
 	return nil
 }
 
-func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) error {
+func (c *projectController) ListJoinRequests(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("id")
 	if projectId == "" {
 		return &HTTPError{
@@ -258,77 +173,14 @@ func (ph *ProjectHandler) JoinProject(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	exploreService := &services.ProjectService{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-
-	err = exploreService.Join(projectId)
-	if err != nil {
-		if errors.Is(err, apierr.ErrDuplicate) {
-			return &HTTPError{
-				Code:    http.StatusBadRequest,
-				Message: "Join request has already been sent",
-				ErrId:   ERR_INVALID_BODY,
-				Err:     fmt.Errorf("attempted for duplicate join request"),
-			}
-		}
-		return fmt.Errorf("explore service project join request: %w", err)
-	}
-
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
-		Status:  RESPONSE_SUCCESS_STATUS,
-		Message: "Join request created for the user",
-	})
-
-	return nil
-}
-
-func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request) error {
-	projectId := r.PathValue("id")
-	if projectId == "" {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Project 'id' can't be empty",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("empty 'id' provided"),
-		}
-	}
-
-	userId, err := utils.GetUserId(r)
-	if err != nil {
-		return fmt.Errorf("get projects userId: %w", err)
-	}
-
-	exploreService := &services.ProjectService{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-
-	requests, err := exploreService.JoinRequests(projectId)
+	joinRequests, err := c.service.ListJoinRequests(r.Context(), projectId, userId)
 	if err != nil {
 		return fmt.Errorf("explore service get join request: %w", err)
 	}
 
-	joinRequests := []JoinRequest{}
-	for _, r := range requests {
-		joinRequests = append(joinRequests, JoinRequest{
-			ProjectId: r.ProjectId,
-			User: User{
-				Id:          r.User.Id,
-				Username:    r.User.Username,
-				DisplayName: r.User.DisplayName,
-				Email:       r.User.Email,
-				IsActive:    r.User.IsActive,
-			},
-			Status:    r.Status,
-			CreatedAt: r.CreatedAt,
-		})
-	}
-
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[JoinRequestsResponse]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedJoinRequestsResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &JoinRequestsResponse{
+		Data: &ListedJoinRequestsResponse{
 			Requests: joinRequests,
 		},
 	})
@@ -336,7 +188,8 @@ func (ph *ProjectHandler) GetJoinRequests(w http.ResponseWriter, r *http.Request
 	return nil
 }
 
-func (ph *ProjectHandler) UpdateJoinRequests(w http.ResponseWriter, r *http.Request) error {
+func (c *projectController) RespondToJoinRequests(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("id")
 	if projectId == "" {
 		return &HTTPError{
@@ -390,34 +243,13 @@ func (ph *ProjectHandler) UpdateJoinRequests(w http.ResponseWriter, r *http.Requ
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	roleStore := &models.RoleStore{
-		DB:        ph.DB,
-		UserId:    userId,
-		ProjectId: projectId,
-	}
-
-	access, err := roleStore.CanEdit()
-	if err != nil {
-		return fmt.Errorf("role store can edit check: %w", err)
-	}
-	if !access {
-		return &HTTPError{
-			Code:    http.StatusForbidden,
-			ErrId:   ERR_ACCESS_DENIED,
-			Message: "User is not the owner of this project",
-		}
-	}
-
-	exploreService := &services.ProjectService{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-	err = exploreService.UpdateJoinRequestStatus(
+	err = c.service.RespondToJoinRequests(
+		r.Context(),
 		projectId,
+		userId,
 		payload.UserId,
 		payload.JoinStatus,
 	)
-
 	if err != nil {
 		switch err {
 		case apierr.ErrInvalidValue:
@@ -440,7 +272,8 @@ func (ph *ProjectHandler) UpdateJoinRequests(w http.ResponseWriter, r *http.Requ
 	return nil
 }
 
-func (ph *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) error {
+func (c *projectController) ListMembers(w http.ResponseWriter, r *http.Request) error {
+
 	projectId := r.PathValue("id")
 	if projectId == "" {
 		return &HTTPError{
@@ -456,28 +289,11 @@ func (ph *ProjectHandler) GetMembers(w http.ResponseWriter, r *http.Request) err
 		return fmt.Errorf("get projects userId: %w", err)
 	}
 
-	projectService := &services.ProjectService{
-		DB:     ph.DB,
-		UserId: userId,
-	}
-	rows, err := projectService.Members(projectId)
+	members, err := c.service.GetProjectMembers(r.Context(),
+		projectId,
+		userId)
 	if err != nil {
 		return fmt.Errorf("service members: %w", err)
-	}
-
-	members := []Member{}
-	for _, r := range rows {
-		members = append(members, Member{
-			ProjectId:   r.ProjectId,
-			UserId:      r.UserId,
-			Username:    r.Username,
-			DisplayName: r.DisplayName,
-			Email:       r.Email,
-			AvaterURL:   r.AvaterURL,
-			IsActive:    r.IsActive,
-			Role:        r.Role,
-			JoinedAt:    r.JoinedAt,
-		})
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[MembersResponse]{
