@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/jwt"
 	"github.com/ptracker/apierr"
 	"github.com/ptracker/domain"
 	"github.com/ptracker/interfaces"
@@ -230,6 +232,52 @@ func (s *authService) Callback(ctx context.Context,
 	}
 
 	return session, nil
+}
+
+func (s *authService) Authenticate(ctx context.Context,
+	sessionId string) (string, error) {
+
+	tokenKey := utils.GetAccessTokenKey(sessionId)
+	accessToken, err := s.store.InMemory().Get(ctx, tokenKey)
+	if err != nil {
+		return "", fmt.Errorf("store in-memory get: %w", err)
+	}
+
+	sub, err := s.verifyAccessToken(ctx, accessToken)
+	if err != nil {
+		return "", fmt.Errorf("verify access token: %w", err)
+	}
+
+	user, err := s.store.User().GetBySubject(ctx, sub, DEFAULT_PROVIDER)
+	if err != nil {
+		return "", fmt.Errorf("store user get by subject: %w", err)
+	}
+
+	return user.Id, nil
+}
+
+func (s *authService) verifyAccessToken(ctx context.Context,
+	token string) (string, error) {
+
+	jwksKeySet, err := jwk.Fetch(ctx,
+		fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs",
+			s.keycloakURL, s.keycloakRealm))
+	if err != nil {
+		return "", fmt.Errorf("jwk fetch: %w", err)
+	}
+
+	parsedToken, err := jwt.Parse([]byte(token),
+		jwt.WithKeySet(jwksKeySet),
+		jwt.WithValidate(true))
+	if err != nil {
+		return "", fmt.Errorf("jwt parse: %w", err)
+	}
+
+	if parsedToken == nil {
+		return "", fmt.Errorf("parsed token is null")
+	}
+
+	return parsedToken.Subject(), nil
 }
 
 func (s *authService) Refresh(ctx context.Context,

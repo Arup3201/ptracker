@@ -11,10 +11,19 @@ type AuthService interface {
 	Callback(ctx context.Context,
 		state, code string,
 		userAgent, device, ipAddress string) (*domain.Session, error)
+	Authenticate(ctx context.Context,
+		sessionId string) (string, error)
 	Refresh(ctx context.Context,
 		sessionId string) error
 	Logout(ctx context.Context,
 		sessionId string) error
+}
+
+type LimiterService interface {
+	IsAllowed(ctx context.Context, userId string) (bool, error)
+	GetTokens(ctx context.Context, userId string) (int, error)
+	GetCapacity(ctx context.Context) int
+	GetRetryTime(ctx context.Context, userId string) (int, error)
 }
 
 type ProjectService interface {

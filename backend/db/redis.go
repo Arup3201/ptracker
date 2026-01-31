@@ -4,25 +4,26 @@ import (
 	"context"
 	"time"
 
+	"github.com/ptracker/interfaces"
 	"github.com/redis/go-redis/v9"
 )
 
-type RedisInMemory struct {
+type redisInMemory struct {
 	client *redis.Client
 }
 
-func NewRedisInMemory(client *redis.Client) *RedisInMemory {
-	return &RedisInMemory{client: client}
+func NewRedisInMemory(client *redis.Client) interfaces.InMemory {
+	return &redisInMemory{client: client}
 }
 
-func (c *RedisInMemory) Get(ctx context.Context, key string) (string, error) {
+func (c *redisInMemory) Get(ctx context.Context, key string) (string, error) {
 	return c.client.Get(ctx, key).Result()
 }
 
-func (c *RedisInMemory) Set(ctx context.Context, key, value string, ttl time.Duration) error {
+func (c *redisInMemory) Set(ctx context.Context, key, value string, ttl time.Duration) error {
 	return c.client.Set(ctx, key, value, ttl).Err()
 }
 
-func (c *RedisInMemory) Delete(ctx context.Context, key string) error {
+func (c *redisInMemory) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, key).Err()
 }

@@ -59,10 +59,10 @@ func (suite *ControllerTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	client := redis.NewClient(opt)
-	redis := db.NewRedisInMemory(client)
-
-	store := services.NewStorage(dbConnection, redis)
+	redisClient := redis.NewClient(opt)
+	redis := db.NewRedisInMemory(redisClient)
+	rateLimiter := db.NewRedisRateLimiter(redisClient, 5, 3)
+	store := services.NewStorage(suite.db, redis, rateLimiter)
 
 	suite.fixtures = controller_fixtures.NewControllerFixtures(suite.ctx, store)
 

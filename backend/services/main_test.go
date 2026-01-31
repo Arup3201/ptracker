@@ -55,8 +55,10 @@ func (suite *ServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	redis := db.NewRedisInMemory(redis.NewClient(opt))
-	suite.store = NewStorage(suite.db, redis)
+	redisClient := redis.NewClient(opt)
+	redis := db.NewRedisInMemory(redisClient)
+	rateLimiter := db.NewRedisRateLimiter(redisClient, 5, 3)
+	suite.store = NewStorage(suite.db, redis, rateLimiter)
 	suite.fixtures = service_fixtures.New(suite.ctx, suite.store)
 
 	USER_ONE = suite.fixtures.User(service_fixtures.UserParams{

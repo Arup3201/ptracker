@@ -7,12 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ptracker/constants"
 	"github.com/ptracker/interfaces"
 	"github.com/ptracker/utils"
-)
-
-const (
-	SESSION_COOKIE_NAME = "PTRACKER_SESSION_ID"
 )
 
 type authController struct {
@@ -83,7 +80,7 @@ func (c *authController) Callback(w http.ResponseWriter, r *http.Request) error 
 	}
 
 	cookie := &http.Cookie{
-		Name:     SESSION_COOKIE_NAME,
+		Name:     constants.SESSION_COOKIE_NAME,
 		Value:    session.Id,
 		Path:     "/",
 		HttpOnly: true,
@@ -101,7 +98,7 @@ func (c *authController) Callback(w http.ResponseWriter, r *http.Request) error 
 func (c *authController) Refresh(w http.ResponseWriter, r *http.Request) error {
 
 	cookies := r.Cookies()
-	sessionId, err := utils.GetSessionIdFromCookie(cookies, SESSION_COOKIE_NAME)
+	sessionId, err := utils.GetSessionIdFromCookie(cookies, constants.SESSION_COOKIE_NAME)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusUnauthorized,
@@ -116,7 +113,7 @@ func (c *authController) Refresh(w http.ResponseWriter, r *http.Request) error {
 		// remove session from cookie
 
 		cookie := &http.Cookie{
-			Name:     SESSION_COOKIE_NAME,
+			Name:     constants.SESSION_COOKIE_NAME,
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
@@ -142,7 +139,7 @@ func (c *authController) Refresh(w http.ResponseWriter, r *http.Request) error {
 
 func (c *authController) Logout(w http.ResponseWriter, r *http.Request) error {
 
-	sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), SESSION_COOKIE_NAME)
+	sessionId, err := utils.GetSessionIdFromCookie(r.Cookies(), constants.SESSION_COOKIE_NAME)
 	if err != nil {
 		return &HTTPError{
 			Code:    http.StatusUnauthorized,
@@ -161,7 +158,7 @@ func (c *authController) Logout(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	cookie := &http.Cookie{
-		Name:     SESSION_COOKIE_NAME,
+		Name:     constants.SESSION_COOKIE_NAME,
 		Value:    "",
 		Path:     "/",
 		HttpOnly: true,

@@ -24,11 +24,13 @@ type storage struct {
 	joinRequestRepo interfaces.JoinRequestRepository
 	publicRepo      interfaces.PublicRepository
 
-	inMemory interfaces.InMemory
+	inMemory    interfaces.InMemory
+	rateLimiter interfaces.RateLimiter
 }
 
 func NewStorage(db repositories.Execer,
-	memory interfaces.InMemory) interfaces.Store {
+	memory interfaces.InMemory,
+	rateLimiter interfaces.RateLimiter) interfaces.Store {
 	s := &storage{}
 	s.db = db
 	s.sessionRepo = repositories.NewSessionRepo(db)
@@ -41,6 +43,7 @@ func NewStorage(db repositories.Execer,
 	s.publicRepo = repositories.NewPublicRepo(db)
 
 	s.inMemory = memory
+	s.rateLimiter = rateLimiter
 
 	return s
 }
@@ -110,9 +113,13 @@ func (s *storage) Public() interfaces.PublicRepository {
 }
 
 func (s *storage) clone(tx *sql.Tx) interfaces.Store {
-	return NewStorage(tx, s.inMemory)
+	return NewStorage(tx, s.inMemory, s.rateLimiter)
 }
 
 func (s *storage) InMemory() interfaces.InMemory {
 	return s.inMemory
+}
+
+func (s *storage) RateLimiter() interfaces.RateLimiter {
+	return s.rateLimiter
 }
