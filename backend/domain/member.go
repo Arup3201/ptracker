@@ -3,12 +3,12 @@ package domain
 import "time"
 
 type Member struct {
-	Id          string
-	Username    string
-	DisplayName *string
-	Email       string
-	AvatarURL   *string
-	IsActive    bool
-	CreatedAt   time.Time
-	UpdatedAt   *time.Time
+	Id          string     `json:"id"`
+	Username    string     `json:"username"`
+	DisplayName *string    `json:"display_name"`
+	Email       string     `json:"email"`
+	AvatarURL   *string    `json:"avatar_url"`
+	IsActive    bool       `json:"is_active"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }

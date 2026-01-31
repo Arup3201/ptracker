@@ -8,9 +8,9 @@ const (
 )
 
 type Role struct {
-	ProjectId string
-	UserId    string
-	Role      string
-	CreatedAt time.Time
-	UpdatedAt *time.Time
+	ProjectId string     `json:"project_id"`
+	UserId    string     `json:"user_id"`
+	Role      string     `json:"role"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
 }

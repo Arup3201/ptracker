@@ -3,33 +3,33 @@ package domain
 import "time"
 
 type Project struct {
-	Id          string
-	Name        string
-	Description *string
-	Skills      *string
-	Owner       string
-	CreatedAt   time.Time
-	UpdatedAt   *time.Time
+	Id          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description"`
+	Skills      *string    `json:"skills"`
+	Owner       string     `json:"owner"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   *time.Time `json:"updated_at"`
 }
 
 type ProjectSummary struct {
 	*Project
-	UnassignedTasks int
-	OngoingTasks    int
-	CompletedTasks  int
-	AbandonedTasks  int
+	UnassignedTasks int `json:"unassigned_tasks"`
+	OngoingTasks    int `json:"ongoing_tasks"`
+	CompletedTasks  int `json:"completed_tasks"`
+	AbandonedTasks  int `json:"abandoned_tasks"`
 }
 
 type ProjectDetail struct {
 	*ProjectSummary
-	Role        string
-	MemberCount int
-	Owner       *Member
+	Role        string  `json:"role"`
+	MemberCount int     `json:"members_count"`
+	Owner       *Member `json:"owner"`
 }
 
 type PublicProjectSummary struct {
 	*ProjectSummary
-	MemberCount int
-	Owner       *Member
-	JoinStatus  string
+	MemberCount int     `json:"members_count"`
+	Owner       *Member `json:"owner"`
+	JoinStatus  string  `json:"join_status"`
 }
