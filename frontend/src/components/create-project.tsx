@@ -3,7 +3,6 @@ import clsx from "clsx";
 import { Modal } from "./modal";
 import { Button } from "./button";
 import { ApiRequest } from "../api/request";
-import { type CreateProjectApi } from "../types/project";
 import { useNavigate } from "react-router";
 
 type CreateProjectModalProps = {
@@ -35,15 +34,15 @@ export const CreateProjectModal = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const project = await ApiRequest<CreateProjectApi>("/projects", "POST", {
+    const projectId = await ApiRequest<string>("/projects", "POST", {
       name: name.trim(),
       description: description.trim() || undefined,
       skills: parsedSkills.join(", "),
     });
 
     onClose();
-    if (project) {
-      navigate("/projects/" + project.id);
+    if (projectId) {
+      navigate("/projects/" + projectId);
     }
   }
 
@@ -75,7 +74,7 @@ export const CreateProjectModal = ({
                   "border outline-none",
                   error
                     ? "border-(--danger)"
-                    : "border-(--border-default) focus:border-(--primary)"
+                    : "border-(--border-default) focus:border-(--primary)",
                 )}
               />
 
@@ -97,7 +96,7 @@ export const CreateProjectModal = ({
                 className={clsx(
                   "rounded-xs bg-(--bg-surface) px-2 py-1 text-sm text-(--text-primary)",
                   "border border-(--border-default) outline-none resize-none",
-                  "focus:border-(--primary)"
+                  "focus:border-(--primary)",
                 )}
               />
             </div>
@@ -114,7 +113,7 @@ export const CreateProjectModal = ({
                 className={clsx(
                   "h-8 rounded-xs bg-(--bg-surface) px-2 text-sm text-(--text-primary)",
                   "border border-(--border-default) outline-none",
-                  "focus:border-(--primary)"
+                  "focus:border-(--primary)",
                 )}
               />
 

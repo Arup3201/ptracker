@@ -66,15 +66,6 @@ export const MapProject = (p: ProjectSummaryApi): ProjectSummary => ({
   updatedAt: p.updated_at,
 });
 
-export interface CreateProjectApi {
-  id: string;
-  name: string;
-  description?: string;
-  skills?: string;
-  created_at: string;
-  updated_at?: string;
-}
-
 export interface ProjectDetailsApi {
   id: string;
   name: string;
