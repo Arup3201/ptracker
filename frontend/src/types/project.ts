@@ -77,7 +77,7 @@ export interface ProjectDetailsApi {
   ongoing_tasks: number;
   completed_tasks: number;
   abandoned_tasks: number;
-  member_count: number;
+  members_count: number;
   created_at: string;
   updated_at?: string;
 }
@@ -93,7 +93,7 @@ export interface ProjectDetails {
   ongoingTasks: number;
   completedTasks: number;
   abandonedTasks: number;
-  memberCount: number;
+  membersCount: number;
   createdAt: string;
   updatedAt?: string;
 }
@@ -113,55 +113,45 @@ export const MapProjectDetails = (p: ProjectDetailsApi): ProjectDetails => ({
   ongoingTasks: p.ongoing_tasks,
   completedTasks: p.completed_tasks,
   abandonedTasks: p.abandoned_tasks,
-  memberCount: p.member_count,
+  membersCount: p.members_count,
   createdAt: p.created_at,
   updatedAt: p.updated_at,
 });
 
-export interface User {
-  id: string;
-  username: string;
-  displayName: string;
-  email: string;
-  isActive: boolean;
-  createdAt: string;
-}
-
-type JoinStatus = "Pending" | "Accepted";
+type JoinStatus = "Pending" | "Accepted" | "Rejected";
 
 export interface JoinRequest {
   projectId: string;
-  user: User;
+  userId: string;
+  username: string;
+  displayName: string;
+  email: string;
+  avatarURL: string;
+  isActive: boolean;
   status: JoinStatus;
   createdAt: string;
 }
 
-interface UserApi {
-  id: string;
+export interface JoinRequestApi {
+  project_id: string;
+  user_id: string;
   username: string;
   display_name: string;
   email: string;
+  avatar_url: string;
   is_active: boolean;
-  created_at: string;
-}
-
-export interface JoinRequestApi {
-  project_id: string;
-  user: UserApi;
   status: JoinStatus;
   created_at: string;
 }
 
 export const MapJoinRequest = (request: JoinRequestApi): JoinRequest => ({
   projectId: request.project_id,
-  user: {
-    id: request.user.id,
-    username: request.user.username,
-    displayName: request.user.display_name,
-    email: request.user.email,
-    isActive: request.user.is_active,
-    createdAt: request.user.created_at,
-  },
+  userId: request.user_id,
+  username: request.username,
+  displayName: request.display_name,
+  email: request.email,
+  avatarURL: request.avatar_url,
+  isActive: request.is_active,
   status: request.status,
   createdAt: request.created_at,
 });
@@ -179,7 +169,8 @@ export interface Member {
   avatarUrl: string;
   isActive: boolean;
   role: ProjectRole;
-  joinedAt: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MemberApi {
@@ -191,7 +182,8 @@ export interface MemberApi {
   avatar_url: string;
   is_active: boolean;
   role: ProjectRole;
-  joined_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface MembersResponse {
@@ -207,5 +199,6 @@ export const MapMember = (m: MemberApi): Member => ({
   avatarUrl: m.avatar_url,
   isActive: m.is_active,
   role: m.role,
-  joinedAt: m.joined_at,
+  createdAt: m.created_at,
+  updatedAt: m.updated_at,
 });

@@ -1,4 +1,4 @@
-const API_ROOT = "http://localhost:8081/api/v1";
+export const API_ROOT = "http://localhost:8081/api/v1";
 
 type URLMethod = "GET" | "POST" | "PUT" | "DELETE";
 

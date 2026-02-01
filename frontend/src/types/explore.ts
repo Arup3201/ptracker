@@ -10,7 +10,7 @@ export const JOIN_STATUS: Record<string, JoinStatus> = {
 
 export interface ExploreProject {
   id: string;
-  title: string;
+  name: string;
   description: string;
   skills: string;
   role: string;
@@ -20,7 +20,7 @@ export interface ExploreProject {
 
 export interface ExploreProjectApi {
   id: string;
-  title: string;
+  name: string;
   description: string;
   skills: string;
   role: string;
@@ -30,7 +30,7 @@ export interface ExploreProjectApi {
 
 export const MapExploreProject = (p: ExploreProjectApi): ExploreProject => ({
   id: p.id,
-  title: p.title,
+  name: p.name,
   description: p.description,
   skills: p.skills,
   role: p.role,

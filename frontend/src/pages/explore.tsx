@@ -18,7 +18,7 @@ function ProjectCard({ project }: { project: ExploreProject }) {
     if (project.role === ROLES.OWNER || project.role == ROLES.MEMBER) {
       navigate(`/projects/${project.id}`);
     } else {
-      navigate(`/public/${project.id}`);
+      navigate(`/explore/${project.id}`);
     }
   };
 
@@ -26,7 +26,7 @@ function ProjectCard({ project }: { project: ExploreProject }) {
     <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-[14px] font-semibold text-(--text-primary) leading-snug">
-          {project.title}
+          {project.name}
         </h3>
 
         {project.role !== "User" && (
@@ -79,7 +79,7 @@ export default function ExploreProjectsPage() {
 
   const filteredProjects = projects.filter(
     (project) =>
-      project.title.toLowerCase().includes(query.toLowerCase()) ||
+      project.name.toLowerCase().includes(query.toLowerCase()) ||
       project.description.toLowerCase().includes(query.toLowerCase()),
   );
 
