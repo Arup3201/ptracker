@@ -11,10 +11,10 @@ import (
 )
 
 type TaskRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewTaskRepo(db Execer) interfaces.TaskRepository {
+func NewTaskRepo(db interfaces.Execer) interfaces.TaskRepository {
 	return &TaskRepo{
 		db: db,
 	}

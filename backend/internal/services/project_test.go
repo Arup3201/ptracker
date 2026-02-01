@@ -43,7 +43,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 
 		suite.Require().NoError(err)
 		var p domain.Project
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
 				"FROM projects "+
@@ -71,7 +71,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 
 		suite.Require().NoError(err)
 		var p domain.Project
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
 				"FROM projects "+
@@ -99,7 +99,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 
 		suite.Require().NoError(err)
 		var p domain.Project
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"id, name, description, skills, owner, created_at, updated_at "+
 				"FROM projects "+
@@ -210,7 +210,7 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 
 		suite.Require().NoError(err)
 		var u domain.Member
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"id, username, display_name, email, avatar_url, is_active, created_at, updated_at  "+
 				"FROM users "+
@@ -322,7 +322,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM join_requests "+
@@ -342,7 +342,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var role string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"role "+
 				"FROM roles "+
@@ -364,7 +364,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM join_requests "+
@@ -383,7 +383,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
-		err := suite.db.QueryRow(
+		err := suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"role "+
 				"FROM roles "+
@@ -432,7 +432,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM join_requests "+
@@ -455,7 +455,8 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.Require().ErrorContains(err, "transaction: store role create")
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(
+			suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM join_requests "+

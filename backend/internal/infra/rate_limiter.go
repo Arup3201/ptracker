@@ -1,4 +1,4 @@
-package db
+package infra
 
 import (
 	"context"
@@ -9,17 +9,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type redisRateLimiter struct {
+type rateLimiter struct {
 	client         *redis.Client
 	capacity, rate int
 	retry          int64
 	tbFunc         *redis.Script
 }
 
-func NewRedisRateLimiter(client *redis.Client, cap, rate int) interfaces.RateLimiter {
+func NewRateLimiter(client *redis.Client, cap, rate int) interfaces.RateLimiter {
 	function := redis.NewScript(RedisLuaScript)
 
-	return &redisRateLimiter{
+	return &rateLimiter{
 		client:   client,
 		capacity: cap,
 		rate:     rate,
@@ -27,7 +27,7 @@ func NewRedisRateLimiter(client *redis.Client, cap, rate int) interfaces.RateLim
 	}
 }
 
-func (rl *redisRateLimiter) Allow(ctx context.Context,
+func (rl *rateLimiter) Allow(ctx context.Context,
 	key string) (bool, error) {
 	value, err := rl.tbFunc.Run(
 		ctx,
@@ -47,7 +47,7 @@ func (rl *redisRateLimiter) Allow(ctx context.Context,
 	return false, nil
 }
 
-func (rl *redisRateLimiter) Tokens(ctx context.Context,
+func (rl *rateLimiter) Tokens(ctx context.Context,
 	key string) (int, error) {
 
 	value, err := rl.client.HGet(ctx, key, "tokens").Result()
@@ -63,11 +63,11 @@ func (rl *redisRateLimiter) Tokens(ctx context.Context,
 	return int(v), nil
 }
 
-func (rl *redisRateLimiter) Capacity(ctx context.Context) int {
+func (rl *rateLimiter) Capacity(ctx context.Context) int {
 	return rl.capacity
 }
 
-func (rl *redisRateLimiter) RetryAfter(ctx context.Context,
+func (rl *rateLimiter) RetryAfter(ctx context.Context,
 	key string) (int, error) {
 
 	value, err := rl.client.HGet(ctx, key, "retry_after").Result()

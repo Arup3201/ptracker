@@ -1,27 +1,23 @@
 package internal
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ptracker/internal/controllers"
 	"github.com/ptracker/internal/controllers/middlewares"
-	"github.com/ptracker/internal/db"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
-	"github.com/redis/go-redis/v9"
 	"github.com/rs/cors"
 )
 
 type app struct {
 	_prefix string
 
-	config              *Config
-	db                  *sql.DB
-	redis               *redis.Client
-	handler             *http.ServeMux
+	config  *Config
+	handler *http.ServeMux
+
 	authMiddleware      middlewares.Middleware
 	rateLimitMiddleware middlewares.Middleware
 
@@ -32,20 +28,17 @@ type app struct {
 }
 
 func NewApp(config *Config,
-	conn *sql.DB,
-	redis *redis.Client,
+	db interfaces.Execer,
+	inMemory interfaces.InMemory,
+	rateLimiter interfaces.RateLimiter,
 	handler *http.ServeMux) *app {
 
 	app := &app{
 		config:  config,
-		db:      conn,
-		redis:   redis,
 		handler: handler,
 	}
 
-	inMemory := db.NewRedisInMemory(redis)
-	rateLimiter := db.NewRedisRateLimiter(redis, 5, 2)
-	store := services.NewStorage(conn, inMemory, rateLimiter)
+	store := services.NewStorage(db, inMemory, rateLimiter)
 
 	authService := services.NewAuthService(store,
 		config.KeycloakURL,

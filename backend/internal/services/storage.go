@@ -13,7 +13,7 @@ import (
 type storage struct {
 	mu sync.Mutex
 
-	db repositories.Execer
+	db interfaces.Execer
 
 	sessionRepo     interfaces.SessionRepository
 	userRepo        interfaces.UserRepository
@@ -28,7 +28,7 @@ type storage struct {
 	rateLimiter interfaces.RateLimiter
 }
 
-func NewStorage(db repositories.Execer,
+func NewStorage(db interfaces.Execer,
 	memory interfaces.InMemory,
 	rateLimiter interfaces.RateLimiter) interfaces.Store {
 	s := &storage{}

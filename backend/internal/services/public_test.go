@@ -32,7 +32,8 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 		service.JoinProject(suite.ctx, p, USER_TWO)
 
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(
+			suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM join_requests "+

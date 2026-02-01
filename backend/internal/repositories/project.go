@@ -11,10 +11,10 @@ import (
 )
 
 type projectRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewProjectRepo(db Execer) interfaces.ProjectRepository {
+func NewProjectRepo(db interfaces.Execer) interfaces.ProjectRepository {
 	return &projectRepo{
 		db: db,
 	}

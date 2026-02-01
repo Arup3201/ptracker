@@ -34,7 +34,8 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		id, _ := taskRepo.Create(suite.ctx, p,
 			sample_title, &sample_description, sample_status)
 		var task domain.Task
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(
+			suite.ctx,
 			"SELECT "+
 				"id, project_id, title, description, status "+
 				"FROM tasks "+

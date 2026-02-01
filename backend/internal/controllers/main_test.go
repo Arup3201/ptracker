@@ -2,12 +2,12 @@ package controllers
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"net/http"
 	"testing"
 
-	"github.com/ptracker/internal/db"
+	"github.com/ptracker/internal/infra"
+	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/controller_fixtures"
@@ -19,7 +19,7 @@ type ControllerTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	fixtures    *controller_fixtures.ControllerFixtures
-	db          *sql.DB
+	db          interfaces.Execer
 	ctx         context.Context
 }
 
@@ -37,7 +37,7 @@ func (suite *ControllerTestSuite) SetupSuite() {
 
 	suite.pgContainer = pgContainer
 
-	dbConnection, err := db.ConnectPostgres(pgContainer.ConnectionString)
+	dbConnection, err := infra.NewDatabase("postgres", pgContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,8 +60,8 @@ func (suite *ControllerTestSuite) SetupSuite() {
 	}
 
 	redisClient := redis.NewClient(opt)
-	redis := db.NewRedisInMemory(redisClient)
-	rateLimiter := db.NewRedisRateLimiter(redisClient, 5, 3)
+	redis := infra.NewInMemory(redisClient)
+	rateLimiter := infra.NewRateLimiter(redisClient, 5, 3)
 	store := services.NewStorage(suite.db, redis, rateLimiter)
 
 	suite.fixtures = controller_fixtures.NewControllerFixtures(suite.ctx, store)
@@ -97,7 +97,7 @@ func (suite *ControllerTestSuite) TearDownSuite() {
 }
 
 func (suite *ControllerTestSuite) Cleanup() {
-	_, err := suite.db.Exec("DELETE FROM projects")
+	_, err := suite.db.ExecContext(suite.ctx, "DELETE FROM projects")
 	suite.Require().NoError(err)
 }
 

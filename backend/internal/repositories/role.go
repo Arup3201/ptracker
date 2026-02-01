@@ -12,10 +12,10 @@ import (
 )
 
 type RoleRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewRoleRepo(db Execer) interfaces.RoleRepository {
+func NewRoleRepo(db interfaces.Execer) interfaces.RoleRepository {
 	return &RoleRepo{
 		db: db,
 	}
