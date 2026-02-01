@@ -16,13 +16,13 @@ type taskController struct {
 	service interfaces.TaskService
 }
 
-func NewTaskController(service interfaces.TaskService) *taskController {
+func NewTaskController(service interfaces.TaskService) interfaces.TaskController {
 	return &taskController{
 		service: service,
 	}
 }
 
-func (c *taskController) ListTasks(w http.ResponseWriter, r *http.Request) error {
+func (c *taskController) List(w http.ResponseWriter, r *http.Request) error {
 
 	queryPage := r.URL.Query().Get("page")
 	queryLimit := r.URL.Query().Get("limit")
@@ -92,7 +92,7 @@ func (c *taskController) ListTasks(w http.ResponseWriter, r *http.Request) error
 	return nil
 }
 
-func (c *taskController) CreateTask(w http.ResponseWriter, r *http.Request) error {
+func (c *taskController) Create(w http.ResponseWriter, r *http.Request) error {
 
 	projectId := r.PathValue("project_id")
 	if projectId == "" {
@@ -157,7 +157,7 @@ func (c *taskController) CreateTask(w http.ResponseWriter, r *http.Request) erro
 	return nil
 }
 
-func (c *taskController) GetTask(w http.ResponseWriter, r *http.Request) error {
+func (c *taskController) Get(w http.ResponseWriter, r *http.Request) error {
 
 	projectId := r.PathValue("project_id")
 	if projectId == "" {

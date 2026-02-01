@@ -18,7 +18,7 @@ type authController struct {
 }
 
 func NewAuthController(service interfaces.AuthService,
-	homeURL string) *authController {
+	homeURL string) interfaces.AuthController {
 	return &authController{
 		authService: service,
 		homeURL:     homeURL,

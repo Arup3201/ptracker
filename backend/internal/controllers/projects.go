@@ -17,7 +17,7 @@ type projectController struct {
 	service interfaces.ProjectService
 }
 
-func NewProjectController(service interfaces.ProjectService) *projectController {
+func NewProjectController(service interfaces.ProjectService) interfaces.ProjectController {
 	return &projectController{
 		service: service,
 	}
