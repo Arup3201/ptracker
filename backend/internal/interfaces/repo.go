@@ -50,6 +50,10 @@ type RoleRepository interface {
 	CountMembers(ctx context.Context, projectId string) (int, error)
 }
 
+type AssigneeRepository interface {
+	Create(ctx context.Context, projectId, taskId, userId string) error
+}
+
 type ListRepository interface {
 	PrivateProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error)
 	Tasks(ctx context.Context, projectId string) ([]*domain.TaskListed, error)

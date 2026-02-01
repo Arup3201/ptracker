@@ -138,20 +138,25 @@ func (c *taskController) Create(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get userId: %w", err)
 	}
 
-	taskId, err := c.service.CreateTask(
+	taskId, warnings, err := c.service.CreateTask(
 		r.Context(),
 		projectId,
 		payload.Title,
 		payload.Description,
+		payload.Assignees,
+		payload.Status,
 		userId)
 	if err != nil {
 		return fmt.Errorf("service create task: %w", err)
 	}
 
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[string]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[CreateTaskResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data:   &taskId,
+		Data: &CreateTaskResponse{
+			Id:       taskId,
+			Warnings: warnings,
+		},
 	})
 
 	return nil

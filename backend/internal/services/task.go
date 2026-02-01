@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/ptracker/internal/apierr"
@@ -28,29 +29,68 @@ func NewTaskService(store interfaces.Store) *taskService {
 func (s *taskService) CreateTask(ctx context.Context,
 	projectId, title string,
 	description *string,
-	userId string) (string, error) {
+	assignees []string,
+	status, userId string) (string, []string, error) {
 
 	permitted, err := s.permissionService.CanCreateTask(ctx, projectId, userId)
 	if err != nil {
-		return "", fmt.Errorf("permission service can create task: %w", err)
+		return "", nil, fmt.Errorf("permission service can create task: %w", err)
 	}
 
 	if !permitted {
-		return "", apierr.ErrForbidden
+		return "", nil, apierr.ErrForbidden
 	}
 
 	if strings.Trim(title, " ") == "" {
-		return "", apierr.ErrInvalidValue
+		return "", nil, apierr.ErrInvalidValue
 	}
 
-	taskStatus := domain.TASK_STATUS_UNASSIGNED
+	if !slices.Contains([]string{
+		domain.TASK_STATUS_UNASSIGNED,
+		domain.TASK_STATUS_ONGOING,
+		domain.TASK_STATUS_COMPLETED,
+		domain.TASK_STATUS_ABANDONED,
+	}, status) {
+		return "", nil, apierr.ErrInvalidValue
+	}
+
 	taskId, err := s.store.Task().Create(ctx,
-		projectId, title, description, taskStatus)
+		projectId, title, description, status)
 	if err != nil {
-		return "", fmt.Errorf("store task create: %w", err)
+		return "", nil, fmt.Errorf("store task create: %w", err)
 	}
 
-	return taskId, nil
+	warnings := s.AddAssignees(ctx, projectId, taskId, assignees)
+
+	return taskId, warnings, nil
+}
+
+func (s *taskService) AddAssignees(ctx context.Context,
+	projectId, taskId string,
+	assignees []string) (warnings []string) {
+	if len(assignees) == 0 {
+		return
+	}
+
+	for _, assignee := range assignees {
+		_, err := s.store.User().Get(ctx, assignee)
+		if err != nil {
+			switch err {
+			case apierr.ErrNotFound:
+				warnings = append(warnings, fmt.Sprintf("not a valid user %s", assignee))
+			default:
+				warnings = append(warnings, "failed to fetch user from database")
+			}
+			continue
+		}
+
+		err = s.store.Assignee().Create(ctx, projectId, taskId, assignee)
+		if err != nil {
+			warnings = append(warnings, "failed to create assignee in the database")
+		}
+	}
+
+	return
 }
 
 func (s *taskService) ListTasks(ctx context.Context,

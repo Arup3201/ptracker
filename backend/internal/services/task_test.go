@@ -19,7 +19,7 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, USER_ONE)
+		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
 
 		suite.Cleanup()
 
@@ -34,7 +34,7 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		taskId, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, USER_ONE)
+		taskId, _, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
 		var status string
 		suite.db.QueryRowContext(
 			suite.ctx,
@@ -59,7 +59,7 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, USER_TWO)
+		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_TWO)
 
 		suite.Cleanup()
 
@@ -74,11 +74,89 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := ""
 		sample_description := "sample description"
 
-		_, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, USER_ONE)
+		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
 
 		suite.Cleanup()
 
 		suite.Require().ErrorContains(err, "invalid value")
+	})
+	t.Run("should create tasks with assignees", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+		sample_title := "sample task"
+		sample_description := "sample description"
+
+		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should create tasks with 2 assignees", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+		sample_title := "sample task"
+		sample_description := "sample description"
+
+		_, warnings, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(0, len(warnings))
+	})
+	t.Run("should create task with correct assignee values", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+		sample_title := "sample task"
+		sample_description := "sample description"
+
+		id, _, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+
+		var userIds = []string{}
+		rows, _ := suite.db.QueryContext(suite.ctx,
+			"SELECT user_id FROM assignees WHERE project_id=($1) AND task_id=($2)",
+			p, id)
+		for rows.Next() {
+			var u string
+			rows.Scan(&u)
+			userIds = append(userIds, u)
+		}
+
+		suite.Cleanup()
+
+		suite.Require().Equal(2, len(userIds))
+	})
+	t.Run("should give one warning with 1 invalid assignee", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+		sample_title := "sample task"
+		sample_description := "sample description"
+
+		_, warnings, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, "asdfd"}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(1, len(warnings))
 	})
 }
 

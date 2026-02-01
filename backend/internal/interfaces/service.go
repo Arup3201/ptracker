@@ -54,7 +54,8 @@ type TaskService interface {
 	CreateTask(ctx context.Context,
 		projectId, title string,
 		description *string,
-		userId string) (string, error)
+		assignees []string,
+		status, userId string) (string, []string, error)
 	ListTasks(ctx context.Context,
 		projectId, userId string) ([]*domain.TaskListed, error)
 	GetTask(ctx context.Context,

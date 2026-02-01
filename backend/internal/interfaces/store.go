@@ -12,6 +12,7 @@ type Store interface {
 	Project() ProjectRepository
 	Task() TaskRepository
 	Role() RoleRepository
+	Assignee() AssigneeRepository
 	List() ListRepository
 	JoinRequest() JoinRequestRepository
 	Public() PublicRepository

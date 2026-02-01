@@ -23,8 +23,15 @@ type ListedTasksResponse struct {
 }
 
 type CreateTaskRequest struct {
-	Title       string  `json:"title" validate:"required"`
-	Description *string `json:"description"`
+	Title       string   `json:"title" validate:"required"`
+	Description *string  `json:"description"`
+	Assignees   []string `json:"assignees"`
+	Status      string   `json:"status" validate:"required"`
+}
+
+type CreateTaskResponse struct {
+	Id       string   `json:"task_id"`
+	Warnings []string `json:"warnings"`
 }
 
 type ListedPublicProjectsResponse struct {
