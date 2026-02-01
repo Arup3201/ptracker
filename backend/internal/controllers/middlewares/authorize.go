@@ -22,7 +22,7 @@ func NewAuthMiddleware(service interfaces.AuthService) Middleware {
 	}
 }
 
-func (m *authMiddleware) Next(next http.Handler) controllers.HTTPErrorHandler {
+func (m *authMiddleware) Handler(next http.Handler) controllers.HTTPErrorHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		public := []string{"/auth/login", "/auth/callback", "/auth/refresh"}
 		for _, endpoint := range public {

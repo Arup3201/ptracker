@@ -7,5 +7,5 @@ import (
 )
 
 type Middleware interface {
-	Next(next http.Handler) controllers.HTTPErrorHandler
+	Handler(next http.Handler) controllers.HTTPErrorHandler
 }

@@ -23,7 +23,7 @@ func NewRateLimitMiddleware(service interfaces.LimiterService) Middleware {
 	}
 }
 
-func (m *rateLimitMiddleware) Next(next http.Handler) controllers.HTTPErrorHandler {
+func (m *rateLimitMiddleware) Handler(next http.Handler) controllers.HTTPErrorHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		userId, err := utils.GetUserId(r)
 		if err != nil {

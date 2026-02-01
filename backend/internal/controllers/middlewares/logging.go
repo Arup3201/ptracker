@@ -11,7 +11,11 @@ import (
 
 type loggingMiddleware struct{}
 
-func (m *loggingMiddleware) Next(next http.Handler) controllers.HTTPErrorHandler {
+func NewLoggingMiddleware() Middleware {
+	return &loggingMiddleware{}
+}
+
+func (m *loggingMiddleware) Handler(next http.Handler) controllers.HTTPErrorHandler {
 	return func(w http.ResponseWriter, r *http.Request) error {
 		rec := httptest.NewRecorder()
 		next.ServeHTTP(rec, r)
