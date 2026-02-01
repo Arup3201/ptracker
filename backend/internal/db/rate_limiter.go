@@ -33,14 +33,14 @@ func (rl *redisRateLimiter) Allow(ctx context.Context,
 		ctx,
 		rl.client,
 		[]string{key},
-		rl.Capacity,
+		rl.capacity,
 		rl.rate,
 	).Result()
 	if err != nil {
 		return false, fmt.Errorf("allow request run lua script: %w", err)
 	}
 
-	if value.(int) == 1 {
+	if value.(int64) == 1 {
 		return true, nil
 	}
 
@@ -55,12 +55,12 @@ func (rl *redisRateLimiter) Tokens(ctx context.Context,
 		return 0, fmt.Errorf("client hget: %w", err)
 	}
 
-	v, err := strconv.Atoi(value)
+	v, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("string parse error: %w", err)
 	}
 
-	return v, nil
+	return int(v), nil
 }
 
 func (rl *redisRateLimiter) Capacity(ctx context.Context) int {
@@ -75,12 +75,12 @@ func (rl *redisRateLimiter) RetryAfter(ctx context.Context,
 		return 0, fmt.Errorf("client hget: %w", err)
 	}
 
-	v, err := strconv.Atoi(value)
+	v, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("string parse error: %w", err)
 	}
 
-	return v, nil
+	return int(v), nil
 }
 
 const RedisLuaScript = `
