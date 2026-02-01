@@ -21,7 +21,7 @@ export default function ProjectExplorePage() {
   async function getProjectDetails(id: string) {
     try {
       const data = await ApiRequest<ExploredProjectDetailsApi>(
-        `/explore/projects/${id}`,
+        `/public/projects/${id}`,
         "GET",
         null,
       );

@@ -18,7 +18,7 @@ function ProjectCard({ project }: { project: ExploreProject }) {
     if (project.role === ROLES.OWNER || project.role == ROLES.MEMBER) {
       navigate(`/projects/${project.id}`);
     } else {
-      navigate(`/explore/${project.id}`);
+      navigate(`/public/${project.id}`);
     }
   };
 
@@ -30,7 +30,7 @@ function ProjectCard({ project }: { project: ExploreProject }) {
         </h3>
 
         {project.role !== "User" && (
-          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-[2px]">
+          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-0.5">
             {project.role}
           </span>
         )}
@@ -60,7 +60,7 @@ export default function ExploreProjectsPage() {
   const getProjects = async () => {
     try {
       const data = await ApiRequest<ExploreProjectsApiResponse>(
-        "/explore/projects",
+        "/public/projects",
         "GET",
         null,
       );
