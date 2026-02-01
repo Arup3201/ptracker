@@ -1,0 +1,134 @@
+package internal
+
+import (
+	"database/sql"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/ptracker/internal/controllers"
+	"github.com/ptracker/internal/controllers/middlewares"
+	"github.com/ptracker/internal/db"
+	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/services"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/cors"
+)
+
+type app struct {
+	config              *Config
+	db                  *sql.DB
+	redis               *redis.Client
+	handler             *http.ServeMux
+	authMiddleware      middlewares.Middleware
+	rateLimitMiddleware middlewares.Middleware
+
+	authController    interfaces.AuthController
+	projectController interfaces.ProjectController
+	taskController    interfaces.TaskController
+	publicController  interfaces.PublicController
+}
+
+func NewApp(config *Config,
+	conn *sql.DB,
+	redis *redis.Client,
+	handler *http.ServeMux) *app {
+
+	app := &app{
+		config:  config,
+		db:      conn,
+		redis:   redis,
+		handler: handler,
+	}
+
+	inMemory := db.NewRedisInMemory(redis)
+	rateLimiter := db.NewRedisRateLimiter(redis, 5, 2)
+	store := services.NewStorage(conn, inMemory, rateLimiter)
+
+	authService := services.NewAuthService(store,
+		config.KeycloakURL,
+		config.KeycloakRealm,
+		config.KeycloakClientId,
+		config.KeycloakClientSecret,
+		config.KeycloakRedirectURI,
+		config.EncryptionKey)
+	projectService := services.NewProjectService(store)
+	taskService := services.NewTaskService(store)
+	publicService := services.NewPublicService(store)
+	limitService := services.NewLimiterService(store)
+
+	app.authMiddleware = middlewares.NewAuthMiddleware(authService)
+	app.rateLimitMiddleware = middlewares.NewRateLimitMiddleware(limitService)
+
+	app.authController = controllers.NewAuthController(authService, config.HomeURL)
+	app.projectController = controllers.NewProjectController(projectService)
+	app.taskController = controllers.NewTaskController(taskService)
+	app.publicController = controllers.NewPublicController(publicService)
+
+	return app
+}
+
+func (a *app) attachMiddleware(pattern string, handler controllers.HTTPErrorHandler) {
+	a.handler.Handle(pattern, controllers.HTTPErrorHandler(
+		a.authMiddleware.Handler(
+			handler,
+		),
+	),
+	)
+}
+
+func (a *app) AttachRoutes(prefix string) *app {
+
+	a.attachMiddleware("GET /api/auth/login", a.authController.Login)
+	a.attachMiddleware("GET /api/auth/callback", a.authController.Callback)
+	a.attachMiddleware("POST /api/auth/refresh", a.authController.Refresh)
+	a.attachMiddleware("POST /api/auth/logout", a.authController.Logout)
+
+	a.attachMiddleware("POST /api/projects", a.rateLimitMiddleware.Handler(
+		controllers.HTTPErrorHandler(a.projectController.Create),
+	))
+
+	a.attachMiddleware("GET /api/projects", a.projectController.List)
+	a.attachMiddleware("GET /api/projects/{id}", a.projectController.Get)
+	a.attachMiddleware("POST /api/projects/{id}/join-requests", a.publicController.JoinProject)
+	a.attachMiddleware("GET /api/projects/{id}/join-requests", a.projectController.ListJoinRequests)
+	a.attachMiddleware("PUT /api/projects/{id}/join-requests", a.projectController.RespondToJoinRequests)
+	a.attachMiddleware("GET /api/projects/{id}/members", a.projectController.ListMembers)
+
+	a.attachMiddleware("GET /api/projects/{project_id}/tasks", a.taskController.List)
+	a.attachMiddleware("POST /api/projects/{project_id}/tasks", a.taskController.Create)
+	a.attachMiddleware("GET /api/projects/{project_id}/tasks/{task_id}", a.taskController.Get)
+
+	a.attachMiddleware("GET /api/explore/projects", a.publicController.ListProjects)
+	a.attachMiddleware("GET /api/explore/projects/{id}", a.publicController.GetProject)
+
+	return a
+}
+
+func (a *app) Start() error {
+
+	logging := middlewares.NewLoggingMiddleware()
+
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{a.config.HomeURL},
+		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
+		AllowCredentials: true,
+	})
+
+	// server
+	server := &http.Server{
+		Addr:         fmt.Sprintf("%s:%s", a.config.ServerHost, a.config.ServerPort),
+		Handler:      cors.Handler(logging.Handler(a.handler)),
+		ReadTimeout:  20 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}
+
+	fmt.Printf("[INFO] server starting at %s:%s\n", a.config.ServerHost, a.config.ServerPort)
+
+	err := server.ListenAndServe()
+	if err != nil {
+		return fmt.Errorf("server listen and serve: %w", err)
+	}
+
+	return nil
+}
