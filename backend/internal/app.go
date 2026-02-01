@@ -16,6 +16,8 @@ import (
 )
 
 type app struct {
+	_prefix string
+
 	config              *Config
 	db                  *sql.DB
 	redis               *redis.Client
@@ -68,8 +70,8 @@ func NewApp(config *Config,
 	return app
 }
 
-func (a *app) attachMiddleware(pattern string, handler controllers.HTTPErrorHandler) {
-	a.handler.Handle(pattern, controllers.HTTPErrorHandler(
+func (a *app) attachMiddleware(method, pattern string, handler controllers.HTTPErrorHandler) {
+	a.handler.Handle(method+" "+a._prefix+pattern, controllers.HTTPErrorHandler(
 		a.authMiddleware.Handler(
 			handler,
 		),
@@ -78,29 +80,30 @@ func (a *app) attachMiddleware(pattern string, handler controllers.HTTPErrorHand
 }
 
 func (a *app) AttachRoutes(prefix string) *app {
+	a._prefix = prefix
 
-	a.attachMiddleware("GET /api/auth/login", a.authController.Login)
-	a.attachMiddleware("GET /api/auth/callback", a.authController.Callback)
-	a.attachMiddleware("POST /api/auth/refresh", a.authController.Refresh)
-	a.attachMiddleware("POST /api/auth/logout", a.authController.Logout)
+	a.attachMiddleware("GET", "/auth/login", a.authController.Login)
+	a.attachMiddleware("GET", "/auth/callback", a.authController.Callback)
+	a.attachMiddleware("POST", "/auth/refresh", a.authController.Refresh)
+	a.attachMiddleware("POST", "/auth/logout", a.authController.Logout)
 
-	a.attachMiddleware("POST /api/projects", a.rateLimitMiddleware.Handler(
+	a.attachMiddleware("POST", "/projects", a.rateLimitMiddleware.Handler(
 		controllers.HTTPErrorHandler(a.projectController.Create),
 	))
 
-	a.attachMiddleware("GET /api/projects", a.projectController.List)
-	a.attachMiddleware("GET /api/projects/{id}", a.projectController.Get)
-	a.attachMiddleware("POST /api/projects/{id}/join-requests", a.publicController.JoinProject)
-	a.attachMiddleware("GET /api/projects/{id}/join-requests", a.projectController.ListJoinRequests)
-	a.attachMiddleware("PUT /api/projects/{id}/join-requests", a.projectController.RespondToJoinRequests)
-	a.attachMiddleware("GET /api/projects/{id}/members", a.projectController.ListMembers)
+	a.attachMiddleware("GET", "/projects", a.projectController.List)
+	a.attachMiddleware("GET", "/projects/{id}", a.projectController.Get)
+	a.attachMiddleware("POST", "/projects/{id}/join-requests", a.publicController.JoinProject)
+	a.attachMiddleware("GET", "/projects/{id}/join-requests", a.projectController.ListJoinRequests)
+	a.attachMiddleware("PUT", "/projects/{id}/join-requests", a.projectController.RespondToJoinRequests)
+	a.attachMiddleware("GET", "/projects/{id}/members", a.projectController.ListMembers)
 
-	a.attachMiddleware("GET /api/projects/{project_id}/tasks", a.taskController.List)
-	a.attachMiddleware("POST /api/projects/{project_id}/tasks", a.taskController.Create)
-	a.attachMiddleware("GET /api/projects/{project_id}/tasks/{task_id}", a.taskController.Get)
+	a.attachMiddleware("GET", "/projects/{project_id}/tasks", a.taskController.List)
+	a.attachMiddleware("POST", "/projects/{project_id}/tasks", a.taskController.Create)
+	a.attachMiddleware("GET", "/projects/{project_id}/tasks/{task_id}", a.taskController.Get)
 
-	a.attachMiddleware("GET /api/explore/projects", a.publicController.ListProjects)
-	a.attachMiddleware("GET /api/explore/projects/{id}", a.publicController.GetProject)
+	a.attachMiddleware("GET", "/public/projects", a.publicController.ListProjects)
+	a.attachMiddleware("GET", "/public/projects/{id}", a.publicController.GetProject)
 
 	return a
 }
