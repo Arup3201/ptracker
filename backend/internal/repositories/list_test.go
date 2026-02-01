@@ -10,6 +10,17 @@ import (
 func (suite *RepositoryTestSuite) TestProjects() {
 	t := suite.T()
 
+	t.Run("should return empty list", func(t *testing.T) {
+		listRepo := NewListRepo(suite.db)
+		projects, err := listRepo.PrivateProjects(suite.ctx, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		expected := 0
+		actual := len(projects)
+		suite.Require().Equal(expected, actual)
+	})
 	t.Run("should return 2 projects", func(t *testing.T) {
 		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
@@ -29,6 +40,15 @@ func (suite *RepositoryTestSuite) TestProjects() {
 func (suite *RepositoryTestSuite) TestPublicProjects() {
 	t := suite.T()
 
+	t.Run("should get empty list", func(t *testing.T) {
+		listRepo := NewListRepo(suite.db)
+		projects, err := listRepo.PublicProjects(suite.ctx, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(0, len(projects))
+	})
 	t.Run("should get 2 public projects", func(t *testing.T) {
 		p1 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		p2 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
@@ -50,6 +70,17 @@ func (suite *RepositoryTestSuite) TestPublicProjects() {
 func (suite *RepositoryTestSuite) TestJoinRequests() {
 	t := suite.T()
 
+	t.Run("should get empty list", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+
+		listRepo := NewListRepo(suite.db)
+		joinRequests, err := listRepo.JoinRequests(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(0, len(joinRequests))
+	})
 	t.Run("should get list of join requests", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertJoinRequest(repo_fixtures.GetJoinRequest(p, USER_TWO))
@@ -93,6 +124,17 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 func (suite *RepositoryTestSuite) TestListTasks() {
 	t := suite.T()
 
+	t.Run("should get empty list", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		repo := NewListRepo(suite.db)
+
+		tasks, err := repo.Tasks(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(0, len(tasks))
+	})
 	t.Run("should get list of tasks", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
@@ -148,6 +190,35 @@ func (suite *RepositoryTestSuite) TestListTasks() {
 			[]string{USER_TWO, USER_THREE},
 			[]string{tasks[0].Assignees[0].UserId, tasks[0].Assignees[1].UserId},
 		)
+	})
+}
+
+func (suite *RepositoryTestSuite) TestListMembers() {
+	t := suite.T()
+
+	t.Run("should get empty list", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		repo := NewListRepo(suite.db)
+
+		members, err := repo.Members(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(0, len(members))
+	})
+	t.Run("should list members", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		repo := NewListRepo(suite.db)
+
+		members, err := repo.Members(suite.ctx, p)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(members))
+		suite.Require().Equal(USER_TWO, members[0].Id)
 	})
 }
 

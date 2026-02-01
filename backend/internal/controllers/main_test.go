@@ -71,6 +71,8 @@ func (suite *ControllerTestSuite) SetupSuite() {
 
 	handler := http.NewServeMux()
 	handler.Handle("POST /projects", HTTPErrorHandler(projectController.Create))
+	handler.Handle("GET /projects", HTTPErrorHandler(projectController.List))
+	handler.Handle("GET /projects/{id}/members", HTTPErrorHandler(projectController.ListMembers))
 
 	suite.fixtures.Handler = handler
 

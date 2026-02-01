@@ -43,6 +43,6 @@ type UpdateJoinRequest struct {
 	JoinStatus string `json:"join_status" validate:"required"`
 }
 
-type MembersResponse struct {
+type ListedMembersResponse struct {
 	Members []*domain.Member `json:"members"`
 }

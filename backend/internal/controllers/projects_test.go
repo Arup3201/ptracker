@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"testing"
+
+	"github.com/ptracker/internal/testhelpers/controller_fixtures"
 )
 
 func (suite *ControllerTestSuite) TestProjectControllerCreate() {
@@ -86,5 +88,58 @@ func (suite *ControllerTestSuite) TestProjectControllerCreate() {
 		suite.Cleanup()
 
 		suite.Require().Equal(http.StatusInternalServerError, rec.Result().StatusCode)
+	})
+}
+
+func (suite *ControllerTestSuite) TestProjectControllerListProjects() {
+	t := suite.T()
+
+	t.Run("should list projects", func(t *testing.T) {
+		client := suite.fixtures.RequestAs(USER_ONE)
+
+		rec := client.Get("/projects")
+
+		suite.Cleanup()
+
+		suite.Require().Equal(http.StatusOK, rec.Result().StatusCode)
+	})
+	t.Run("should return empty list for user with no projects", func(t *testing.T) {
+		client := suite.fixtures.RequestAs(USER_TWO)
+
+		rec := client.Get("/projects")
+
+		suite.Cleanup()
+
+		var response HTTPSuccessResponse[ListedPrivateProjectsResponse]
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+			suite.Require().NoError(err)
+		}
+
+		suite.Require().Equal(http.StatusOK, rec.Result().StatusCode)
+		suite.Require().Equal(0, len(response.Data.ProjectSummaries))
+	})
+}
+
+func (suite *ControllerTestSuite) TestProjectControllerListMembers() {
+	t := suite.T()
+
+	t.Run("should get empty list of members", func(t *testing.T) {
+		projectId := suite.fixtures.Project(controller_fixtures.ProjectParams{
+			Name:  "Project One",
+			Owner: USER_ONE,
+		})
+		client := suite.fixtures.RequestAs(USER_ONE)
+
+		rec := client.Get("/projects/" + projectId + "/members")
+
+		suite.Cleanup()
+
+		suite.Require().Equal(http.StatusOK, rec.Result().StatusCode)
+
+		var response HTTPSuccessResponse[ListedMembersResponse]
+		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
+			suite.Require().NoError(err)
+		}
+		suite.Require().Equal(0, len(response.Data.Members))
 	})
 }

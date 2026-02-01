@@ -296,9 +296,9 @@ func (c *projectController) ListMembers(w http.ResponseWriter, r *http.Request) 
 		return fmt.Errorf("service members: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[MembersResponse]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedMembersResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data: &MembersResponse{
+		Data: &ListedMembersResponse{
 			Members: members,
 		},
 	})
