@@ -221,6 +221,7 @@ export default function ProjectDetailsPage() {
       </div>
       <AddTaskModal
         projectId={projectId}
+        members={members}
         open={addTask}
         onClose={() => setAddTask(false)}
       />
@@ -228,6 +229,7 @@ export default function ProjectDetailsPage() {
         open={Boolean(taskId)}
         taskId={taskId}
         projectId={projectId}
+        members={members}
         onClose={closeTaskDrawer}
         role={details?.role || ROLES.MEMBER}
       />

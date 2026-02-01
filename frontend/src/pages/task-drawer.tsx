@@ -1,21 +1,24 @@
 import { type ReactNode, useEffect, useState } from "react";
 
-import { ROLES, type TaskRole } from "../types/project";
+import { ROLES, type Member, type TaskRole } from "../types/project";
 import { TASK_STATUS, type TaskDetailApi } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
+import AssigneeSelector from "../components/assignee-selector";
 
 export function TaskDrawer({
   open,
   taskId,
   projectId,
+  members,
   onClose,
   role,
 }: {
   open: boolean;
   taskId: string | null;
   projectId?: string;
+  members: Member[];
   onClose: () => void;
   role: TaskRole;
 }) {
@@ -166,21 +169,7 @@ export function TaskDrawer({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-(--text-primary)">
-              Assignee
-            </label>
-            <select
-              value={assignee}
-              onChange={(e) => {
-                setAssignee(e.target.value);
-                setDirty(true);
-              }}
-              className="h-8 rounded-xs bg-(--bg-surface) px-2 text-sm border border-(--border-default) outline-none focus:border-(--primary)"
-            >
-              <option value="">Unassigned</option>
-              <option value="Rahul">Rahul</option>
-              <option value="Arup">Arup</option>
-            </select>
+            <AssigneeSelector members={members} />
           </div>
         </section>
       )}
