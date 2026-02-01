@@ -35,7 +35,7 @@ func (r *ListRepo) PrivateProjects(ctx context.Context, userId string) ([]*domai
 	}
 	defer rows.Close()
 
-	var projects []*domain.PrivateProjectListed
+	var projects = []*domain.PrivateProjectListed{}
 	for rows.Next() {
 		var p = domain.PrivateProjectListed{
 			ProjectSummary: &domain.ProjectSummary{
@@ -92,7 +92,7 @@ func (r *ListRepo) Tasks(ctx context.Context,
 	}
 	defer rows.Close()
 
-	var tasks []*domain.TaskListed
+	var tasks = []*domain.TaskListed{}
 	for rows.Next() {
 		var (
 			task      domain.Task
@@ -139,7 +139,7 @@ func (r *ListRepo) Assignees(ctx context.Context,
 	}
 	defer rows.Close()
 
-	var assignees []*domain.Assignee
+	var assignees = []*domain.Assignee{}
 	for rows.Next() {
 		var a domain.Assignee
 
@@ -162,7 +162,6 @@ func (r *ListRepo) Assignees(ctx context.Context,
 
 func (r *ListRepo) Members(ctx context.Context,
 	projectId string) ([]*domain.Member, error) {
-	var members []*domain.Member
 
 	rows, err := r.db.QueryContext(ctx,
 		"SELECT "+
@@ -176,6 +175,7 @@ func (r *ListRepo) Members(ctx context.Context,
 	}
 	defer rows.Close()
 
+	var members = []*domain.Member{}
 	for rows.Next() {
 		var m domain.Member
 		rows.Scan(&m.Id, &m.Username, &m.DisplayName, &m.Email,
@@ -192,7 +192,6 @@ func (r *ListRepo) Members(ctx context.Context,
 }
 
 func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error) {
-	var projects = []*domain.PublicProjectListed{}
 
 	rows, err := r.db.QueryContext(
 		ctx,
@@ -208,10 +207,11 @@ func (r *ListRepo) PublicProjects(ctx context.Context, userId string) ([]*domain
 			"LEFT JOIN roles AS r ON p.id=r.project_id AND r.user_id=($1)",
 		userId)
 	if err != nil {
-		return projects, fmt.Errorf("postgres get task query: %w", err)
+		return nil, fmt.Errorf("postgres get task query: %w", err)
 	}
 	defer rows.Close()
 
+	var projects = []*domain.PublicProjectListed{}
 	for rows.Next() {
 		var p = domain.PublicProjectListed{
 			Project: &domain.Project{},

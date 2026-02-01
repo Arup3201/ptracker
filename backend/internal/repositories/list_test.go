@@ -17,9 +17,8 @@ func (suite *RepositoryTestSuite) TestProjects() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
-		expected := 0
-		actual := len(projects)
-		suite.Require().Equal(expected, actual)
+		suite.Require().NotNil(projects)
+		suite.Require().Equal(0, len(projects))
 	})
 	t.Run("should return 2 projects", func(t *testing.T) {
 		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
@@ -47,6 +46,7 @@ func (suite *RepositoryTestSuite) TestPublicProjects() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
+		suite.Require().NotNil(projects)
 		suite.Require().Equal(0, len(projects))
 	})
 	t.Run("should get 2 public projects", func(t *testing.T) {
@@ -79,6 +79,7 @@ func (suite *RepositoryTestSuite) TestJoinRequests() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
+		suite.Require().NotNil(joinRequests)
 		suite.Require().Equal(0, len(joinRequests))
 	})
 	t.Run("should get list of join requests", func(t *testing.T) {
@@ -133,6 +134,7 @@ func (suite *RepositoryTestSuite) TestListTasks() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
+		suite.Require().NotNil(tasks)
 		suite.Require().Equal(0, len(tasks))
 	})
 	t.Run("should get list of tasks", func(t *testing.T) {
@@ -205,6 +207,7 @@ func (suite *RepositoryTestSuite) TestListMembers() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
+		suite.Require().NotNil(members)
 		suite.Require().Equal(0, len(members))
 	})
 	t.Run("should list members", func(t *testing.T) {

@@ -116,6 +116,7 @@ func (suite *ControllerTestSuite) TestProjectControllerListProjects() {
 		}
 
 		suite.Require().Equal(http.StatusOK, rec.Result().StatusCode)
+		suite.Require().NotNil(response.Data.ProjectSummaries)
 		suite.Require().Equal(0, len(response.Data.ProjectSummaries))
 	})
 }
@@ -140,6 +141,7 @@ func (suite *ControllerTestSuite) TestProjectControllerListMembers() {
 		if err := json.NewDecoder(rec.Body).Decode(&response); err != nil {
 			suite.Require().NoError(err)
 		}
+		suite.Require().NotNil(response.Data.Members)
 		suite.Require().Equal(0, len(response.Data.Members))
 	})
 }
