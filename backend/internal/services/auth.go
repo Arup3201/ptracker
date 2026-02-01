@@ -203,6 +203,8 @@ func (s *authService) Callback(ctx context.Context,
 			if err != nil {
 				return nil, fmt.Errorf("store user get: %w", err)
 			}
+		default:
+			return nil, fmt.Errorf("store user get by subject: %w", err)
 		}
 	}
 
