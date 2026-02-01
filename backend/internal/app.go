@@ -30,8 +30,9 @@ type app struct {
 func NewApp(config *Config,
 	db interfaces.Execer,
 	inMemory interfaces.InMemory,
-	rateLimiter interfaces.RateLimiter,
-	handler *http.ServeMux) *app {
+	rateLimiter interfaces.RateLimiter) *app {
+
+	handler := http.NewServeMux()
 
 	app := &app{
 		config:  config,

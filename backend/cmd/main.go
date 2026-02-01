@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/ptracker/internal"
@@ -36,10 +35,7 @@ func main() {
 	inMemory := infra.NewInMemory(redis)
 	rateLimiter := infra.NewRateLimiter(redis, 5, 2)
 
-	// handler
-	mux := http.NewServeMux()
-
-	err = internal.NewApp(config, database, inMemory, rateLimiter, mux).
+	err = internal.NewApp(config, database, inMemory, rateLimiter).
 		AttachRoutes("/api/v1").
 		Start()
 	if err != nil {
