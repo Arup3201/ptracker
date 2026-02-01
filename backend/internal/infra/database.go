@@ -37,13 +37,13 @@ func NewDatabase(driver, dataSource string) (interfaces.Execer, error) {
 }
 
 func (d *database) QueryContext(ctx context.Context, stmt string, args ...any) (*sql.Rows, error) {
-	return d.db.QueryContext(ctx, stmt, args)
+	return d.db.QueryContext(ctx, stmt, args...)
 }
 
 func (d *database) QueryRowContext(ctx context.Context, stmt string, args ...any) *sql.Row {
-	return d.db.QueryRowContext(ctx, stmt, args)
+	return d.db.QueryRowContext(ctx, stmt, args...)
 }
 
 func (d *database) ExecContext(ctx context.Context, stmt string, args ...any) (sql.Result, error) {
-	return d.db.ExecContext(ctx, stmt, args)
+	return d.db.ExecContext(ctx, stmt, args...)
 }
