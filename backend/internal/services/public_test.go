@@ -18,9 +18,9 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 
 		err := service.JoinProject(suite.ctx, p, USER_TWO)
 
-		suite.Require().NoError(err)
-
 		suite.Cleanup()
+
+		suite.Require().NoError(err)
 	})
 	t.Run("should join project with status pending", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -40,9 +40,10 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 				"WHERE project_id=($1) AND user_id=($2)",
 			p, USER_TWO,
 		).Scan(&status)
-		suite.Require().Equal("Pending", status)
 
 		suite.Cleanup()
+
+		suite.Require().Equal("Pending", status)
 	})
 	t.Run("should fail with duplicate value error", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -53,6 +54,8 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 		service.JoinProject(suite.ctx, p, USER_TWO)
 
 		err := service.JoinProject(suite.ctx, p, USER_TWO)
+
+		suite.Cleanup()
 
 		suite.Require().ErrorContains(err, "duplicate value")
 	})
