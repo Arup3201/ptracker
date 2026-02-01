@@ -1,1 +1,0 @@
-ALTER TYPE user_role ADD VALUE 'Assignee' AFTER 'Owner';

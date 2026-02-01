@@ -188,7 +188,7 @@ export default function ProjectDetailsPage() {
           <div className="text-sm text-(--text-muted)">
             Members:{" "}
             <span className="font-medium text-(--text-primary)">
-              {details?.memberCount}
+              {details?.membersCount}
             </span>
           </div>
         </div>
@@ -320,7 +320,7 @@ function MembersSection({ members }: { members: Member[] }) {
             </TableCell>
             <TableCell muted>{member.role}</TableCell>
             <TableCell align="right" muted>
-              {member.joinedAt}
+              {member.createdAt}
             </TableCell>
           </TableRow>
         ))}
@@ -358,28 +358,26 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
       )}
       {pendingRequests.map((req) => (
         <div
-          key={req.projectId + req.user.id}
+          key={req.projectId + req.userId}
           className="flex items-start justify-between p-4"
         >
           <div className="space-y-1">
-            <div className="text-sm font-medium">{req.user.username}</div>
-            <p className="text-sm text-(--text-secondary)">
-              {req.user.displayName}
-            </p>
+            <div className="text-sm font-medium">{req.username}</div>
+            <p className="text-sm text-(--text-secondary)">{req.displayName}</p>
           </div>
 
           <div className="flex gap-2">
             <Button
               variant="secondary"
               onClick={() =>
-                handleUpdate(req.projectId, req.user.id, "Rejected")
+                handleUpdate(req.projectId, req.userId, "Rejected")
               }
             >
               Reject
             </Button>
             <Button
               onClick={() =>
-                handleUpdate(req.projectId, req.user.id, "Accepted")
+                handleUpdate(req.projectId, req.userId, "Accepted")
               }
             >
               Accept

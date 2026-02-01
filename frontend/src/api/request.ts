@@ -1,11 +1,11 @@
-const API_ROOT = "http://localhost:8081/api";
+export const API_ROOT = "http://localhost:8081/api/v1";
 
 type URLMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export async function ApiRequest<TDomain>(
   endpoint: string,
   method: URLMethod,
-  body: Record<string, any> | null
+  body: Record<string, any> | null,
 ): Promise<TDomain | null> {
   if (method == "GET") {
     const response = await fetch(API_ROOT + endpoint, {

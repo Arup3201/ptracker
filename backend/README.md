@@ -160,11 +160,21 @@
 
 ### Migration
 
-For some reason if the tables are not created or modification is needed, please use the following command to take the tables down.
+For the first time running server, you would need the necessary tables. There is already a `migrations` folder containing all the necessary changes. You can perform the migration with the following command:
+
+> `n` is the number of migrations.
 
 ```sh
-migrate -source file://migrations -database postgres://[user]:[password]@[host]:[port]/[database]?sslmode=disable down 9
+migrate -source file://migrations -database postgres://[user]:[password]@[host]:[port]/[database]?sslmode=disable up n
 ```
+
+For some reason if the tables are not created or modification is needed, use the following command to take the tables down.
+
+```sh
+migrate -source file://migrations -database postgres://[user]:[password]@[host]:[port]/[database]?sslmode=disable down n
+```
+
+And fix the migrations, then try again.
 
 Before running the `migrate` command, you would need the CLI. You can install the CLI following the official golang-migrate [instructions](https://github.com/golang-migrate/migrate/tree/master/cmd/migrate#unversioned).
 

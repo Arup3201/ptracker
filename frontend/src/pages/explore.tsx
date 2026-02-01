@@ -26,11 +26,11 @@ function ProjectCard({ project }: { project: ExploreProject }) {
     <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
       <div className="flex items-start justify-between gap-2">
         <h3 className="text-[14px] font-semibold text-(--text-primary) leading-snug">
-          {project.title}
+          {project.name}
         </h3>
 
         {project.role !== "User" && (
-          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-[2px]">
+          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-0.5">
             {project.role}
           </span>
         )}
@@ -60,7 +60,7 @@ export default function ExploreProjectsPage() {
   const getProjects = async () => {
     try {
       const data = await ApiRequest<ExploreProjectsApiResponse>(
-        "/explore/projects",
+        "/public/projects",
         "GET",
         null,
       );
@@ -79,7 +79,7 @@ export default function ExploreProjectsPage() {
 
   const filteredProjects = projects.filter(
     (project) =>
-      project.title.toLowerCase().includes(query.toLowerCase()) ||
+      project.name.toLowerCase().includes(query.toLowerCase()) ||
       project.description.toLowerCase().includes(query.toLowerCase()),
   );
 

@@ -1,8 +1,7 @@
 import { Card, CardContent } from "../components/card.tsx";
 import { Button } from "../components/button.tsx";
 import { Logo } from "../components/logo.tsx";
-
-const API_ROOT = "http://localhost:8081";
+import { API_ROOT } from "../api/request.ts";
 
 export default function LoginPage() {
   return (
@@ -21,7 +20,7 @@ export default function LoginPage() {
 
               <Button
                 onClick={() => {
-                  window.location.href = API_ROOT + "/api/auth/login";
+                  window.location.href = API_ROOT + "/auth/login";
                 }}
               >
                 Login with Keycloak
