@@ -242,17 +242,17 @@ func (s *authService) Authenticate(ctx context.Context,
 	tokenKey := utils.GetAccessTokenKey(sessionId)
 	accessToken, err := s.store.InMemory().Get(ctx, tokenKey)
 	if err != nil {
-		return "", fmt.Errorf("store in-memory get: %w", err)
+		return "", fmt.Errorf("store in-memory get: %w: %w", err, apierr.ErrUnauthorized)
 	}
 
 	sub, err := s.verifyAccessToken(ctx, accessToken)
 	if err != nil {
-		return "", fmt.Errorf("verify access token: %w", err)
+		return "", fmt.Errorf("verify access token: %w: %w", err, apierr.ErrUnauthorized)
 	}
 
 	user, err := s.store.User().GetBySubject(ctx, sub, DEFAULT_PROVIDER)
 	if err != nil {
-		return "", fmt.Errorf("store user get by subject: %w", err)
+		return "", fmt.Errorf("store user get by subject: %w: %w", err, apierr.ErrUnauthorized)
 	}
 
 	return user.Id, nil

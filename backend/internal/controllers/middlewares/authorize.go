@@ -2,10 +2,12 @@ package middlewares
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/ptracker/internal/apierr"
 	"github.com/ptracker/internal/constants"
 	"github.com/ptracker/internal/controllers"
 	"github.com/ptracker/internal/interfaces"
@@ -43,6 +45,14 @@ func (m *authMiddleware) Handler(next http.Handler) controllers.HTTPErrorHandler
 
 		userId, err := m.service.Authenticate(r.Context(), sessionId)
 		if err != nil {
+			if errors.Is(err, apierr.ErrUnauthorized) {
+				return &controllers.HTTPError{
+					Code:    http.StatusUnauthorized,
+					Message: "User is not authorized",
+					Err:     fmt.Errorf("auth service authenticate: %w", err),
+				}
+			}
+
 			return &controllers.HTTPError{
 				Code:    http.StatusInternalServerError,
 				Message: "Server failed to authenticate",
