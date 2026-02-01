@@ -36,7 +36,8 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 
 		taskId, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, USER_ONE)
 		var status string
-		suite.db.QueryRow(
+		suite.db.QueryRowContext(
+			suite.ctx,
 			"SELECT "+
 				"status "+
 				"FROM tasks "+

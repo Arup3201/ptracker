@@ -11,10 +11,10 @@ import (
 )
 
 type JoinRequestRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewJoinRequestRepo(db Execer) interfaces.JoinRequestRepository {
+func NewJoinRequestRepo(db interfaces.Execer) interfaces.JoinRequestRepository {
 	return &JoinRequestRepo{
 		db: db,
 	}

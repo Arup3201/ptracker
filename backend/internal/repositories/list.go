@@ -10,10 +10,10 @@ import (
 )
 
 type ListRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewListRepo(db Execer) interfaces.ListRepository {
+func NewListRepo(db interfaces.Execer) interfaces.ListRepository {
 	return &ListRepo{
 		db: db,
 	}

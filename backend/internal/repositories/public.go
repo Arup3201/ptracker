@@ -9,10 +9,10 @@ import (
 )
 
 type PublicRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewPublicRepo(db Execer) interfaces.PublicRepository {
+func NewPublicRepo(db interfaces.Execer) interfaces.PublicRepository {
 	return &PublicRepo{
 		db: db,
 	}

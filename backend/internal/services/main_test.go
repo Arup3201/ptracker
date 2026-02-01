@@ -2,11 +2,10 @@ package services
 
 import (
 	"context"
-	"database/sql"
 	"log"
 	"testing"
 
-	"github.com/ptracker/internal/db"
+	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/service_fixtures"
@@ -18,7 +17,7 @@ type ServiceTestSuite struct {
 	suite.Suite
 	ctx         context.Context
 	pgContainer *testhelpers.PostgresContainer
-	db          *sql.DB
+	db          interfaces.Execer
 	store       interfaces.Store
 	fixtures    *service_fixtures.Fixtures
 }
@@ -35,7 +34,7 @@ func (suite *ServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.db, err = db.ConnectPostgres(suite.pgContainer.ConnectionString)
+	suite.db, err = infra.NewDatabase("postgres", suite.pgContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,8 +55,8 @@ func (suite *ServiceTestSuite) SetupSuite() {
 	}
 
 	redisClient := redis.NewClient(opt)
-	redis := db.NewRedisInMemory(redisClient)
-	rateLimiter := db.NewRedisRateLimiter(redisClient, 5, 3)
+	redis := infra.NewInMemory(redisClient)
+	rateLimiter := infra.NewRateLimiter(redisClient, 5, 3)
 	suite.store = NewStorage(suite.db, redis, rateLimiter)
 	suite.fixtures = service_fixtures.New(suite.ctx, suite.store)
 
@@ -82,7 +81,7 @@ func (suite *ServiceTestSuite) SetupSuite() {
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {
-	_, err := suite.db.Exec("TRUNCATE users CASCADE")
+	_, err := suite.db.ExecContext(suite.ctx, "TRUNCATE users CASCADE")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,7 +91,7 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) Cleanup() {
-	_, err := suite.db.Exec("DELETE FROM projects")
+	_, err := suite.db.ExecContext(suite.ctx, "DELETE FROM projects")
 	suite.Require().NoError(err)
 }
 

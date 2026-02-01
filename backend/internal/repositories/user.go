@@ -13,10 +13,10 @@ import (
 )
 
 type UserRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewUserRepo(db Execer) interfaces.UserRepository {
+func NewUserRepo(db interfaces.Execer) interfaces.UserRepository {
 	return &UserRepo{
 		db: db,
 	}

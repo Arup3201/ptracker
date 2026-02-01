@@ -11,10 +11,10 @@ import (
 )
 
 type SessionRepo struct {
-	db Execer
+	db interfaces.Execer
 }
 
-func NewSessionRepo(db Execer) interfaces.SessionRepository {
+func NewSessionRepo(db interfaces.Execer) interfaces.SessionRepository {
 	return &SessionRepo{
 		db: db,
 	}

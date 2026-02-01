@@ -43,7 +43,8 @@ func (suite *ControllerTestSuite) TestProjectControllerCreate() {
 		}
 
 		var name, description, owner string
-		err := suite.db.QueryRow(
+		err := suite.db.QueryRowContext(
+			suite.ctx,
 			"SELECT name, description, owner FROM projects WHERE id=($1)",
 			response.Data,
 		).Scan(&name, &description, &owner)
