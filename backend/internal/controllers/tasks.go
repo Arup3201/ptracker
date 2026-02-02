@@ -196,9 +196,22 @@ func (c *taskController) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("service get task: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.Task]{
+	assignees, err := c.service.GetTaskAssignees(
+		r.Context(),
+		projectId,
+		taskId,
+		userId,
+	)
+	if err != nil {
+		return fmt.Errorf("service get task assignees: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.TaskDetail]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data:   task,
+		Data: &domain.TaskDetail{
+			Task:      task,
+			Assignees: assignees,
+		},
 	})
 
 	return nil
