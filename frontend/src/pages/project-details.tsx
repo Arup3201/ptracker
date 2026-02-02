@@ -282,7 +282,9 @@ function TasksSection({
                   <span className="font-medium">{task.title}</span>
                 </a>
               </TableCell>
-              <TableCell muted>{task.assignee ?? "—"}</TableCell>
+              <TableCell muted>
+                {task.assignees.map((a) => a.username).join(", ") ?? "—"}
+              </TableCell>
               <TableCell muted>{task.status}</TableCell>
               <TableCell align="right" muted>
                 {task.updatedAt}
@@ -300,7 +302,6 @@ function MembersSection({ members }: { members: Member[] }) {
     <Table>
       <TableHeader>
         <TableHead>Name</TableHead>
-        <TableHead>Role</TableHead>
         <TableHead align="right">Joined</TableHead>
       </TableHeader>
 
@@ -320,7 +321,6 @@ function MembersSection({ members }: { members: Member[] }) {
             <TableCell>
               <span className="font-medium">{member.displayName}</span>
             </TableCell>
-            <TableCell muted>{member.role}</TableCell>
             <TableCell align="right" muted>
               {member.createdAt}
             </TableCell>

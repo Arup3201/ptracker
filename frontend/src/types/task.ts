@@ -1,3 +1,5 @@
+import { MapMember, type Member, type MemberApi } from "./project";
+
 export const TASK_STATUS: Record<string, TaskStatus> = {
   UNASSIGNED: "Unassigned",
   ONGOING: "Ongoing",
@@ -11,7 +13,7 @@ export interface Task {
   id: string;
   title: string;
   description: string;
-  assignee?: string;
+  assignees: Member[];
   status: TaskStatus;
   createdAt: string;
   updatedAt?: string;
@@ -21,7 +23,7 @@ export interface TaskApi {
   id: string;
   title: string;
   description: string;
-  assignee?: string;
+  assignees: MemberApi[];
   status: TaskStatus;
   created_at: string;
   updated_at?: string;
@@ -38,7 +40,7 @@ export const MapTask = (t: TaskApi): Task => ({
   id: t.id,
   title: t.title,
   description: t.description,
-  assignee: t.assignee,
+  assignees: t.assignees.map(MapMember),
   status: t.status,
   createdAt: t.created_at,
   updatedAt: t.updated_at,
@@ -48,7 +50,7 @@ export interface TaskDetailApi {
   id: string;
   title: string;
   description: string;
-  assignee?: string;
+  assignees: MemberApi[];
   status: TaskStatus;
   created_at: string;
   updated_at?: string;
@@ -58,7 +60,7 @@ export interface TaskDetails {
   id: string;
   title: string;
   description: string;
-  assignee?: string;
+  assignees: Member[];
   status: TaskStatus;
   createdAt: string;
   updatedAt?: string;
@@ -68,7 +70,7 @@ export const MapTaskDetails = (t: TaskDetailApi): TaskDetails => ({
   id: t.id,
   title: t.title,
   description: t.description,
-  assignee: t.assignee,
+  assignees: t.assignees.map(MapMember),
   status: t.status,
   createdAt: t.created_at,
   updatedAt: t.updated_at,

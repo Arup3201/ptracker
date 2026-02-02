@@ -1,7 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import { ROLES, type Member, type TaskRole } from "../types/project";
-import { TASK_STATUS, type TaskDetailApi } from "../types/task";
+import { MapTaskDetails, TASK_STATUS, type TaskDetailApi } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
@@ -28,24 +28,25 @@ export function TaskDrawer({
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const [title, setTitle] = useState("Set up database migrations");
-  const [description, setDescription] = useState(
-    "Add initial migration setup and ensure versioning is correct.",
-  );
-  const [status, setStatus] = useState("Ongoing");
-  const [assignee, setAssignee] = useState("Rahul");
+  const [title, setTitle] = useState<string>();
+  const [description, setDescription] = useState<string>();
+  const [status, setStatus] = useState<string>();
+  const [assignees, setAssignees] = useState<Member[]>([]);
 
   async function getProjectTask(projectId: string, taskId: string) {
     try {
-      const taskDetails = await ApiRequest<TaskDetailApi>(
+      const data = await ApiRequest<TaskDetailApi>(
         `/projects/${projectId}/tasks/${taskId}`,
         "GET",
         null,
       );
-      setTitle(taskDetails?.title || "");
-      setDescription(taskDetails?.description || "");
-      setStatus(taskDetails?.status || TASK_STATUS.UNASSIGNED);
-      setAssignee(taskDetails?.assignee || "");
+      if (data) {
+        const taskDetails = MapTaskDetails(data);
+        setTitle(taskDetails.title || "");
+        setDescription(taskDetails.description || "");
+        setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
+        setAssignees(taskDetails.assignees || []);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -112,7 +113,8 @@ export function TaskDrawer({
 
         {!editMode && (
           <div className="text-xs text-(--text-muted)">
-            Status: {status} · Assignee: {assignee || "Unassigned"}
+            Status: {status} · Assignee:{" "}
+            {assignees.map((a) => a.username).join(", ") || "Unassigned"}
           </div>
         )}
 
