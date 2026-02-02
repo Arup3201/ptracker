@@ -52,14 +52,17 @@ type PublicService interface {
 
 type TaskService interface {
 	CreateTask(ctx context.Context,
-		projectId, title string,
-		description *string,
-		assignees []string,
-		status, userId string) (string, []string, error)
+		projectId, userId string,
+		title, description, status string,
+		assignees []string) (string, []string, error)
 	ListTasks(ctx context.Context,
 		projectId, userId string) ([]*domain.TaskListed, error)
 	GetTask(ctx context.Context,
 		projectId, taskId, userId string) (*domain.Task, error)
+	UpdateTask(ctx context.Context,
+		projectId, taskId, userId string,
+		title, description, status string,
+		addedAssignees, removedAssignees []string) error
 	GetTaskAssignees(ctx context.Context,
 		projectId, taskId, userId string) ([]*domain.Assignee, error)
 }

@@ -19,7 +19,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		_, _, err := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{})
 
 		suite.Cleanup()
 
@@ -34,7 +37,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		taskId, _, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		taskId, _, _ := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{})
 		var status string
 		suite.db.QueryRowContext(
 			suite.ctx,
@@ -59,7 +65,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_TWO)
+		_, _, err := service.CreateTask(suite.ctx,
+			p, USER_TWO,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{})
 
 		suite.Cleanup()
 
@@ -74,7 +83,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := ""
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		_, _, err := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{})
 
 		suite.Cleanup()
 
@@ -91,7 +103,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		_, _, err := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{USER_TWO, USER_THREE})
 
 		suite.Cleanup()
 
@@ -108,7 +123,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, warnings, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		_, warnings, _ := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{USER_TWO, USER_THREE})
 
 		suite.Cleanup()
 
@@ -125,7 +143,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		id, _, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, USER_THREE}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		id, _, _ := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{USER_TWO, USER_THREE})
 
 		var userIds = []string{}
 		rows, _ := suite.db.QueryContext(suite.ctx,
@@ -152,7 +173,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, warnings, _ := service.CreateTask(suite.ctx, p, sample_title, &sample_description, []string{USER_TWO, "asdfd"}, domain.TASK_STATUS_UNASSIGNED, USER_ONE)
+		_, warnings, _ := service.CreateTask(suite.ctx,
+			p, USER_ONE,
+			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
+			[]string{USER_TWO, "asdfd"})
 
 		suite.Cleanup()
 
@@ -280,5 +304,194 @@ func (suite *ServiceTestSuite) TestGetTask() {
 		suite.Cleanup()
 
 		suite.Require().ErrorContains(err, "forbidden")
+	})
+}
+
+func (suite *ServiceTestSuite) TestUpdateTask() {
+	t := suite.T()
+
+	t.Run("should update task", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		updatedTaskTitle := "Project title updated"
+
+		err := service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_ONE,
+			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should update task with title", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		updatedTaskTitle := "Project title updated"
+
+		service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_ONE,
+			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil)
+
+		var title string
+		suite.db.QueryRowContext(suite.ctx,
+			"SELECT title FROM tasks WHERE id=($1) AND project_id=($2)",
+			taskId, projectId).Scan(&title)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(updatedTaskTitle, title)
+	})
+	t.Run("should update description and status", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		task_title := "Project Task A"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     task_title,
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		updatedTaskDesc := "Project description updated"
+
+		service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_ONE,
+			task_title, updatedTaskDesc, domain.TASK_STATUS_ABANDONED,
+			nil, nil)
+
+		var description *string
+		var status string
+		suite.db.QueryRowContext(suite.ctx,
+			"SELECT description, status FROM tasks WHERE id=($1) AND project_id=($2)",
+			taskId, projectId).Scan(&description, &status)
+
+		suite.Cleanup()
+
+		suite.Require().NotNil(description)
+		suite.Require().Equal(updatedTaskDesc, *description)
+		suite.Require().Equal(domain.TASK_STATUS_ABANDONED, status)
+	})
+	t.Run("should update assignees by adding", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		task_title := "Project Task A"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     task_title,
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+
+		service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_ONE,
+			task_title, "", domain.TASK_STATUS_UNASSIGNED,
+			[]string{USER_TWO}, nil)
+
+		var tmp int
+		err := suite.db.QueryRowContext(suite.ctx,
+			"SELECT 1 FROM assignees WHERE project_id=($1) AND task_id=($2) AND user_id=($3)",
+			projectId, taskId, USER_TWO).Scan(&tmp)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should update task by removing assignees", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		task_title := "Project Task A"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     task_title,
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+			Assignees: []string{USER_TWO},
+		})
+		service := NewTaskService(suite.store)
+
+		service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_ONE,
+			task_title, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, []string{USER_TWO})
+
+		var tmp int
+		err := suite.db.QueryRowContext(suite.ctx,
+			"SELECT 1 FROM assignees WHERE project_id=($1) AND task_id=($2) AND user_id=($3)",
+			projectId, taskId, USER_TWO).Scan(&tmp)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "no rows in result set")
+	})
+	t.Run("should be forbidden to update title for not owner", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		service := NewTaskService(suite.store)
+		updatedTaskTitle := "Project title updated"
+
+		err := service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_TWO,
+			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "forbidden")
+	})
+	t.Run("should be able to update title as assignee", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+			Assignees: []string{USER_TWO},
+		})
+		service := NewTaskService(suite.store)
+		updatedTaskTitle := "Project title updated"
+
+		err := service.UpdateTask(suite.ctx,
+			projectId, taskId, USER_TWO,
+			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
 	})
 }

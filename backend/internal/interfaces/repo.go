@@ -38,10 +38,10 @@ type ProjectRepository interface {
 }
 
 type TaskRepository interface {
-	Create(ctx context.Context, projectId, title string,
-		description *string,
-		status string) (string, error)
+	Create(ctx context.Context, projectId,
+		title, description, status string) (string, error)
 	Get(ctx context.Context, id string) (*domain.Task, error)
+	Update(ctx context.Context, task *domain.Task) error
 }
 
 type RoleRepository interface {
@@ -52,6 +52,8 @@ type RoleRepository interface {
 
 type AssigneeRepository interface {
 	Create(ctx context.Context, projectId, taskId, userId string) error
+	Get(ctx context.Context, projectId, taskId, userId string) (bool, error)
+	Delete(ctx context.Context, projectId, taskId, userId string) error
 }
 
 type ListRepository interface {

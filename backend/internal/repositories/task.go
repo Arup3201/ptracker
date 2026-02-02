@@ -21,9 +21,8 @@ func NewTaskRepo(db interfaces.Execer) interfaces.TaskRepository {
 }
 
 func (r *TaskRepo) Create(ctx context.Context,
-	projectId, title string,
-	description *string,
-	status string) (string, error) {
+	projectId string,
+	title, description, status string) (string, error) {
 	tId := uuid.NewString()
 	now := time.Now()
 
@@ -53,4 +52,21 @@ func (r *TaskRepo) Get(ctx context.Context, id string) (*domain.Task, error) {
 	}
 
 	return &pt, nil
+}
+
+func (r *TaskRepo) Update(ctx context.Context, task *domain.Task) error {
+
+	now := time.Now()
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE tasks 
+		SET 
+		title=($2), description=($3), status=($4), updated_at=($5) 
+		WHERE id=($1)`,
+		task.Id,
+		task.Title, task.Description, task.Status, now)
+	if err != nil {
+		return fmt.Errorf("db exec context: %w", err)
+	}
+
+	return nil
 }

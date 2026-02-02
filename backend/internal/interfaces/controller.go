@@ -22,6 +22,7 @@ type TaskController interface {
 	List(w http.ResponseWriter, r *http.Request) error
 	Create(w http.ResponseWriter, r *http.Request) error
 	Get(w http.ResponseWriter, r *http.Request) error
+	Update(w http.ResponseWriter, r *http.Request) error
 }
 
 type PublicController interface {

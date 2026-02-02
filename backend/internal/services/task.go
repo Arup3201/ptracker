@@ -27,10 +27,9 @@ func NewTaskService(store interfaces.Store) interfaces.TaskService {
 }
 
 func (s *taskService) CreateTask(ctx context.Context,
-	projectId, title string,
-	description *string,
-	assignees []string,
-	status, userId string) (string, []string, error) {
+	projectId, userId string,
+	title, description, status string,
+	assignees []string) (string, []string, error) {
 
 	permitted, err := s.permissionService.CanCreateTask(ctx, projectId, userId)
 	if err != nil {
@@ -84,7 +83,51 @@ func (s *taskService) AddAssignees(ctx context.Context,
 			continue
 		}
 
+		role, err := s.store.Role().Get(ctx, projectId, assignee)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("failed to get user %s role", assignee))
+			continue
+		}
+
+		if role.Role != domain.ROLE_MEMBER && role.Role != domain.ROLE_OWNER {
+			warnings = append(warnings, fmt.Sprintf("user %s is not a member", assignee))
+			continue
+		}
+
 		err = s.store.Assignee().Create(ctx, projectId, taskId, assignee)
+		if err != nil {
+			warnings = append(warnings, "failed to create assignee in the database")
+		}
+	}
+
+	return
+}
+
+func (s *taskService) RemoveAssignees(ctx context.Context,
+	projectId, taskId string,
+	assignees []string) (warnings []string) {
+	if len(assignees) == 0 {
+		return
+	}
+
+	for _, assignee := range assignees {
+		exist, err := s.store.Assignee().Get(ctx, projectId, taskId, assignee)
+		if err != nil {
+			switch err {
+			case apierr.ErrNotFound:
+				warnings = append(warnings, fmt.Sprintf("not a valid user %s", assignee))
+			default:
+				warnings = append(warnings, "failed to fetch user from database")
+			}
+			continue
+		}
+
+		if !exist {
+			warnings = append(warnings, fmt.Sprintf("user %s is not a valid assignee", assignee))
+			continue
+		}
+
+		err = s.store.Assignee().Delete(ctx, projectId, taskId, assignee)
 		if err != nil {
 			warnings = append(warnings, "failed to create assignee in the database")
 		}
@@ -151,4 +194,78 @@ func (s *taskService) GetTaskAssignees(ctx context.Context,
 	}
 
 	return assignees, nil
+}
+
+func (s *taskService) UpdateTask(ctx context.Context,
+	projectId, taskId, userId string,
+	title, description, status string,
+	addedAssignees, removedAssignees []string) error {
+
+	task, err := s.store.Task().Get(ctx, taskId)
+	if err != nil {
+		return fmt.Errorf("store task get: %w", err)
+	}
+
+	if title != task.Title {
+		permitted, err := s.permissionService.CanUpdateTask(ctx,
+			projectId, taskId, userId)
+		if err != nil {
+			return fmt.Errorf("permission service can update task title: %w", err)
+		}
+		if !permitted {
+			return apierr.ErrForbidden
+		}
+
+		task.Title = title
+	}
+
+	if task.Description != nil {
+		desc := *task.Description
+		if desc != description {
+			permitted, err := s.permissionService.CanUpdateTask(ctx,
+				projectId, taskId, userId)
+			if err != nil {
+				return fmt.Errorf("permission service can update task title: %w", err)
+			}
+			if !permitted {
+				return apierr.ErrForbidden
+			}
+
+			*task.Description = description
+		}
+	} else if description != "" {
+		permitted, err := s.permissionService.CanUpdateTask(ctx,
+			projectId, taskId, userId)
+		if err != nil {
+			return fmt.Errorf("permission service can update task title: %w", err)
+		}
+		if !permitted {
+			return apierr.ErrForbidden
+		}
+
+		task.Description = &description
+	}
+
+	if status != task.Status {
+		permitted, err := s.permissionService.CanUpdateTask(ctx,
+			projectId, taskId, userId)
+		if err != nil {
+			return fmt.Errorf("permission service can update task title: %w", err)
+		}
+		if !permitted {
+			return apierr.ErrForbidden
+		}
+
+		task.Status = status
+	}
+
+	err = s.store.Task().Update(ctx, task)
+	if err != nil {
+		return fmt.Errorf("store task update: %w", err)
+	}
+
+	s.AddAssignees(ctx, projectId, taskId, addedAssignees)
+	s.RemoveAssignees(ctx, projectId, taskId, removedAssignees)
+
+	return nil
 }

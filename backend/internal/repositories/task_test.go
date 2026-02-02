@@ -18,7 +18,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 
 		taskRepo := NewTaskRepo(suite.db)
 		_, err := taskRepo.Create(suite.ctx, p,
-			sample_title, &sample_description, sample_status)
+			sample_title, sample_description, sample_status)
 
 		suite.Cleanup()
 
@@ -32,7 +32,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 
 		taskRepo := NewTaskRepo(suite.db)
 		id, _ := taskRepo.Create(suite.ctx, p,
-			sample_title, &sample_description, sample_status)
+			sample_title, sample_description, sample_status)
 		var task domain.Task
 		suite.db.QueryRowContext(
 			suite.ctx,
@@ -57,7 +57,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 
 		taskRepo := NewTaskRepo(suite.db)
 		_, err := taskRepo.Create(suite.ctx, p,
-			sample_title, nil, sample_status)
+			sample_title, "", sample_status)
 
 		suite.Cleanup()
 
