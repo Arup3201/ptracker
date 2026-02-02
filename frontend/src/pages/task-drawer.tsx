@@ -6,6 +6,7 @@ import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
 import AssigneeSelector from "../components/assignee-selector";
+import { StatusSelector } from "../components/status-selector";
 
 export function TaskDrawer({
   open,
@@ -28,9 +29,9 @@ export function TaskDrawer({
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const [title, setTitle] = useState<string>();
-  const [description, setDescription] = useState<string>();
-  const [status, setStatus] = useState<string>();
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [status, setStatus] = useState<string>("Unassigned");
   const [assignees, setAssignees] = useState<Member[]>([]);
 
   async function getProjectTask(projectId: string, taskId: string) {
@@ -152,26 +153,14 @@ export function TaskDrawer({
       {editMode && canEditAll && (
         <section className="mb-6 space-y-3">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-(--text-primary)">
-              Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setDirty(true);
-              }}
-              className="h-8 rounded-xs bg-(--bg-surface) px-2 text-sm border border-(--border-default) outline-none focus:border-(--primary)"
-            >
-              <option value="unassigned">Unassigned</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="abandoned">Abandoned</option>
-            </select>
+            <StatusSelector status={status} onChange={setStatus} />
           </div>
 
           <div className="flex flex-col gap-1">
-            <AssigneeSelector members={members} />
+            <AssigneeSelector
+              initialAssignees={assignees.map((a) => a.userId)}
+              members={members}
+            />
           </div>
         </section>
       )}
