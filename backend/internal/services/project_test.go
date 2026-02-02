@@ -210,23 +210,23 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Require().NoError(err)
-		var u domain.Member
+		var m domain.Member
 		suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
 				"id, username, display_name, email, avatar_url, is_active, created_at, updated_at  "+
 				"FROM users "+
 				"WHERE id=($1)",
 			USER_ONE,
-		).Scan(&u.Id, &u.Username, &u.DisplayName, &u.Email, &u.AvatarURL, &u.IsActive, &u.CreatedAt, &u.UpdatedAt)
+		).Scan(&m.UserId, &m.Username, &m.DisplayName, &m.Email, &m.AvatarURL, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(u.Id, project.Owner.Id)
-		suite.Require().Equal(u.Username, project.Owner.Username)
-		suite.Require().Equal(u.DisplayName, project.Owner.DisplayName)
-		suite.Require().Equal(u.Email, project.Owner.Email)
-		suite.Require().Equal(u.AvatarURL, project.Owner.AvatarURL)
-		suite.Require().Equal(u.IsActive, project.Owner.IsActive)
+		suite.Require().Equal(m.UserId, project.Owner.UserId)
+		suite.Require().Equal(m.Username, project.Owner.Username)
+		suite.Require().Equal(m.DisplayName, project.Owner.DisplayName)
+		suite.Require().Equal(m.Email, project.Owner.Email)
+		suite.Require().Equal(m.AvatarURL, project.Owner.AvatarURL)
+		suite.Require().Equal(m.IsActive, project.Owner.IsActive)
 	})
 	t.Run("should get forbidden error", func(t *testing.T) {
 		sample_name := "Test Project"

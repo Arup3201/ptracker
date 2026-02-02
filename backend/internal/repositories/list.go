@@ -178,7 +178,7 @@ func (r *ListRepo) Members(ctx context.Context,
 	var members = []*domain.Member{}
 	for rows.Next() {
 		var m domain.Member
-		rows.Scan(&m.Id, &m.Username, &m.DisplayName, &m.Email,
+		rows.Scan(&m.UserId, &m.Username, &m.DisplayName, &m.Email,
 			&m.AvatarURL, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
 
 		members = append(members, &m)

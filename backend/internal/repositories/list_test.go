@@ -221,7 +221,7 @@ func (suite *RepositoryTestSuite) TestListMembers() {
 
 		suite.Require().NoError(err)
 		suite.Require().Equal(1, len(members))
-		suite.Require().Equal(USER_TWO, members[0].Id)
+		suite.Require().Equal(USER_TWO, members[0].UserId)
 	})
 }
 

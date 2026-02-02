@@ -40,7 +40,7 @@ func (r *PublicRepo) Get(ctx context.Context, projectId string) (*domain.PublicP
 			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
 			"LEFT JOIN join_requests AS jr ON p.id=jr.project_id "+
 			"WHERE p.id=($1)",
-		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner.Id,
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner.UserId,
 		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
 		&p.JoinStatus, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {

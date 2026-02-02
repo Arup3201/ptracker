@@ -35,18 +35,18 @@ func (s *publicService) GetPublicProject(ctx context.Context, projectId string) 
 		return nil, fmt.Errorf("store public get: %w", err)
 	}
 
-	owner, err := s.store.User().Get(ctx, project.Owner.Id)
+	owner, err := s.store.User().Get(ctx, project.Owner.UserId)
 	if err != nil {
 		return nil, fmt.Errorf("store user get: %w", err)
 	}
 
-	role, err := s.store.Role().Get(ctx, projectId, project.Owner.Id)
+	role, err := s.store.Role().Get(ctx, projectId, project.Owner.UserId)
 	if err != nil {
 		return nil, fmt.Errorf("store role get: %w", err)
 	}
 
 	project.Owner = &domain.Member{
-		Id:          project.Owner.Id,
+		UserId:      project.Owner.UserId,
 		Username:    owner.Username,
 		DisplayName: owner.DisplayName,
 		Email:       owner.Email,

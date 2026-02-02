@@ -88,7 +88,7 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, fmt.Errorf("store role get: %w", err)
 	}
 
-	owner, err := s.store.User().Get(ctx, userId)
+	user, err := s.store.User().Get(ctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("store user get: %w", err)
 	}
@@ -116,12 +116,12 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		Role:        userRole.Role,
 		MemberCount: memberCount,
 		Owner: &domain.Member{
-			Id:          owner.Id,
-			Username:    owner.Username,
-			DisplayName: owner.DisplayName,
-			Email:       owner.Email,
-			AvatarURL:   owner.AvatarURL,
-			IsActive:    owner.IsActive,
+			UserId:      user.Id,
+			Username:    user.Username,
+			DisplayName: user.DisplayName,
+			Email:       user.Email,
+			AvatarURL:   user.AvatarURL,
+			IsActive:    user.IsActive,
 			CreatedAt:   userRole.CreatedAt,
 			UpdatedAt:   userRole.UpdatedAt,
 		},
