@@ -162,7 +162,7 @@ export interface JoinRequestsResponseApi {
 
 export interface Member {
   projectId: string;
-  userId: string;
+  id: string;
   username: string;
   displayName: string;
   email: string;
@@ -175,7 +175,7 @@ export interface Member {
 
 export interface MemberApi {
   project_id: string;
-  user_id: string;
+  id: string;
   username: string;
   display_name: string;
   email: string;
@@ -192,7 +192,7 @@ export interface MembersResponse {
 
 export const MapMember = (m: MemberApi): Member => ({
   projectId: m.project_id,
-  userId: m.user_id,
+  id: m.id,
   username: m.username,
   displayName: m.display_name,
   email: m.email,

@@ -5,6 +5,7 @@ import { Button } from "./button";
 import { ApiRequest } from "../api/request";
 import AssigneeSelector from "./assignee-selector";
 import type { Member } from "../types/project";
+import { StatusSelector } from "./status-selector";
 
 type AddTaskModalProps = {
   projectId: string | undefined;
@@ -22,6 +23,7 @@ export const AddTaskModal = ({
   const [title, setTitle] = useState<string | undefined>(undefined);
   const [description, setDescription] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<string>("Unassigned");
+  const [assignees, setAssignees] = useState<string[]>([]);
 
   const [error, setError] = useState<string | null>(null);
 
@@ -41,7 +43,7 @@ export const AddTaskModal = ({
     const data = {
       title: title.trim(),
       description: description?.trim() || undefined,
-      assignee: [],
+      assignees: assignees,
       status: status,
     };
     await ApiRequest(`/projects/${projectId}/tasks`, "POST", data);
@@ -55,7 +57,6 @@ export const AddTaskModal = ({
       title="New Task"
       body={
         <form onSubmit={handleSubmit} className="px-4 py-4 flex flex-col gap-3">
-          {/* Title */}
           <div className="flex flex-col gap-1">
             <label className="text-[12px] font-medium text-(--text-primary)">
               Title <span className="text-(--danger)">*</span>
@@ -83,7 +84,6 @@ export const AddTaskModal = ({
             )}
           </div>
 
-          {/* Description */}
           <div className="flex flex-col gap-1">
             <label className="text-[12px] font-medium text-(--text-primary)">
               Description
@@ -102,34 +102,14 @@ export const AddTaskModal = ({
             />
           </div>
 
-          {/* Assignees */}
           <div className="flex flex-col gap-1">
-            <AssigneeSelector members={members} />
+            <AssigneeSelector members={members} onChange={setAssignees} />
           </div>
 
-          {/* Status (optional / advanced) */}
           <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-medium text-(--text-primary)">
-              Status
-            </label>
-
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              className={clsx(
-                "h-8 rounded-xs bg-(--bg-surface) px-2 text-sm text-(--text-primary)",
-                "border border-(--border-default) outline-none",
-                "focus:border-(--primary)",
-              )}
-            >
-              <option value="Unassigned">Unassigned</option>
-              <option value="Ongoing">Ongoing</option>
-              <option value="Completed">Completed</option>
-              <option value="Abandoned">Abandoned</option>
-            </select>
+            <StatusSelector status={status} onChange={setStatus} />
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--border-muted)">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel

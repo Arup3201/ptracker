@@ -25,7 +25,7 @@ const AssigneeSelector = ({
 
   // Convert members to react-select format
   const options = members.map((member) => ({
-    value: member.userId,
+    value: member.id,
     label: member.username,
     email: member.email,
     avatar: member.avatarUrl,
