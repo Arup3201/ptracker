@@ -14,7 +14,7 @@ type publicService struct {
 	store interfaces.Store
 }
 
-func NewPublicService(store interfaces.Store) *publicService {
+func NewPublicService(store interfaces.Store) interfaces.PublicService {
 	return &publicService{
 		store: store,
 	}
@@ -29,7 +29,9 @@ func (s *publicService) ListPublicProjects(ctx context.Context, userId string) (
 	return projects, nil
 }
 
-func (s *publicService) GetPublicProject(ctx context.Context, projectId string) (*domain.PublicProjectSummary, error) {
+func (s *publicService) GetPublicProject(ctx context.Context,
+	projectId, userId string) (*domain.PublicProjectSummary, error) {
+
 	project, err := s.store.Public().Get(ctx, projectId)
 	if err != nil {
 		return nil, fmt.Errorf("store public get: %w", err)
@@ -54,6 +56,15 @@ func (s *publicService) GetPublicProject(ctx context.Context, projectId string) 
 		IsActive:    owner.IsActive,
 		CreatedAt:   role.CreatedAt,
 		UpdatedAt:   role.UpdatedAt,
+	}
+
+	joinStatus, err := s.store.JoinRequest().Get(ctx, projectId, userId)
+	if err == apierr.ErrNotFound {
+		project.JoinStatus = "Not Requested"
+	} else if err != nil {
+		return nil, fmt.Errorf("store join request get: %w", err)
+	} else {
+		project.JoinStatus = joinStatus
 	}
 
 	return project, nil

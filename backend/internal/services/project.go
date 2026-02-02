@@ -16,7 +16,7 @@ type projectService struct {
 	projectPermission *ProjectPermissionService
 }
 
-func NewProjectService(store interfaces.Store) *projectService {
+func NewProjectService(store interfaces.Store) interfaces.ProjectService {
 	permissionService := &ProjectPermissionService{
 		store: store,
 	}

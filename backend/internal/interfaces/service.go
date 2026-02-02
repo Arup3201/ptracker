@@ -45,7 +45,7 @@ type PublicService interface {
 	ListPublicProjects(ctx context.Context,
 		userId string) ([]*domain.PublicProjectListed, error)
 	GetPublicProject(ctx context.Context,
-		projectId string) (*domain.PublicProjectSummary, error)
+		projectId, userId string) (*domain.PublicProjectSummary, error)
 	JoinProject(ctx context.Context,
 		projectId, userId string) error
 }
