@@ -272,7 +272,7 @@ func (r *ListRepo) Comments(ctx context.Context,
 			c.created_at, c.updated_at 
 			FROM comments AS c 
 			INNER JOIN users AS u ON c.user_id=u.id 
-			INNER JOIN roles AS r ON c.project_id=r.project_id 
+			INNER JOIN roles AS r ON c.project_id=r.project_id AND c.user_id=r.user_id 
 			WHERE c.project_id=($1) AND c.task_id=($2)`,
 		projectId, taskId,
 	)
