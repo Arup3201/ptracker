@@ -1,12 +1,13 @@
 import { type ReactNode, useEffect, useState } from "react";
 
-import { ROLES, type Member, type TaskRole } from "../types/project";
+import { ROLES, type Member, type Role } from "../types/project";
 import { MapTaskDetails, TASK_STATUS, type TaskDetailApi } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
 import AssigneeSelector from "../components/assignee-selector";
 import { StatusSelector } from "../components/status-selector";
+import { useCurrentUser } from "../hooks/current_user";
 
 export function TaskDrawer({
   open,
@@ -21,13 +22,14 @@ export function TaskDrawer({
   projectId?: string;
   members: Member[];
   onClose: () => void;
-  role: TaskRole;
+  role: Role;
 }) {
   const canEditAll = role === ROLES.OWNER;
-  const canEditPartial = role === ROLES.ASSIGNEE;
 
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  const currentUser = useCurrentUser();
 
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -109,6 +111,9 @@ export function TaskDrawer({
     });
   }
 
+  const isAssignee =
+    initialAssignees.findIndex((a) => a.userId === currentUser?.id) !== -1;
+
   return (
     <Drawer
       open={open}
@@ -132,7 +137,7 @@ export function TaskDrawer({
       }
     >
       <div className="space-y-1 mb-4">
-        {editMode ? (
+        {editMode && (canEditAll || isAssignee) ? (
           <input
             value={title}
             onChange={(e) => {
@@ -152,7 +157,7 @@ export function TaskDrawer({
           </div>
         )}
 
-        {!editMode && (canEditAll || canEditPartial) && (
+        {!editMode && (canEditAll || isAssignee) && (
           <Button variant="secondary" onClick={() => setEditMode(true)}>
             Edit
           </Button>
@@ -164,7 +169,7 @@ export function TaskDrawer({
           Description
         </h4>
 
-        {editMode ? (
+        {editMode && (canEditAll || isAssignee) ? (
           <textarea
             rows={4}
             value={description}
@@ -181,7 +186,7 @@ export function TaskDrawer({
         )}
       </section>
 
-      {editMode && canEditAll && (
+      {editMode && (canEditAll || isAssignee) && (
         <section className="mb-6 space-y-3">
           <div className="flex flex-col gap-1">
             <StatusSelector status={status} onChange={setStatus} />
@@ -192,6 +197,7 @@ export function TaskDrawer({
               initialAssignees={initialAssignees.map((a) => a.userId)}
               members={members}
               onChange={handleAssigneeEdit}
+              isDisabled={!canEditAll}
             />
           </div>
         </section>
