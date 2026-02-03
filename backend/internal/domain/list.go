@@ -31,9 +31,10 @@ type TaskListed struct {
 }
 
 type RecentProjectListed struct {
-	*Project
+	*ProjectSummary
 }
 
 type RecentTaskListed struct {
 	*Task
+	ProjectName string `json:"project_name"`
 }
