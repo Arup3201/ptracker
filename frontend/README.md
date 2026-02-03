@@ -3,8 +3,10 @@
 ## Dashboard
 
 1. Create new projects.
-2. Table of tasks relevant to the user. The user is the owner of the project and that task is `Unassigned` or the user is assigned to the `Ongoing` task.
-3. List of projects relevant to the user. User is the project owner and the project has `Unassigned` tasks or user is assigned some `Ongoing` task in the project.
+2. List of tasks that are assigned to the user.
+3. List of tasks that are `Unassigned` and the user is the owner of that project.
+4. List of recently created projects.
+5. List of recently joined projects.
 
 ## Projects
 
@@ -14,4 +16,5 @@
 
 ## Explore
 
-Users can explore projects that they are not part of and request to join them.
+1. Users can explore projects that they are not part of.
+2. Users can open a public project and ask to join the project.
