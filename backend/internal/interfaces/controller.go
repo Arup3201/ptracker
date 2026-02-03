@@ -6,6 +6,7 @@ type AuthController interface {
 	Login(w http.ResponseWriter, r *http.Request) error
 	Callback(w http.ResponseWriter, r *http.Request) error
 	Refresh(w http.ResponseWriter, r *http.Request) error
+	Me(w http.ResponseWriter, r *http.Request) error
 	Logout(w http.ResponseWriter, r *http.Request) error
 }
 

@@ -15,6 +15,8 @@ type AuthService interface {
 		sessionId string) (string, error)
 	Refresh(ctx context.Context,
 		sessionId string) error
+	Me(ctx context.Context,
+		userId string) (*domain.User, error)
 	Logout(ctx context.Context,
 		sessionId string) error
 }

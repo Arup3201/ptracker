@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ptracker/internal/constants"
+	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/utils"
 )
@@ -134,6 +135,26 @@ func (c *authController) Refresh(w http.ResponseWriter, r *http.Request) error {
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Access token refreshed",
 	})
+	return nil
+}
+
+func (c *authController) Me(w http.ResponseWriter, r *http.Request) error {
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	user, err := c.authService.Me(r.Context(), userId)
+	if err != nil {
+		return fmt.Errorf("auth service me: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.User]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data:   user,
+	})
+
 	return nil
 }
 

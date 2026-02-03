@@ -78,6 +78,7 @@ func (a *app) AttachRoutes(prefix string) *app {
 	a.attachMiddleware("GET", "/auth/login", a.authController.Login)
 	a.attachMiddleware("GET", "/auth/callback", a.authController.Callback)
 	a.attachMiddleware("POST", "/auth/refresh", a.authController.Refresh)
+	a.attachMiddleware("GET", "/auth/me", a.authController.Me)
 	a.attachMiddleware("POST", "/auth/logout", a.authController.Logout)
 
 	a.attachMiddleware("POST", "/projects", a.rateLimitMiddleware.Handler(
