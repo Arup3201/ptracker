@@ -314,3 +314,27 @@ func (s *taskService) ListComments(ctx context.Context,
 
 	return comments, nil
 }
+
+func (s *taskService) AssignedTasks(ctx context.Context,
+	userId string) ([]*domain.RecentTaskListed, error) {
+
+	// pick last 10 recently joined projects in descending order of their joining time
+	tasks, err := s.store.List().RecentlyAssignedTasks(ctx, userId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("list recently joined tasks: %w", err)
+	}
+
+	return tasks, nil
+}
+
+func (s *taskService) UnassignedTasks(ctx context.Context,
+	userId string) ([]*domain.RecentTaskListed, error) {
+
+	// pick last 10 recently joined projects in descending order of their joining time
+	projects, err := s.store.List().RecentlyUnassignedTasks(ctx, userId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("list recently joined projects: %w", err)
+	}
+
+	return projects, nil
+}

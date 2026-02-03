@@ -41,6 +41,11 @@ type ProjectService interface {
 		projectId, userId string) ([]*domain.JoinRequestListed, error)
 	RespondToJoinRequests(ctx context.Context,
 		projectId, ownerId, requestorId, joinStatus string) error
+
+	ListRecentlyCreatedProjects(ctx context.Context,
+		userId string) ([]*domain.RecentProjectListed, error)
+	ListRecentlyJoinedProjects(ctx context.Context,
+		userId string) ([]*domain.RecentProjectListed, error)
 }
 
 type PublicService interface {
@@ -72,4 +77,9 @@ type TaskService interface {
 		comment string) (string, error)
 	ListComments(ctx context.Context,
 		projectId, taskId, userId string) ([]*domain.Comment, error)
+
+	AssignedTasks(ctx context.Context,
+		userId string) ([]*domain.RecentTaskListed, error)
+	UnassignedTasks(ctx context.Context,
+		userId string) ([]*domain.RecentTaskListed, error)
 }

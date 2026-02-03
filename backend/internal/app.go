@@ -86,6 +86,11 @@ func (a *app) AttachRoutes(prefix string) *app {
 		controllers.HTTPErrorHandler(a.projectController.Create),
 	))
 
+	a.attachMiddleware("GET", "/dashboard/projects/created", a.projectController.ListRecentlyCreatedProjects)
+	a.attachMiddleware("GET", "/dashboard/projects/joined", a.projectController.ListRecentlyJoinedProjects)
+	a.attachMiddleware("GET", "/dashboard/tasks/assigned", a.taskController.ListAssignedTasks)
+	a.attachMiddleware("GET", "/dashboard/tasks/unassigned", a.taskController.ListUnassignedTasks)
+
 	a.attachMiddleware("GET", "/projects", a.projectController.List)
 	a.attachMiddleware("GET", "/projects/{id}", a.projectController.Get)
 	a.attachMiddleware("POST", "/projects/{id}/join-requests", a.publicController.JoinProject)

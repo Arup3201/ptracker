@@ -64,6 +64,20 @@ type ListRepository interface {
 	PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error)
 	JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error)
 	Comments(ctx context.Context, projectId, taskId string) ([]*domain.Comment, error)
+
+	RecentlyCreatedProjects(ctx context.Context,
+		userId string,
+		n int) ([]*domain.RecentProjectListed, error)
+	RecentlyJoinedProjects(ctx context.Context,
+		userId string,
+		n int) ([]*domain.RecentProjectListed, error)
+
+	RecentlyAssignedTasks(ctx context.Context,
+		userId string,
+		n int) ([]*domain.RecentTaskListed, error)
+	RecentlyUnassignedTasks(ctx context.Context,
+		userId string,
+		n int) ([]*domain.RecentTaskListed, error)
 }
 
 type JoinRequestRepository interface {

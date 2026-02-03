@@ -17,6 +17,9 @@ type ProjectController interface {
 	ListJoinRequests(w http.ResponseWriter, r *http.Request) error
 	RespondToJoinRequests(w http.ResponseWriter, r *http.Request) error
 	ListMembers(w http.ResponseWriter, r *http.Request) error
+
+	ListRecentlyCreatedProjects(w http.ResponseWriter, r *http.Request) error
+	ListRecentlyJoinedProjects(w http.ResponseWriter, r *http.Request) error
 }
 
 type TaskController interface {
@@ -26,6 +29,9 @@ type TaskController interface {
 	Update(w http.ResponseWriter, r *http.Request) error
 	AddComment(w http.ResponseWriter, r *http.Request) error
 	ListComments(w http.ResponseWriter, r *http.Request) error
+
+	ListAssignedTasks(w http.ResponseWriter, r *http.Request) error
+	ListUnassignedTasks(w http.ResponseWriter, r *http.Request) error
 }
 
 type PublicController interface {

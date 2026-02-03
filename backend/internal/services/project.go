@@ -237,3 +237,27 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 
 	return nil
 }
+
+func (s *projectService) ListRecentlyCreatedProjects(ctx context.Context,
+	userId string) ([]*domain.RecentProjectListed, error) {
+
+	// pick last 10 recently created projects in descending order of their creation time
+	projects, err := s.store.List().RecentlyCreatedProjects(ctx, userId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("list recently created projects: %w", err)
+	}
+
+	return projects, nil
+}
+
+func (s *projectService) ListRecentlyJoinedProjects(ctx context.Context,
+	userId string) ([]*domain.RecentProjectListed, error) {
+
+	// pick last 10 recently joined projects in descending order of their joining time
+	projects, err := s.store.List().RecentlyJoinedProjects(ctx, userId, 10)
+	if err != nil {
+		return nil, fmt.Errorf("list recently joined projects: %w", err)
+	}
+
+	return projects, nil
+}

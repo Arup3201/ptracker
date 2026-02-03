@@ -308,3 +308,162 @@ func (r *ListRepo) Comments(ctx context.Context,
 
 	return comments, nil
 }
+
+func (r *ListRepo) RecentlyCreatedProjects(ctx context.Context,
+	userId string, n int) ([]*domain.RecentProjectListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT "+
+			"id, name, description, skills, "+
+			"created_at, updated_at "+
+			"FROM projects "+
+			"WHERE owner=($1) "+
+			"ORDER BY created_at DESC "+
+			"LIMIT ($2)",
+		userId, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var projects = []*domain.RecentProjectListed{}
+	for rows.Next() {
+		var p = domain.RecentProjectListed{
+			Project: &domain.Project{},
+		}
+
+		err := rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills,
+			&p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+		projects = append(projects, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("rows: %w", err)
+	}
+
+	return projects, nil
+}
+
+func (r *ListRepo) RecentlyJoinedProjects(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentProjectListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects AS p "+
+			"INNER JOIN roles AS r ON p.id=r.project_id AND r.role=($3) "+
+			"WHERE r.user_id=($1) "+
+			"ORDER BY r.created_at DESC "+
+			"LIMIT ($2)",
+		userId, n, domain.ROLE_MEMBER)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var projects = []*domain.RecentProjectListed{}
+	for rows.Next() {
+		var p = domain.RecentProjectListed{
+			Project: &domain.Project{},
+		}
+
+		err := rows.Scan(&p.Id, &p.Name, &p.Description, &p.Skills,
+			&p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+		projects = append(projects, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("rows: %w", err)
+	}
+
+	return projects, nil
+}
+
+func (r *ListRepo) RecentlyAssignedTasks(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentTaskListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		`SELECT 
+			t.id, t.title, t.status, t.created_at, t.updated_at 
+			FROM tasks AS t 
+			INNER JOIN assignees AS a ON a.task_id=t.id 
+			WHERE a.user_id=($1)  
+			ORDER BY a.created_at DESC 
+			LIMIT ($2)`, userId, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks = []*domain.RecentTaskListed{}
+	for rows.Next() {
+		var (
+			task domain.Task
+		)
+		err := rows.Scan(&task.Id, &task.Title,
+			&task.Status, &task.CreatedAt, &task.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		tasks = append(tasks, &domain.RecentTaskListed{
+			Task: &task,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}
+
+func (r *ListRepo) RecentlyUnassignedTasks(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentTaskListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		`SELECT 
+			t.id, t.title, t.status, t.created_at, t.updated_at 
+			FROM tasks AS t 
+			INNER JOIN projects AS p ON t.project_id=p.id 
+			LEFT JOIN assignees AS a ON a.task_id=t.id 
+			WHERE a.task_id=NULL AND p.owner=($1) 
+			ORDER BY t.created_at DESC 
+			LIMIT ($2)`, userId, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks = []*domain.RecentTaskListed{}
+	for rows.Next() {
+		var (
+			task domain.Task
+		)
+		err := rows.Scan(&task.Id, &task.Title,
+			&task.Status, &task.CreatedAt, &task.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		tasks = append(tasks, &domain.RecentTaskListed{
+			Task: &task,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}
