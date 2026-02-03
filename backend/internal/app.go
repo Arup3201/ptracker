@@ -97,6 +97,9 @@ func (a *app) AttachRoutes(prefix string) *app {
 	a.attachMiddleware("GET", "/projects/{project_id}/tasks/{task_id}", a.taskController.Get)
 	a.attachMiddleware("PUT", "/projects/{project_id}/tasks/{task_id}", a.taskController.Update)
 
+	a.attachMiddleware("POST", "/projects/{project_id}/tasks/{task_id}/comments", a.taskController.AddComment)
+	a.attachMiddleware("GET", "/projects/{project_id}/tasks/{task_id}/comments", a.taskController.ListComments)
+
 	a.attachMiddleware("GET", "/public/projects", a.publicController.ListProjects)
 	a.attachMiddleware("GET", "/public/projects/{id}", a.publicController.GetProject)
 

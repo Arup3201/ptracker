@@ -19,6 +19,7 @@ type storage struct {
 	userRepo        interfaces.UserRepository
 	projectRepo     interfaces.ProjectRepository
 	taskRepo        interfaces.TaskRepository
+	commentRepo     interfaces.CommentRepository
 	roleRepo        interfaces.RoleRepository
 	assigneeRepo    interfaces.AssigneeRepository
 	listRepo        interfaces.ListRepository
@@ -38,6 +39,7 @@ func NewStorage(db interfaces.Execer,
 	s.userRepo = repositories.NewUserRepo(db)
 	s.projectRepo = repositories.NewProjectRepo(db)
 	s.taskRepo = repositories.NewTaskRepo(db)
+	s.commentRepo = repositories.NewCommentRepo(db)
 	s.roleRepo = repositories.NewRoleRepo(db)
 	s.assigneeRepo = repositories.NewAssigneeRepo(db)
 	s.listRepo = repositories.NewListRepo(db)
@@ -96,6 +98,10 @@ func (s *storage) Project() interfaces.ProjectRepository {
 
 func (s *storage) Task() interfaces.TaskRepository {
 	return s.taskRepo
+}
+
+func (s *storage) Comment() interfaces.CommentRepository {
+	return s.commentRepo
 }
 
 func (s *storage) Role() interfaces.RoleRepository {

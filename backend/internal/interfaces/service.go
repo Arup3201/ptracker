@@ -67,4 +67,9 @@ type TaskService interface {
 		addedAssignees, removedAssignees []string) error
 	GetTaskAssignees(ctx context.Context,
 		projectId, taskId, userId string) ([]*domain.Assignee, error)
+	AddComment(ctx context.Context,
+		projectId, taskId, userId string,
+		comment string) (string, error)
+	ListComments(ctx context.Context,
+		projectId, taskId, userId string) ([]*domain.Comment, error)
 }

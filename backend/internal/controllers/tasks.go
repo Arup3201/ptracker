@@ -301,3 +301,117 @@ func (c *taskController) Update(w http.ResponseWriter, r *http.Request) error {
 
 	return nil
 }
+
+func (c *taskController) AddComment(w http.ResponseWriter, r *http.Request) error {
+
+	projectId := r.PathValue("project_id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `project_id' can't be empty",
+			Err:     fmt.Errorf("empty 'project_id'"),
+		}
+	}
+
+	taskId := r.PathValue("task_id")
+	if taskId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `task_id' can't be empty",
+			Err:     fmt.Errorf("empty 'task_id'"),
+		}
+	}
+
+	var payload AddCommentRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Comment accepts 'user_id' and 'content' only",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("decode comment payload: %w", err),
+		}
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Comment 'user_id' or 'content' is missing",
+			ErrId:   ERR_INVALID_BODY,
+			Err:     fmt.Errorf("comment payload validation: %w", err),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	commentId, err := c.service.AddComment(
+		r.Context(),
+		projectId,
+		taskId,
+		userId,
+		payload.Comment,
+	)
+	if err != nil {
+		return fmt.Errorf("service add comment: %w", err)
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[string]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data:   &commentId,
+	})
+
+	return nil
+}
+
+func (c *taskController) ListComments(w http.ResponseWriter, r *http.Request) error {
+
+	projectId := r.PathValue("project_id")
+	if projectId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `project_id' can't be empty",
+			Err:     fmt.Errorf("empty 'project_id'"),
+		}
+	}
+
+	taskId := r.PathValue("task_id")
+	if taskId == "" {
+		return &HTTPError{
+			Code:    http.StatusBadRequest,
+			Message: "Query `task_id' can't be empty",
+			Err:     fmt.Errorf("empty 'task_id'"),
+		}
+	}
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	comments, err := c.service.ListComments(
+		r.Context(),
+		projectId,
+		taskId,
+		userId,
+	)
+	if err != nil {
+		return fmt.Errorf("service list comments: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedCommentsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedCommentsResponse{
+			Comments: comments,
+			Page:     1,
+			Limit:    len(comments),
+			HasNext:  false,
+		},
+	})
+
+	return nil
+}

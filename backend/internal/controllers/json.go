@@ -33,6 +33,11 @@ type UpdateTaskRequest struct {
 	AssigneesToRemove []string `json:"assignees_to_remove" validate:"required"`
 }
 
+type AddCommentRequest struct {
+	UserId  string `json:"user_id"`
+	Comment string `json:"comment"`
+}
+
 type ListedPrivateProjectsResponse struct {
 	ProjectSummaries []*domain.PrivateProjectListed `json:"projects"`
 	Page             int                            `json:"page"`
@@ -60,4 +65,11 @@ type ListedJoinRequestsResponse struct {
 
 type ListedMembersResponse struct {
 	Members []*domain.Member `json:"members"`
+}
+
+type ListedCommentsResponse struct {
+	Comments []*domain.Comment `json:"comments"`
+	Page     int               `json:"page"`
+	Limit    int               `json:"limit"`
+	HasNext  bool              `json:"has_next"`
 }

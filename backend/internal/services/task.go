@@ -269,3 +269,48 @@ func (s *taskService) UpdateTask(ctx context.Context,
 
 	return nil
 }
+
+func (s *taskService) AddComment(ctx context.Context,
+	projectId, taskId, userId string,
+	comment string) (string, error) {
+
+	permitted, err := s.permissionService.CanCommentOnTask(ctx, projectId, userId)
+	if err != nil {
+		return "", fmt.Errorf("permission service can comment on task: %w", err)
+	}
+
+	if !permitted {
+		return "", apierr.ErrForbidden
+	}
+
+	if strings.Trim(comment, " ") == "" {
+		return "", apierr.ErrInvalidValue
+	}
+
+	id, err := s.store.Comment().Create(ctx, projectId, taskId, userId, comment)
+	if err != nil {
+		return "", fmt.Errorf("store comment create: %w", err)
+	}
+
+	return id, nil
+}
+
+func (s *taskService) ListComments(ctx context.Context,
+	projectId, taskId, userId string) ([]*domain.Comment, error) {
+
+	permitted, err := s.permissionService.CanAccessTask(ctx, projectId, userId)
+	if err != nil {
+		return nil, fmt.Errorf("permission service can access task: %w", err)
+	}
+
+	if !permitted {
+		return nil, apierr.ErrForbidden
+	}
+
+	comments, err := s.store.List().Comments(ctx, projectId, taskId)
+	if err != nil {
+		return nil, fmt.Errorf("store list comments: %w", err)
+	}
+
+	return comments, nil
+}

@@ -495,3 +495,96 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 		suite.Require().NoError(err)
 	})
 }
+
+func (suite *ServiceTestSuite) TestAddComment() {
+	t := suite.T()
+
+	t.Run("should add comment", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		sampleComment := "Hello there!"
+
+		id, err := service.AddComment(suite.ctx,
+			projectId, taskId, USER_TWO, sampleComment)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().NotEqual("", id)
+	})
+	t.Run("should add comment with text", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		sampleComment := "Hello there!"
+
+		id, _ := service.AddComment(suite.ctx,
+			projectId, taskId, USER_TWO, sampleComment)
+
+		var comment string
+		suite.db.QueryRowContext(suite.ctx,
+			"SELECT content FROM comments WHERE id=($1)", id).Scan(&comment)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(sampleComment, comment)
+	})
+	t.Run("should be forbidden for non-member", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		sampleComment := "Hello there!"
+
+		_, err := service.AddComment(suite.ctx,
+			projectId, taskId, USER_TWO, sampleComment)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "forbidden")
+	})
+	t.Run("should be invalid with empty comment", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			Title:     "Project Task A",
+			ProjectId: projectId,
+			Status:    domain.TASK_STATUS_UNASSIGNED,
+		})
+		service := NewTaskService(suite.store)
+		sampleComment := ""
+
+		_, err := service.AddComment(suite.ctx,
+			projectId, taskId, USER_TWO, sampleComment)
+
+		suite.Cleanup()
+
+		suite.Require().ErrorContains(err, "invalid value")
+	})
+}

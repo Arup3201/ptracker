@@ -63,6 +63,7 @@ type ListRepository interface {
 	Members(ctx context.Context, projectId string) ([]*domain.Member, error)
 	PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error)
 	JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error)
+	Comments(ctx context.Context, projectId, taskId string) ([]*domain.Comment, error)
 }
 
 type JoinRequestRepository interface {
@@ -73,4 +74,10 @@ type JoinRequestRepository interface {
 
 type PublicRepository interface {
 	Get(ctx context.Context, projectId string) (*domain.PublicProjectSummary, error)
+}
+
+type CommentRepository interface {
+	Create(ctx context.Context,
+		projectId, taskId, userId string,
+		comment string) (string, error)
 }

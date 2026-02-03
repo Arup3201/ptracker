@@ -145,3 +145,20 @@ func (s *ProjectPermissionService) CanUpdateTask(ctx context.Context,
 
 	return false, nil
 }
+
+func (s *ProjectPermissionService) CanCommentOnTask(ctx context.Context,
+	projectId, userId string) (bool, error) {
+	role, err := s.store.Role().Get(ctx, projectId, userId)
+	if err != nil {
+		if errors.Is(err, apierr.ErrNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("role store get: %w", err)
+	}
+
+	if role.Role == domain.ROLE_OWNER || role.Role == domain.ROLE_MEMBER {
+		return true, nil
+	}
+
+	return false, nil
+}
