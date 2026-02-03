@@ -1,4 +1,4 @@
-export const ROLES = {
+export const ROLES: Record<string, Role> = {
   OWNER: "Owner",
   MEMBER: "Member",
 };
