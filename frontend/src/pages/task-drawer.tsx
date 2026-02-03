@@ -1,7 +1,14 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import { ROLES, type Member, type Role } from "../types/project";
-import { MapTaskDetails, TASK_STATUS, type TaskDetailApi } from "../types/task";
+import {
+  MapTaskComment,
+  MapTaskDetails,
+  TASK_STATUS,
+  type TaskComment,
+  type TaskCommentsResponseApi,
+  type TaskDetailApi,
+} from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
@@ -36,22 +43,34 @@ export function TaskDrawer({
   const [status, setStatus] = useState<string>("Unassigned");
   const [initialAssignees, setInitialAssignees] = useState<Member[]>([]);
   const [currentAssignees, setCurrentAssignees] = useState<Member[]>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+
+  const [comment, setComment] = useState<string>("");
 
   async function getProjectTask(projectId: string, taskId: string) {
     try {
-      const data = await ApiRequest<TaskDetailApi>(
+      const taskDetailsResponse = await ApiRequest<TaskDetailApi>(
         `/projects/${projectId}/tasks/${taskId}`,
         "GET",
         null,
       );
-      if (data) {
-        const taskDetails = MapTaskDetails(data);
+      if (taskDetailsResponse) {
+        const taskDetails = MapTaskDetails(taskDetailsResponse);
         setTitle(taskDetails.title || "");
         setDescription(taskDetails.description || "");
         setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
 
         setInitialAssignees(taskDetails.assignees || []);
         setCurrentAssignees(taskDetails.assignees || []);
+      }
+
+      const commentsResponse = await ApiRequest<TaskCommentsResponseApi>(
+        `/projects/${projectId}/tasks/${taskId}/comments`,
+        "GET",
+        null,
+      );
+      if (commentsResponse) {
+        setComments(commentsResponse.comments.map(MapTaskComment));
       }
     } catch (err) {
       console.error(err);
@@ -109,6 +128,28 @@ export function TaskDrawer({
     setCurrentAssignees(() => {
       return members.filter((m) => assignees.find((a) => a === m.userId));
     });
+  }
+
+  async function handleAddComment() {
+    const data = {
+      comment: comment,
+      user_id: currentUser?.id,
+    };
+    try {
+      await ApiRequest(
+        `/projects/${projectId}/tasks/${taskId}/comments`,
+        "POST",
+        data,
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setComment("");
+      // Refresh comments
+      if (projectId && taskId) {
+        getProjectTask(projectId, taskId);
+      }
+    }
   }
 
   const isAssignee =
@@ -210,19 +251,36 @@ export function TaskDrawer({
 
         <div className="space-y-3 mb-3">
           {!editMode && (
-            <textarea
-              placeholder="Add a comment…"
-              rows={2}
-              className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
-            />
+            <>
+              <textarea
+                placeholder="Add a comment…"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
+              />
+              <Button
+                onClick={handleAddComment}
+                className="bg-(--primary) text-white"
+              >
+                Send
+              </Button>
+            </>
           )}
 
-          <Comment author="Arup" time="2h ago">
-            Please make sure this works with prod DB as well.
-          </Comment>
-          <Comment author="Rahul" time="1h ago">
-            Working on it, will update soon.
-          </Comment>
+          {comments.length === 0 ? (
+            <p className="text-sm text-(--text-secondary)">No comments yet.</p>
+          ) : (
+            comments.map((comment, index) => (
+              <Comment
+                key={index}
+                author={comment.user.username}
+                time={comment.createdAt}
+              >
+                {comment.content}
+              </Comment>
+            ))
+          )}
         </div>
       </section>
     </Drawer>
@@ -238,11 +296,29 @@ function Comment({
   time: string;
   children: ReactNode;
 }) {
+  const createdAtMs = new Date(time).getTime();
+  const diffMs = Date.now() - createdAtMs;
+
+  const sec = Math.floor(diffMs / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  const month = Math.floor(day / 30);
+  const year = Math.floor(day / 365);
+
+  let timeAgo = "";
+  if (year >= 1) timeAgo = `${year} year${year > 1 ? "s" : ""}`;
+  else if (month >= 1) timeAgo = `${month} month${month > 1 ? "s" : ""}`;
+  else if (day >= 1) timeAgo = `${day} day${day > 1 ? "s" : ""}`;
+  else if (hr >= 1) timeAgo = `${hr} hr${hr > 1 ? "s" : ""}`;
+  else if (min >= 1) timeAgo = `${min} min${min > 1 ? "s" : ""}`;
+  else timeAgo = "just now";
+
   return (
     <div className="space-y-0.5">
       <div className="text-xs text-(--text-muted)">
         <span className="font-medium text-(--text-primary)">{author}</span> ·{" "}
-        {time}
+        {timeAgo}
       </div>
       <p className="text-sm text-(--text-secondary)">{children}</p>
     </div>

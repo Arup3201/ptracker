@@ -75,3 +75,40 @@ export const MapTaskDetails = (t: TaskDetailApi): TaskDetails => ({
   createdAt: t.created_at,
   updatedAt: t.updated_at,
 });
+
+export interface TaskComment {
+  id: string;
+  projectId: string;
+  taskId: string;
+  user: Member;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface TaskCommentApi {
+  id: string;
+  project_id: string;
+  task_id: string;
+  user: MemberApi;
+  content: string;
+  created_at: string;
+  updated_at?: string;
+}
+
+export const MapTaskComment = (c: TaskCommentApi): TaskComment => ({
+  id: c.id,
+  projectId: c.project_id,
+  taskId: c.task_id,
+  user: MapMember(c.user),
+  content: c.content,
+  createdAt: c.created_at,
+  updatedAt: c.updated_at,
+});
+
+export interface TaskCommentsResponseApi {
+  comments: TaskCommentApi[];
+  page: number;
+  limit: number;
+  has_next: boolean;
+}
