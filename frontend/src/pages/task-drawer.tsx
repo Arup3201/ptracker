@@ -251,7 +251,7 @@ export function TaskDrawer({
 
         <div className="space-y-3 mb-3">
           {!editMode && (
-            <>
+            <div className="flex flex-col gap-2 mb-4">
               <textarea
                 placeholder="Add a comment…"
                 value={comment}
@@ -261,11 +261,11 @@ export function TaskDrawer({
               />
               <Button
                 onClick={handleAddComment}
-                className="bg-(--primary) text-white"
+                className="bg-(--primary) text-white px-4 py-1 rounded-xs self-end"
               >
                 Send
               </Button>
-            </>
+            </div>
           )}
 
           {comments.length === 0 ? (
