@@ -32,7 +32,8 @@ export function TaskDrawer({
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [status, setStatus] = useState<string>("Unassigned");
-  const [assignees, setAssignees] = useState<Member[]>([]);
+  const [initialAssignees, setInitialAssignees] = useState<Member[]>([]);
+  const [currentAssignees, setCurrentAssignees] = useState<Member[]>([]);
 
   async function getProjectTask(projectId: string, taskId: string) {
     try {
@@ -46,7 +47,9 @@ export function TaskDrawer({
         setTitle(taskDetails.title || "");
         setDescription(taskDetails.description || "");
         setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
-        setAssignees(taskDetails.assignees || []);
+
+        setInitialAssignees(taskDetails.assignees || []);
+        setCurrentAssignees(taskDetails.assignees || []);
       }
     } catch (err) {
       console.error(err);
@@ -68,6 +71,44 @@ export function TaskDrawer({
     onClose();
   };
 
+  async function handleEditSave() {
+    const assigneesToAdd = currentAssignees
+      .filter(
+        (a) =>
+          initialAssignees.findIndex((ia) => ia.userId === a.userId) === -1,
+      )
+      .map((a) => a.userId);
+    const assigneesToRemove = initialAssignees
+      .filter(
+        (a) =>
+          currentAssignees.findIndex((ca) => ca.userId === a.userId) === -1,
+      )
+      .map((a) => a.userId);
+
+    const data = {
+      title: title,
+      description: description,
+      status: status,
+      assignees_to_add: assigneesToAdd,
+      assignees_to_remove: assigneesToRemove,
+    };
+
+    try {
+      await ApiRequest(`/projects/${projectId}/tasks/${taskId}`, "PUT", data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditMode(false);
+      setDirty(false);
+    }
+  }
+
+  function handleAssigneeEdit(assignees: string[]) {
+    setCurrentAssignees(() => {
+      return members.filter((m) => assignees.find((a) => a === m.userId));
+    });
+  }
+
   return (
     <Drawer
       open={open}
@@ -85,19 +126,11 @@ export function TaskDrawer({
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => {
-                setEditMode(false);
-                setDirty(false);
-              }}
-            >
-              Save
-            </Button>
+            <Button onClick={handleEditSave}>Save</Button>
           </div>
         ) : null
       }
     >
-      {/* Header Metadata */}
       <div className="space-y-1 mb-4">
         {editMode ? (
           <input
@@ -115,7 +148,7 @@ export function TaskDrawer({
         {!editMode && (
           <div className="text-xs text-(--text-muted)">
             Status: {status} · Assignee:{" "}
-            {assignees.map((a) => a.username).join(", ") || "Unassigned"}
+            {currentAssignees.map((a) => a.username).join(", ") || "Unassigned"}
           </div>
         )}
 
@@ -126,7 +159,6 @@ export function TaskDrawer({
         )}
       </div>
 
-      {/* Description */}
       <section className="mb-6">
         <h4 className="text-xs font-medium text-(--text-primary) mb-1">
           Description
@@ -149,7 +181,6 @@ export function TaskDrawer({
         )}
       </section>
 
-      {/* Metadata Editing (Owner only) */}
       {editMode && canEditAll && (
         <section className="mb-6 space-y-3">
           <div className="flex flex-col gap-1">
@@ -158,14 +189,14 @@ export function TaskDrawer({
 
           <div className="flex flex-col gap-1">
             <AssigneeSelector
-              initialAssignees={assignees.map((a) => a.userId)}
+              initialAssignees={initialAssignees.map((a) => a.userId)}
               members={members}
+              onChange={handleAssigneeEdit}
             />
           </div>
         </section>
       )}
 
-      {/* Comments */}
       <section>
         <h4 className="text-xs font-medium text-(--text-primary) mb-2">
           Comments
