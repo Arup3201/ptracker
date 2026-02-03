@@ -221,7 +221,7 @@ func (suite *RepositoryTestSuite) TestListMembers() {
 
 		suite.Require().NoError(err)
 		suite.Require().Equal(1, len(members))
-		suite.Require().Equal(USER_TWO, members[0].Id)
+		suite.Require().Equal(USER_TWO, members[0].UserId)
 	})
 }
 
@@ -273,5 +273,53 @@ func (suite *RepositoryTestSuite) TestListAssignees() {
 			[]string{USER_TWO, USER_THREE},
 			[]string{assignees[0].UserId, assignees[1].UserId},
 		)
+	})
+}
+
+func (suite *RepositoryTestSuite) TestListComments() {
+	t := suite.T()
+
+	t.Run("should list empty list of comments", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		repo := NewListRepo(suite.db)
+
+		comments, err := repo.Comments(suite.ctx, p, taskId)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().NotNil(comments)
+		suite.Require().Equal(0, len(comments))
+	})
+	t.Run("should list 1 comment", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertComment(repo_fixtures.GetCommentRow(p, taskId, USER_TWO, "Hey there!"))
+		repo := NewListRepo(suite.db)
+
+		comments, err := repo.Comments(suite.ctx, p, taskId)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(comments))
+	})
+	t.Run("should list 2 comments", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		taskId := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertComment(repo_fixtures.GetCommentRow(p, taskId, USER_TWO, "Hey there!"))
+		suite.fixtures.InsertComment(repo_fixtures.GetCommentRow(p, taskId, USER_TWO, "How are you?"))
+		repo := NewListRepo(suite.db)
+
+		comments, err := repo.Comments(suite.ctx, p, taskId)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(2, len(comments))
 	})
 }

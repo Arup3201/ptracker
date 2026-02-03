@@ -12,6 +12,11 @@ type Task struct {
 	UpdatedAt   *time.Time `json:"updated_at"`
 }
 
+type TaskDetail struct {
+	*Task
+	Assignees []*Assignee `json:"assignees"`
+}
+
 const (
 	TASK_STATUS_UNASSIGNED = "Unassigned"
 	TASK_STATUS_ONGOING    = "Ongoing"

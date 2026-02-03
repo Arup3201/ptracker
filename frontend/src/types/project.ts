@@ -1,12 +1,9 @@
-export const ROLES: Record<string, TaskRole> = {
+export const ROLES: Record<string, Role> = {
   OWNER: "Owner",
   MEMBER: "Member",
-  ASSIGNEE: "Assignee",
 };
 
-export type TaskRole = "Owner" | "Member" | "Assignee";
-
-export type ProjectRole = "Owner" | "Member";
+export type Role = "Owner" | "Member";
 
 export type OwnerApi = {
   id: string;
@@ -25,7 +22,7 @@ export interface ProjectSummaryApi {
   name: string;
   description?: string;
   skills?: string;
-  role: ProjectRole;
+  role: Role;
   unassigned_tasks: number;
   ongoing_tasks: number;
   completed_tasks: number;
@@ -38,7 +35,7 @@ export interface ProjectSummary {
   name: string;
   description?: string;
   skills?: string;
-  role: ProjectRole;
+  role: Role;
   unassignedTasks: number;
   ongoingTasks: number;
   completedTasks: number;
@@ -71,7 +68,7 @@ export interface ProjectDetailsApi {
   name: string;
   description?: string;
   skills?: string;
-  role: ProjectRole;
+  role: Role;
   owner: OwnerApi;
   unassigned_tasks: number;
   ongoing_tasks: number;
@@ -87,7 +84,7 @@ export interface ProjectDetails {
   name: string;
   description?: string;
   skills?: string;
-  role: ProjectRole;
+  role: Role;
   owner: Owner;
   unassignedTasks: number;
   ongoingTasks: number;
@@ -168,7 +165,6 @@ export interface Member {
   email: string;
   avatarUrl: string;
   isActive: boolean;
-  role: ProjectRole;
   createdAt: string;
   updatedAt: string;
 }
@@ -181,7 +177,6 @@ export interface MemberApi {
   email: string;
   avatar_url: string;
   is_active: boolean;
-  role: ProjectRole;
   created_at: string;
   updated_at: string;
 }
@@ -198,7 +193,6 @@ export const MapMember = (m: MemberApi): Member => ({
   email: m.email,
   avatarUrl: m.avatar_url,
   isActive: m.is_active,
-  role: m.role,
   createdAt: m.created_at,
   updatedAt: m.updated_at,
 });

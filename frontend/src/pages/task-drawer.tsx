@@ -1,48 +1,77 @@
 import { type ReactNode, useEffect, useState } from "react";
 
-import { ROLES, type TaskRole } from "../types/project";
-import { TASK_STATUS, type TaskDetailApi } from "../types/task";
+import { ROLES, type Member, type Role } from "../types/project";
+import {
+  MapTaskComment,
+  MapTaskDetails,
+  TASK_STATUS,
+  type TaskComment,
+  type TaskCommentsResponseApi,
+  type TaskDetailApi,
+} from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
 import { ApiRequest } from "../api/request";
+import AssigneeSelector from "../components/assignee-selector";
+import { StatusSelector } from "../components/status-selector";
+import { useCurrentUser } from "../hooks/current_user";
 
 export function TaskDrawer({
   open,
   taskId,
   projectId,
+  members,
   onClose,
   role,
 }: {
   open: boolean;
   taskId: string | null;
   projectId?: string;
+  members: Member[];
   onClose: () => void;
-  role: TaskRole;
+  role: Role;
 }) {
   const canEditAll = role === ROLES.OWNER;
-  const canEditPartial = role === ROLES.ASSIGNEE;
 
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const [title, setTitle] = useState("Set up database migrations");
-  const [description, setDescription] = useState(
-    "Add initial migration setup and ensure versioning is correct.",
-  );
-  const [status, setStatus] = useState("Ongoing");
-  const [assignee, setAssignee] = useState("Rahul");
+  const currentUser = useCurrentUser();
+
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [status, setStatus] = useState<string>("Unassigned");
+  const [initialAssignees, setInitialAssignees] = useState<Member[]>([]);
+  const [currentAssignees, setCurrentAssignees] = useState<Member[]>([]);
+  const [comments, setComments] = useState<TaskComment[]>([]);
+
+  const [comment, setComment] = useState<string>("");
 
   async function getProjectTask(projectId: string, taskId: string) {
     try {
-      const taskDetails = await ApiRequest<TaskDetailApi>(
+      const taskDetailsResponse = await ApiRequest<TaskDetailApi>(
         `/projects/${projectId}/tasks/${taskId}`,
         "GET",
         null,
       );
-      setTitle(taskDetails?.title || "");
-      setDescription(taskDetails?.description || "");
-      setStatus(taskDetails?.status || TASK_STATUS.UNASSIGNED);
-      setAssignee(taskDetails?.assignee || "");
+      if (taskDetailsResponse) {
+        const taskDetails = MapTaskDetails(taskDetailsResponse);
+        setTitle(taskDetails.title || "");
+        setDescription(taskDetails.description || "");
+        setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
+
+        setInitialAssignees(taskDetails.assignees || []);
+        setCurrentAssignees(taskDetails.assignees || []);
+      }
+
+      const commentsResponse = await ApiRequest<TaskCommentsResponseApi>(
+        `/projects/${projectId}/tasks/${taskId}/comments`,
+        "GET",
+        null,
+      );
+      if (commentsResponse) {
+        setComments(commentsResponse.comments.map(MapTaskComment));
+      }
     } catch (err) {
       console.error(err);
     }
@@ -63,6 +92,69 @@ export function TaskDrawer({
     onClose();
   };
 
+  async function handleEditSave() {
+    const assigneesToAdd = currentAssignees
+      .filter(
+        (a) =>
+          initialAssignees.findIndex((ia) => ia.userId === a.userId) === -1,
+      )
+      .map((a) => a.userId);
+    const assigneesToRemove = initialAssignees
+      .filter(
+        (a) =>
+          currentAssignees.findIndex((ca) => ca.userId === a.userId) === -1,
+      )
+      .map((a) => a.userId);
+
+    const data = {
+      title: title,
+      description: description,
+      status: status,
+      assignees_to_add: assigneesToAdd,
+      assignees_to_remove: assigneesToRemove,
+    };
+
+    try {
+      await ApiRequest(`/projects/${projectId}/tasks/${taskId}`, "PUT", data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setEditMode(false);
+      setDirty(false);
+    }
+  }
+
+  function handleAssigneeEdit(assignees: string[]) {
+    setCurrentAssignees(() => {
+      return members.filter((m) => assignees.find((a) => a === m.userId));
+    });
+  }
+
+  async function handleAddComment() {
+    const data = {
+      comment: comment,
+      user_id: currentUser?.id,
+    };
+    try {
+      await ApiRequest(
+        `/projects/${projectId}/tasks/${taskId}/comments`,
+        "POST",
+        data,
+      );
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setComment("");
+      // Refresh comments
+      if (projectId && taskId) {
+        getProjectTask(projectId, taskId);
+      }
+    }
+  }
+
+  const isAssignee =
+    initialAssignees.findIndex((a) => a.userId === currentUser?.id) !== -1;
+
   return (
     <Drawer
       open={open}
@@ -80,21 +172,13 @@ export function TaskDrawer({
             >
               Cancel
             </Button>
-            <Button
-              onClick={() => {
-                setEditMode(false);
-                setDirty(false);
-              }}
-            >
-              Save
-            </Button>
+            <Button onClick={handleEditSave}>Save</Button>
           </div>
         ) : null
       }
     >
-      {/* Header Metadata */}
       <div className="space-y-1 mb-4">
-        {editMode ? (
+        {editMode && (canEditAll || isAssignee) ? (
           <input
             value={title}
             onChange={(e) => {
@@ -109,24 +193,24 @@ export function TaskDrawer({
 
         {!editMode && (
           <div className="text-xs text-(--text-muted)">
-            Status: {status} · Assignee: {assignee || "Unassigned"}
+            Status: {status} · Assignee:{" "}
+            {currentAssignees.map((a) => a.username).join(", ") || "Unassigned"}
           </div>
         )}
 
-        {!editMode && (canEditAll || canEditPartial) && (
+        {!editMode && (canEditAll || isAssignee) && (
           <Button variant="secondary" onClick={() => setEditMode(true)}>
             Edit
           </Button>
         )}
       </div>
 
-      {/* Description */}
       <section className="mb-6">
         <h4 className="text-xs font-medium text-(--text-primary) mb-1">
           Description
         </h4>
 
-        {editMode ? (
+        {editMode && (canEditAll || isAssignee) ? (
           <textarea
             rows={4}
             value={description}
@@ -143,49 +227,23 @@ export function TaskDrawer({
         )}
       </section>
 
-      {/* Metadata Editing (Owner only) */}
-      {editMode && canEditAll && (
+      {editMode && (canEditAll || isAssignee) && (
         <section className="mb-6 space-y-3">
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-(--text-primary)">
-              Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => {
-                setStatus(e.target.value);
-                setDirty(true);
-              }}
-              className="h-8 rounded-xs bg-(--bg-surface) px-2 text-sm border border-(--border-default) outline-none focus:border-(--primary)"
-            >
-              <option value="unassigned">Unassigned</option>
-              <option value="ongoing">Ongoing</option>
-              <option value="completed">Completed</option>
-              <option value="abandoned">Abandoned</option>
-            </select>
+            <StatusSelector status={status} onChange={setStatus} />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-(--text-primary)">
-              Assignee
-            </label>
-            <select
-              value={assignee}
-              onChange={(e) => {
-                setAssignee(e.target.value);
-                setDirty(true);
-              }}
-              className="h-8 rounded-xs bg-(--bg-surface) px-2 text-sm border border-(--border-default) outline-none focus:border-(--primary)"
-            >
-              <option value="">Unassigned</option>
-              <option value="Rahul">Rahul</option>
-              <option value="Arup">Arup</option>
-            </select>
+            <AssigneeSelector
+              initialAssignees={initialAssignees.map((a) => a.userId)}
+              members={members}
+              onChange={handleAssigneeEdit}
+              isDisabled={!canEditAll}
+            />
           </div>
         </section>
       )}
 
-      {/* Comments */}
       <section>
         <h4 className="text-xs font-medium text-(--text-primary) mb-2">
           Comments
@@ -193,19 +251,36 @@ export function TaskDrawer({
 
         <div className="space-y-3 mb-3">
           {!editMode && (
-            <textarea
-              placeholder="Add a comment…"
-              rows={2}
-              className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
-            />
+            <div className="flex flex-col gap-2 mb-4">
+              <textarea
+                placeholder="Add a comment…"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={2}
+                className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
+              />
+              <Button
+                onClick={handleAddComment}
+                className="bg-(--primary) text-white px-4 py-1 rounded-xs self-end"
+              >
+                Send
+              </Button>
+            </div>
           )}
 
-          <Comment author="Arup" time="2h ago">
-            Please make sure this works with prod DB as well.
-          </Comment>
-          <Comment author="Rahul" time="1h ago">
-            Working on it, will update soon.
-          </Comment>
+          {comments.length === 0 ? (
+            <p className="text-sm text-(--text-secondary)">No comments yet.</p>
+          ) : (
+            comments.map((comment, index) => (
+              <Comment
+                key={index}
+                author={comment.user.username}
+                time={comment.createdAt}
+              >
+                {comment.content}
+              </Comment>
+            ))
+          )}
         </div>
       </section>
     </Drawer>
@@ -221,11 +296,29 @@ function Comment({
   time: string;
   children: ReactNode;
 }) {
+  const createdAtMs = new Date(time).getTime();
+  const diffMs = Date.now() - createdAtMs;
+
+  const sec = Math.floor(diffMs / 1000);
+  const min = Math.floor(sec / 60);
+  const hr = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  const month = Math.floor(day / 30);
+  const year = Math.floor(day / 365);
+
+  let timeAgo = "";
+  if (year >= 1) timeAgo = `${year} year${year > 1 ? "s" : ""}`;
+  else if (month >= 1) timeAgo = `${month} month${month > 1 ? "s" : ""}`;
+  else if (day >= 1) timeAgo = `${day} day${day > 1 ? "s" : ""}`;
+  else if (hr >= 1) timeAgo = `${hr} hr${hr > 1 ? "s" : ""}`;
+  else if (min >= 1) timeAgo = `${min} min${min > 1 ? "s" : ""}`;
+  else timeAgo = "just now";
+
   return (
     <div className="space-y-0.5">
       <div className="text-xs text-(--text-muted)">
         <span className="font-medium text-(--text-primary)">{author}</span> ·{" "}
-        {time}
+        {timeAgo}
       </div>
       <p className="text-sm text-(--text-secondary)">{children}</p>
     </div>

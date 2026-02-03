@@ -178,7 +178,7 @@ func (r *ListRepo) Members(ctx context.Context,
 	var members = []*domain.Member{}
 	for rows.Next() {
 		var m domain.Member
-		rows.Scan(&m.Id, &m.Username, &m.DisplayName, &m.Email,
+		rows.Scan(&m.UserId, &m.Username, &m.DisplayName, &m.Email,
 			&m.AvatarURL, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
 
 		members = append(members, &m)
@@ -258,4 +258,53 @@ func (r *ListRepo) JoinRequests(ctx context.Context, projectId string) ([]*domai
 	}
 
 	return results, nil
+}
+
+func (r *ListRepo) Comments(ctx context.Context,
+	projectId, taskId string) ([]*domain.Comment, error) {
+
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT 
+			c.id, c.project_id, c.task_id, c.content, 
+			u.id, u.username, u.display_name, u.email, 
+			u.avatar_url, u.is_active, 
+			r.created_at, r.updated_at,
+			c.created_at, c.updated_at 
+			FROM comments AS c 
+			INNER JOIN users AS u ON c.user_id=u.id 
+			INNER JOIN roles AS r ON c.project_id=r.project_id AND c.user_id=r.user_id 
+			WHERE c.project_id=($1) AND c.task_id=($2)`,
+		projectId, taskId,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var comments = []*domain.Comment{}
+	for rows.Next() {
+		var (
+			comment domain.Comment
+			user    domain.Member
+		)
+
+		err := rows.Scan(&comment.Id, &comment.ProjectId, &comment.TaskId,
+			&comment.Content,
+			&user.UserId, &user.Username, &user.DisplayName, &user.Email,
+			&user.AvatarURL, &user.IsActive,
+			&user.CreatedAt, &user.UpdatedAt,
+			&comment.CreatedAt, &comment.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		comment.User = &user
+		comments = append(comments, &comment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration: %w", err)
+	}
+
+	return comments, nil
 }

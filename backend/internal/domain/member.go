@@ -3,7 +3,8 @@ package domain
 import "time"
 
 type Member struct {
-	Id          string     `json:"id"`
+	ProjectId   string     `json:"project_id"`
+	UserId      string     `json:"user_id"`
 	Username    string     `json:"username"`
 	DisplayName *string    `json:"display_name"`
 	Email       string     `json:"email"`

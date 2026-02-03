@@ -6,6 +6,7 @@ type AuthController interface {
 	Login(w http.ResponseWriter, r *http.Request) error
 	Callback(w http.ResponseWriter, r *http.Request) error
 	Refresh(w http.ResponseWriter, r *http.Request) error
+	Me(w http.ResponseWriter, r *http.Request) error
 	Logout(w http.ResponseWriter, r *http.Request) error
 }
 
@@ -22,6 +23,9 @@ type TaskController interface {
 	List(w http.ResponseWriter, r *http.Request) error
 	Create(w http.ResponseWriter, r *http.Request) error
 	Get(w http.ResponseWriter, r *http.Request) error
+	Update(w http.ResponseWriter, r *http.Request) error
+	AddComment(w http.ResponseWriter, r *http.Request) error
+	ListComments(w http.ResponseWriter, r *http.Request) error
 }
 
 type PublicController interface {

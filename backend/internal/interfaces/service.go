@@ -15,6 +15,8 @@ type AuthService interface {
 		sessionId string) (string, error)
 	Refresh(ctx context.Context,
 		sessionId string) error
+	Me(ctx context.Context,
+		userId string) (*domain.User, error)
 	Logout(ctx context.Context,
 		sessionId string) error
 }
@@ -45,20 +47,29 @@ type PublicService interface {
 	ListPublicProjects(ctx context.Context,
 		userId string) ([]*domain.PublicProjectListed, error)
 	GetPublicProject(ctx context.Context,
-		projectId string) (*domain.PublicProjectSummary, error)
+		projectId, userId string) (*domain.PublicProjectSummary, error)
 	JoinProject(ctx context.Context,
 		projectId, userId string) error
 }
 
 type TaskService interface {
 	CreateTask(ctx context.Context,
-		projectId, title string,
-		description *string,
-		userId string) (string, error)
+		projectId, userId string,
+		title, description, status string,
+		assignees []string) (string, []string, error)
 	ListTasks(ctx context.Context,
 		projectId, userId string) ([]*domain.TaskListed, error)
 	GetTask(ctx context.Context,
 		projectId, taskId, userId string) (*domain.Task, error)
+	UpdateTask(ctx context.Context,
+		projectId, taskId, userId string,
+		title, description, status string,
+		addedAssignees, removedAssignees []string) error
 	GetTaskAssignees(ctx context.Context,
 		projectId, taskId, userId string) ([]*domain.Assignee, error)
+	AddComment(ctx context.Context,
+		projectId, taskId, userId string,
+		comment string) (string, error)
+	ListComments(ctx context.Context,
+		projectId, taskId, userId string) ([]*domain.Comment, error)
 }

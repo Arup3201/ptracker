@@ -355,6 +355,17 @@ func (s *authService) Refresh(ctx context.Context,
 	return nil
 }
 
+func (s *authService) Me(ctx context.Context,
+	userId string) (*domain.User, error) {
+
+	user, err := s.store.User().Get(ctx, userId)
+	if err != nil {
+		return nil, fmt.Errorf("store user get: %w", err)
+	}
+
+	return user, nil
+}
+
 func (s *authService) Logout(ctx context.Context,
 	sessionId string) error {
 	err := s.store.Session().Revoke(ctx, sessionId)

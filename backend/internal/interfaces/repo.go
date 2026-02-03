@@ -38,16 +38,22 @@ type ProjectRepository interface {
 }
 
 type TaskRepository interface {
-	Create(ctx context.Context, projectId, title string,
-		description *string,
-		status string) (string, error)
+	Create(ctx context.Context, projectId,
+		title, description, status string) (string, error)
 	Get(ctx context.Context, id string) (*domain.Task, error)
+	Update(ctx context.Context, task *domain.Task) error
 }
 
 type RoleRepository interface {
 	Create(ctx context.Context, projectId, userId, role string) error
 	Get(ctx context.Context, projectId, userId string) (*domain.Role, error)
 	CountMembers(ctx context.Context, projectId string) (int, error)
+}
+
+type AssigneeRepository interface {
+	Create(ctx context.Context, projectId, taskId, userId string) error
+	Get(ctx context.Context, projectId, taskId, userId string) (bool, error)
+	Delete(ctx context.Context, projectId, taskId, userId string) error
 }
 
 type ListRepository interface {
@@ -57,6 +63,7 @@ type ListRepository interface {
 	Members(ctx context.Context, projectId string) ([]*domain.Member, error)
 	PublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error)
 	JoinRequests(ctx context.Context, projectId string) ([]*domain.JoinRequestListed, error)
+	Comments(ctx context.Context, projectId, taskId string) ([]*domain.Comment, error)
 }
 
 type JoinRequestRepository interface {
@@ -67,4 +74,10 @@ type JoinRequestRepository interface {
 
 type PublicRepository interface {
 	Get(ctx context.Context, projectId string) (*domain.PublicProjectSummary, error)
+}
+
+type CommentRepository interface {
+	Create(ctx context.Context,
+		projectId, taskId, userId string,
+		comment string) (string, error)
 }

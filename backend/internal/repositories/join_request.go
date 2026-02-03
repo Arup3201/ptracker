@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 	"time"
@@ -50,6 +51,9 @@ func (r *JoinRequestRepo) Get(ctx context.Context, projectId, userId string) (st
 	).Scan(&status)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", apierr.ErrNotFound
+		}
 		return "", fmt.Errorf("query row context: %w", err)
 	}
 

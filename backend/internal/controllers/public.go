@@ -89,7 +89,12 @@ func (c *publicController) GetProject(w http.ResponseWriter, r *http.Request) er
 		}
 	}
 
-	project, err := c.service.GetPublicProject(r.Context(), projectId)
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	project, err := c.service.GetPublicProject(r.Context(), projectId, userId)
 	if err != nil {
 		return fmt.Errorf("database get project details: %w", err)
 	}

@@ -11,7 +11,9 @@ type Store interface {
 	User() UserRepository
 	Project() ProjectRepository
 	Task() TaskRepository
+	Comment() CommentRepository
 	Role() RoleRepository
+	Assignee() AssigneeRepository
 	List() ListRepository
 	JoinRequest() JoinRequestRepository
 	Public() PublicRepository
