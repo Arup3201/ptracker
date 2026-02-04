@@ -305,3 +305,48 @@ func (c *projectController) ListMembers(w http.ResponseWriter, r *http.Request) 
 
 	return nil
 }
+
+func (c *projectController) ListRecentlyCreatedProjects(w http.ResponseWriter, r *http.Request) error {
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	projects, err := c.service.ListRecentlyCreatedProjects(r.Context(),
+		userId)
+	if err != nil {
+		return fmt.Errorf("service list recently created projects: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedRecentProjectsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedRecentProjectsResponse{
+			Projects: projects,
+		},
+	})
+
+	return nil
+}
+
+func (c *projectController) ListRecentlyJoinedProjects(w http.ResponseWriter, r *http.Request) error {
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get projects userId: %w", err)
+	}
+
+	projects, err := c.service.ListRecentlyJoinedProjects(r.Context(),
+		userId)
+	if err != nil {
+		return fmt.Errorf("service list recently created projects: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedRecentProjectsResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedRecentProjectsResponse{
+			Projects: projects,
+		},
+	})
+
+	return nil
+}

@@ -29,3 +29,12 @@ type TaskListed struct {
 	*Task
 	Assignees []*Assignee `json:"assignees"`
 }
+
+type RecentProjectListed struct {
+	*ProjectSummary
+}
+
+type RecentTaskListed struct {
+	*Task
+	ProjectName string `json:"project_name"`
+}

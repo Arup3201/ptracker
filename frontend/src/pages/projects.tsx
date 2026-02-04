@@ -19,6 +19,7 @@ import {
 import { Button } from "../components/button";
 import { Input } from "../components/input.tsx";
 import { CreateProjectModal } from "../components/create-project.tsx";
+import { renderTaskSignal } from "../utils.ts";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export function ProjectsPage() {
       const data = await ApiRequest<ProjectsApiResponse>(
         "/projects",
         "GET",
-        null
+        null,
       );
       if (data?.projects) {
         setProjects(data.projects.map(MapProject) || []);
@@ -122,18 +123,4 @@ export function ProjectsPage() {
       />
     </>
   );
-}
-
-function renderTaskSignal(project: ProjectSummary) {
-  const parts: string[] = [];
-
-  if (project.ongoingTasks > 0) {
-    parts.push(`${project.ongoingTasks} ongoing`);
-  }
-
-  if (project.unassignedTasks > 0) {
-    parts.push(`${project.unassignedTasks} unassigned`);
-  }
-
-  return parts.length > 0 ? parts.join(" · ") : "—";
 }

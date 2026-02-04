@@ -323,3 +323,20 @@ func (suite *RepositoryTestSuite) TestListComments() {
 		suite.Require().Equal(2, len(comments))
 	})
 }
+
+func (suite *RepositoryTestSuite) TestListRecentlyJoinedProjects() {
+	t := suite.T()
+
+	t.Run("should give 1 joined project", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertRole(repo_fixtures.GetRoleRow(p, USER_TWO, domain.ROLE_MEMBER))
+		repo := NewListRepo(suite.db)
+
+		projects, err := repo.RecentlyJoinedProjects(suite.ctx, USER_TWO, 10)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(projects))
+	})
+}

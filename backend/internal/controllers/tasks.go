@@ -415,3 +415,49 @@ func (c *taskController) ListComments(w http.ResponseWriter, r *http.Request) er
 
 	return nil
 }
+
+func (c *taskController) ListAssignedTasks(w http.ResponseWriter, r *http.Request) error {
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	tasks, err := c.service.AssignedTasks(r.Context(),
+		userId)
+	if err != nil {
+		return fmt.Errorf("service assigned tasks: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedRecentTasksResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedRecentTasksResponse{
+			Tasks: tasks,
+		},
+	})
+
+	return nil
+}
+
+func (c *taskController) ListUnassignedTasks(w http.ResponseWriter, r *http.Request) error {
+
+	userId, err := utils.GetUserId(r)
+	if err != nil {
+		return fmt.Errorf("get userId: %w", err)
+	}
+
+	tasks, err := c.service.UnassignedTasks(r.Context(),
+		userId)
+	if err != nil {
+		return fmt.Errorf("service assigned tasks: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedRecentTasksResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedRecentTasksResponse{
+			Tasks: tasks,
+		},
+	})
+
+	return nil
+}

@@ -308,3 +308,192 @@ func (r *ListRepo) Comments(ctx context.Context,
 
 	return comments, nil
 }
+
+func (r *ListRepo) RecentlyCreatedProjects(ctx context.Context,
+	userId string, n int) ([]*domain.RecentProjectListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"p.created_at, p.updated_at "+
+			"FROM projects AS p "+
+			"LEFT JOIN project_summary as ps ON ps.id=p.id "+
+			"WHERE p.owner=($1) "+
+			"ORDER BY p.created_at DESC "+
+			"LIMIT ($2)",
+		userId, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var projects = []*domain.RecentProjectListed{}
+	for rows.Next() {
+		var (
+			project                                   domain.Project
+			unassigned, ongoing, completed, abandoned int
+		)
+
+		err := rows.Scan(&project.Id, &project.Name, &project.Description, &project.Skills,
+			&unassigned, &ongoing, &completed, &abandoned,
+			&project.CreatedAt, &project.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+		projects = append(projects, &domain.RecentProjectListed{
+			ProjectSummary: &domain.ProjectSummary{
+				Project:         &project,
+				UnassignedTasks: unassigned,
+				OngoingTasks:    ongoing,
+				CompletedTasks:  completed,
+				AbandonedTasks:  abandoned,
+			},
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("rows: %w", err)
+	}
+
+	return projects, nil
+}
+
+func (r *ListRepo) RecentlyJoinedProjects(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentProjectListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		"SELECT "+
+			"p.id, p.name, p.description, p.skills, "+
+			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
+			"p.created_at, p.updated_at "+
+			"FROM roles AS r "+
+			"INNER JOIN projects AS p ON p.id=r.project_id "+
+			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
+			"WHERE r.user_id=($1) AND r.role=($2) "+
+			"ORDER BY r.created_at DESC "+
+			"LIMIT ($3)",
+		userId, domain.ROLE_MEMBER, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+	var projects = []*domain.RecentProjectListed{}
+	for rows.Next() {
+		var (
+			project                                   domain.Project
+			unassigned, ongoing, completed, abandoned int
+		)
+
+		err := rows.Scan(&project.Id, &project.Name, &project.Description, &project.Skills,
+			&unassigned, &ongoing, &completed, &abandoned,
+			&project.CreatedAt, &project.UpdatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+		projects = append(projects, &domain.RecentProjectListed{
+			ProjectSummary: &domain.ProjectSummary{
+				Project:         &project,
+				UnassignedTasks: unassigned,
+				OngoingTasks:    ongoing,
+				CompletedTasks:  completed,
+				AbandonedTasks:  abandoned,
+			},
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return projects, fmt.Errorf("rows: %w", err)
+	}
+
+	return projects, nil
+}
+
+func (r *ListRepo) RecentlyAssignedTasks(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentTaskListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		`SELECT 
+			t.id, t.project_id, t.title, t.status, t.created_at, t.updated_at, 
+			p.name
+			FROM tasks AS t 
+			INNER JOIN projects AS p ON t.project_id=p.id
+			INNER JOIN assignees AS a ON a.task_id=t.id 
+			WHERE a.user_id=($1)  
+			ORDER BY a.created_at DESC 
+			LIMIT ($2)`, userId, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks = []*domain.RecentTaskListed{}
+	for rows.Next() {
+		var (
+			task        domain.Task
+			projectName string
+		)
+		err := rows.Scan(&task.Id, &task.ProjectId, &task.Title,
+			&task.Status, &task.CreatedAt, &task.UpdatedAt,
+			&projectName)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		tasks = append(tasks, &domain.RecentTaskListed{
+			Task:        &task,
+			ProjectName: projectName,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}
+
+func (r *ListRepo) RecentlyUnassignedTasks(ctx context.Context,
+	userId string,
+	n int) ([]*domain.RecentTaskListed, error) {
+
+	rows, err := r.db.QueryContext(
+		ctx,
+		`SELECT 
+			t.id, t.project_id, t.title, t.status, t.created_at, t.updated_at, 
+			p.name 
+			FROM tasks AS t 
+			INNER JOIN projects AS p ON t.project_id=p.id 
+			WHERE p.owner=($1) AND t.status=($2) 
+			ORDER BY t.created_at DESC 
+			LIMIT ($3)`, userId, domain.TASK_STATUS_UNASSIGNED, n)
+	if err != nil {
+		return nil, fmt.Errorf("db query context: %w", err)
+	}
+	defer rows.Close()
+
+	var tasks = []*domain.RecentTaskListed{}
+	for rows.Next() {
+		var (
+			task        domain.Task
+			projectName string
+		)
+		err := rows.Scan(&task.Id, &task.ProjectId, &task.Title,
+			&task.Status, &task.CreatedAt, &task.UpdatedAt, &projectName)
+		if err != nil {
+			return nil, fmt.Errorf("rows scan: %w", err)
+		}
+
+		tasks = append(tasks, &domain.RecentTaskListed{
+			Task:        &task,
+			ProjectName: projectName,
+		})
+	}
+	if err := rows.Err(); err != nil {
+		return tasks, err
+	}
+
+	return tasks, nil
+}

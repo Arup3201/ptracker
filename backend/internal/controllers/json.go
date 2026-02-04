@@ -73,3 +73,11 @@ type ListedCommentsResponse struct {
 	Limit    int               `json:"limit"`
 	HasNext  bool              `json:"has_next"`
 }
+
+type ListedRecentProjectsResponse struct {
+	Projects []*domain.RecentProjectListed `json:"projects"`
+}
+
+type ListedRecentTasksResponse struct {
+	Tasks []*domain.RecentTaskListed `json:"tasks"`
+}
