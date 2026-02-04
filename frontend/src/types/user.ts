@@ -20,7 +20,7 @@ export const MapUser = (u: UserApi): User => ({
   id: u.id,
   username: u.username,
   displayName: u.display_name,
-  email: u.display_name,
+  email: u.email,
   createdAt: u.created_at,
   updatedAt: u.updated_at,
 });
