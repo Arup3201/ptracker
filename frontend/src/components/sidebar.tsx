@@ -2,6 +2,8 @@ import clsx from "clsx";
 import { useNavigate } from "react-router";
 import { Logo } from "./logo";
 import { Button } from "./button";
+import { useCurrentUser } from "../hooks/current_user";
+import { ApiRequest } from "../api/request";
 
 const NavItems = [
   {
@@ -27,6 +29,21 @@ export function Sidebar() {
     }
   });
 
+  const currentUser = useCurrentUser();
+
+  const initials = currentUser
+    ? currentUser?.displayName[0].toUpperCase()
+    : "U";
+
+  async function handleLogout() {
+    try {
+      await ApiRequest("/auth/logout", "POST", null);
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return (
     <aside className="flex w-60 flex-col border-r border-(--border-default) bg-(--bg-surface)">
       <div className="px-4 py-3 text-sm font-semibold self-center">
@@ -48,7 +65,25 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-(--border-default) p-2">
-        <Button variant="danger" className="w-full">
+        <div className="flex items-center gap-3 p-2 rounded-md">
+          <div className="h-10 w-10 rounded-full bg-(--bg-elevated) flex items-center justify-center text-sm font-medium text-(--text-primary)">
+            {initials}
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold truncate">
+              {currentUser?.displayName}
+            </div>
+            <div className="text-xs text-(--text-secondary) truncate">
+              {currentUser?.username}
+            </div>
+            <div className="text-xs text-(--text-secondary) truncate">
+              {currentUser?.email}
+            </div>
+          </div>
+        </div>
+
+        <Button variant="danger" className="w-full" onClick={handleLogout}>
           Logout
         </Button>
       </div>
@@ -71,7 +106,7 @@ function NavItem({
         "rounded-xs px-3 py-2 text-sm cursor-pointer",
         active
           ? "bg-(--bg-elevated) text-(--text-primary)"
-          : "text-(--text-secondary) hover:bg-(--bg-elevated)"
+          : "text-(--text-secondary) hover:bg-(--bg-elevated)",
       )}
       onClick={onClick}
     >
