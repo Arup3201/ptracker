@@ -13,6 +13,7 @@ import (
 
 type projectService struct {
 	store             interfaces.Store
+	notifier          interfaces.Notifier
 	projectPermission *ProjectPermissionService
 }
 
@@ -234,6 +235,19 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("transaction: %w", err)
 	}
+
+	project, err := s.store.Project().Get(ctx, projectId)
+	if err != nil {
+		return fmt.Errorf("project get: %w", err)
+	}
+	message := domain.Message{
+		Type: "join",
+		Data: map[string]string{
+			"project_id":   projectId,
+			"project_name": project.Name,
+		},
+	}
+	s.notifier.Notify(ctx, requestorId, message)
 
 	return nil
 }

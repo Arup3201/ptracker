@@ -14,6 +14,7 @@ import (
 type taskService struct {
 	store             interfaces.Store
 	permissionService *ProjectPermissionService
+	notifier          interfaces.Notifier
 }
 
 func NewTaskService(store interfaces.Store) interfaces.TaskService {
@@ -71,6 +72,9 @@ func (s *taskService) AddAssignees(ctx context.Context,
 		return
 	}
 
+	project, _ := s.store.Project().Get(ctx, projectId)
+	task, _ := s.store.Task().Get(ctx, taskId)
+
 	for _, assignee := range assignees {
 		_, err := s.store.User().Get(ctx, assignee)
 		if err != nil {
@@ -97,6 +101,32 @@ func (s *taskService) AddAssignees(ctx context.Context,
 		err = s.store.Assignee().Create(ctx, projectId, taskId, assignee)
 		if err != nil {
 			warnings = append(warnings, "failed to create assignee in the database")
+		} else {
+			var message domain.Message
+			if project != nil && task != nil {
+				message = domain.Message{
+					Type: "assign_add",
+					Data: map[string]string{
+						"project_id":   projectId,
+						"task_id":      taskId,
+						"project_name": project.Name,
+						"task_name":    task.Title,
+					},
+				}
+			} else {
+				message = domain.Message{
+					Type: "assign_add",
+					Data: map[string]string{
+						"project_id": projectId,
+						"task_id":    taskId,
+					},
+				}
+			}
+
+			err = s.notifier.Notify(ctx, assignee, message)
+			if err != nil {
+				fmt.Printf("[WARNING] notifier error: %s\n", err)
+			}
 		}
 	}
 
@@ -109,6 +139,9 @@ func (s *taskService) RemoveAssignees(ctx context.Context,
 	if len(assignees) == 0 {
 		return
 	}
+
+	project, _ := s.store.Project().Get(ctx, projectId)
+	task, _ := s.store.Task().Get(ctx, taskId)
 
 	for _, assignee := range assignees {
 		exist, err := s.store.Assignee().Get(ctx, projectId, taskId, assignee)
@@ -130,6 +163,32 @@ func (s *taskService) RemoveAssignees(ctx context.Context,
 		err = s.store.Assignee().Delete(ctx, projectId, taskId, assignee)
 		if err != nil {
 			warnings = append(warnings, "failed to create assignee in the database")
+		} else {
+			var message domain.Message
+			if project != nil && task != nil {
+				message = domain.Message{
+					Type: "assign_remove",
+					Data: map[string]string{
+						"project_id":   projectId,
+						"task_id":      taskId,
+						"project_name": project.Name,
+						"task_name":    task.Title,
+					},
+				}
+			} else {
+				message = domain.Message{
+					Type: "assign_remove",
+					Data: map[string]string{
+						"project_id": projectId,
+						"task_id":    taskId,
+					},
+				}
+			}
+
+			err = s.notifier.Notify(ctx, assignee, message)
+			if err != nil {
+				fmt.Printf("[WARNING] notifier error: %s\n", err)
+			}
 		}
 	}
 
@@ -206,6 +265,23 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		return fmt.Errorf("store task get: %w", err)
 	}
 
+	if title == task.Title &&
+		(task.Description == nil && description == "") &&
+		task.Status == status {
+		return fmt.Errorf("no change")
+	}
+
+	if !slices.Contains([]string{
+		domain.TASK_STATUS_UNASSIGNED,
+		domain.TASK_STATUS_ONGOING,
+		domain.TASK_STATUS_COMPLETED,
+		domain.TASK_STATUS_ABANDONED,
+	}, status) {
+		return apierr.ErrInvalidValue
+	}
+
+	taskTitle := task.Title
+
 	if title != task.Title {
 		permitted, err := s.permissionService.CanUpdateTask(ctx,
 			projectId, taskId, userId)
@@ -264,6 +340,30 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		return fmt.Errorf("store task update: %w", err)
 	}
 
+	// Notifications
+
+	message := domain.Message{
+		Type: "task_update",
+		Data: map[string]string{
+			"task_id": taskId,
+			"title":   taskTitle,
+		},
+	}
+
+	project, _ := s.store.Project().Get(ctx, projectId)
+	assignees, _ := s.store.List().Assignees(ctx, projectId)
+
+	var users []string
+	if userId != project.Owner {
+		users = []string{project.Owner}
+	}
+	for _, assignee := range assignees {
+		if userId != assignee.UserId {
+			users = append(users, assignee.UserId)
+		}
+	}
+	s.notifier.BatchNotify(ctx, users, message)
+
 	s.AddAssignees(ctx, projectId, taskId, addedAssignees)
 	s.RemoveAssignees(ctx, projectId, taskId, removedAssignees)
 
@@ -291,6 +391,31 @@ func (s *taskService) AddComment(ctx context.Context,
 	if err != nil {
 		return "", fmt.Errorf("store comment create: %w", err)
 	}
+
+	// Notifications
+
+	task, _ := s.store.Task().Get(ctx, taskId)
+	message := domain.Message{
+		Type: "task_comment",
+		Data: map[string]string{
+			"task_id": taskId,
+			"title":   task.Title,
+		},
+	}
+
+	project, _ := s.store.Project().Get(ctx, projectId)
+	assignees, _ := s.store.List().Assignees(ctx, projectId)
+
+	var users []string
+	if userId != project.Owner {
+		users = []string{project.Owner}
+	}
+	for _, assignee := range assignees {
+		if userId != assignee.UserId {
+			users = append(users, assignee.UserId)
+		}
+	}
+	s.notifier.BatchNotify(ctx, users, message)
 
 	return id, nil
 }
