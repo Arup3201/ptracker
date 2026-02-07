@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +25,7 @@ type notificationHandler struct {
 	notifier *wsNotifier
 }
 
-func NewNotificationHandler(allowOrigins []string, n *wsNotifier) *notificationHandler {
+func NewNotificationHandler(allowOrigins []string, n *wsNotifier) http.Handler {
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -75,6 +76,8 @@ func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type wsNotifier struct {
+	mutex sync.RWMutex
+
 	register   chan *wsClient
 	unregister chan *wsClient
 
@@ -84,6 +87,8 @@ type wsNotifier struct {
 func NewWsNotifier() *wsNotifier {
 
 	return &wsNotifier{
+		mutex: sync.RWMutex{},
+
 		register:   make(chan *wsClient),
 		unregister: make(chan *wsClient),
 		clients:    make(map[string][]*wsClient),
@@ -94,12 +99,18 @@ func (n *wsNotifier) Run() {
 	for {
 		select {
 		case client := <-n.register:
+			n.mutex.Lock()
+
 			if _, ok := n.clients[client.user]; !ok {
-				n.clients[client.user] = []*wsClient{client}
-			} else {
-				n.clients[client.user] = append(n.clients[client.user], client)
+				n.clients[client.user] = []*wsClient{}
 			}
+
+			n.clients[client.user] = append(n.clients[client.user], client)
+
+			n.mutex.Unlock()
 		case client := <-n.unregister:
+			n.mutex.Lock()
+
 			if _, ok := n.clients[client.user]; ok {
 				if len(n.clients[client.user]) == 1 {
 					close(client.send)
@@ -116,6 +127,8 @@ func (n *wsNotifier) Run() {
 					n.clients[client.user] = n.clients[client.user][i : i+1]
 				}
 			}
+
+			n.mutex.Unlock()
 		}
 	}
 }

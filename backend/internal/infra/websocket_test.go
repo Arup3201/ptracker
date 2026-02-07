@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/ptracker/internal/domain"
@@ -50,14 +51,20 @@ func TestWebsocketNotify(t *testing.T) {
 	}
 	defer client.Close()
 
-	handler.notifier.Notify(context.Background(), USER_ONE, domain.Message{
+	time.Sleep(2 * time.Second) // delay for the client registration
+	err = notifier.Notify(context.Background(), USER_ONE, domain.Message{
 		Type: "join",
 		Data: map[string]string{
 			"project_id":   "TABC1",
 			"project_name": "Test",
 		},
 	})
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
+	client.SetReadDeadline(time.Now().Add(2 * time.Second))
 	_, p, err := client.ReadMessage()
 	if err != nil {
 		t.Error(err)
@@ -101,7 +108,8 @@ func TestWebsocketBatchNotify(t *testing.T) {
 	}
 	defer userTwo.Close()
 
-	handler.notifier.BatchNotify(context.Background(),
+	time.Sleep(2 * time.Second) // delay for the client registration
+	err = notifier.BatchNotify(context.Background(),
 		[]string{USER_ONE, USER_TWO},
 		domain.Message{
 			Type: "task_update",
@@ -111,7 +119,12 @@ func TestWebsocketBatchNotify(t *testing.T) {
 				"task_title": "Test",
 			},
 		})
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
+	userOne.SetReadDeadline(time.Now().Add(2 * time.Second))
 	_, p, err := userOne.ReadMessage()
 	if err != nil {
 		t.Error(err)
@@ -129,6 +142,7 @@ func TestWebsocketBatchNotify(t *testing.T) {
 	assert.Equal(t, "TABC1", msg.Data["task_id"])
 	assert.Equal(t, "Test", msg.Data["task_title"])
 
+	userTwo.SetReadDeadline(time.Now().Add(10 * time.Second))
 	_, p, err = userTwo.ReadMessage()
 	if err != nil {
 		t.Error(err)
