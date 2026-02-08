@@ -5,6 +5,7 @@ import (
 	"log"
 	"testing"
 
+	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/testhelpers"
@@ -13,13 +14,27 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+type mockNotifier struct{}
+
+func (n *mockNotifier) Notify(ctx context.Context,
+	user string, message domain.Message) error {
+	return nil
+}
+
+func (n *mockNotifier) BatchNotify(ctx context.Context,
+	users []string, message domain.Message) error {
+	return nil
+}
+
 type ServiceTestSuite struct {
 	suite.Suite
-	ctx         context.Context
-	pgContainer *testhelpers.PostgresContainer
-	db          interfaces.Execer
-	store       interfaces.Store
-	fixtures    *service_fixtures.Fixtures
+	ctx            context.Context
+	pgContainer    *testhelpers.PostgresContainer
+	db             interfaces.Execer
+	projectService interfaces.ProjectService
+	taskService    interfaces.TaskService
+	publicService  interfaces.PublicService
+	fixtures       *service_fixtures.Fixtures
 }
 
 var USER_ONE, USER_TWO, USER_THREE string
@@ -57,8 +72,15 @@ func (suite *ServiceTestSuite) SetupSuite() {
 	redisClient := redis.NewClient(opt)
 	redis := infra.NewInMemory(redisClient)
 	rateLimiter := infra.NewRateLimiter(redisClient, 5, 3)
-	suite.store = NewStorage(suite.db, redis, rateLimiter)
-	suite.fixtures = service_fixtures.New(suite.ctx, suite.store)
+	store := NewStorage(suite.db, redis, rateLimiter)
+
+	notifier := &mockNotifier{}
+
+	suite.projectService = NewProjectService(store, notifier)
+	suite.taskService = NewTaskService(store, notifier)
+	suite.publicService = NewPublicService(store)
+
+	suite.fixtures = service_fixtures.New(suite.ctx, store)
 
 	USER_ONE = suite.fixtures.User(service_fixtures.UserParams{
 		IDPSubject:  "sub-234",

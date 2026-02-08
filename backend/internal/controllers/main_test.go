@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
@@ -14,6 +15,18 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
 )
+
+type mockNotifier struct{}
+
+func (n *mockNotifier) Notify(ctx context.Context,
+	user string, message domain.Message) error {
+	return nil
+}
+
+func (n *mockNotifier) BatchNotify(ctx context.Context,
+	users []string, message domain.Message) error {
+	return nil
+}
 
 type ControllerTestSuite struct {
 	suite.Suite
@@ -66,7 +79,8 @@ func (suite *ControllerTestSuite) SetupSuite() {
 
 	suite.fixtures = controller_fixtures.NewControllerFixtures(suite.ctx, store)
 
-	projectService := services.NewProjectService(store)
+	notifier := &mockNotifier{}
+	projectService := services.NewProjectService(store, notifier)
 	projectController := NewProjectController(projectService)
 
 	handler := http.NewServeMux()

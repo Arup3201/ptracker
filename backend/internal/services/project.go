@@ -17,13 +17,15 @@ type projectService struct {
 	projectPermission *ProjectPermissionService
 }
 
-func NewProjectService(store interfaces.Store) interfaces.ProjectService {
+func NewProjectService(store interfaces.Store,
+	notifier interfaces.Notifier) interfaces.ProjectService {
 	permissionService := &ProjectPermissionService{
 		store: store,
 	}
 	return &projectService{
 		store:             store,
 		projectPermission: permissionService,
+		notifier:          notifier,
 	}
 }
 

@@ -17,13 +17,15 @@ type taskService struct {
 	notifier          interfaces.Notifier
 }
 
-func NewTaskService(store interfaces.Store) interfaces.TaskService {
+func NewTaskService(store interfaces.Store,
+	notifier interfaces.Notifier) interfaces.TaskService {
 	permissionService := &ProjectPermissionService{
 		store: store,
 	}
 	return &taskService{
 		store:             store,
 		permissionService: permissionService,
+		notifier:          notifier,
 	}
 }
 

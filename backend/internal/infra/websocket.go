@@ -22,10 +22,10 @@ const (
 
 type notificationHandler struct {
 	upgrader websocket.Upgrader
-	notifier *wsNotifier
+	notifier *WSNotifier
 }
 
-func NewNotificationHandler(allowOrigins []string, n *wsNotifier) http.Handler {
+func NewNotificationHandler(allowOrigins []string, n *WSNotifier) http.Handler {
 
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -75,7 +75,7 @@ func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	go client.writePump()
 }
 
-type wsNotifier struct {
+type WSNotifier struct {
 	mutex sync.RWMutex
 
 	register   chan *wsClient
@@ -84,9 +84,9 @@ type wsNotifier struct {
 	clients map[string][]*wsClient
 }
 
-func NewWsNotifier() *wsNotifier {
+func NewWsNotifier() *WSNotifier {
 
-	return &wsNotifier{
+	return &WSNotifier{
 		mutex: sync.RWMutex{},
 
 		register:   make(chan *wsClient),
@@ -95,7 +95,7 @@ func NewWsNotifier() *wsNotifier {
 	}
 }
 
-func (n *wsNotifier) Run() {
+func (n *WSNotifier) Run() {
 	for {
 		select {
 		case client := <-n.register:
@@ -133,7 +133,7 @@ func (n *wsNotifier) Run() {
 	}
 }
 
-func (n *wsNotifier) Notify(ctx context.Context,
+func (n *WSNotifier) Notify(ctx context.Context,
 	user string, message domain.Message) error {
 	clients, ok := n.clients[user]
 	if !ok {
@@ -147,7 +147,7 @@ func (n *wsNotifier) Notify(ctx context.Context,
 	return nil
 }
 
-func (n *wsNotifier) BatchNotify(ctx context.Context,
+func (n *WSNotifier) BatchNotify(ctx context.Context,
 	users []string, message domain.Message) error {
 
 	for _, user := range users {
@@ -162,7 +162,7 @@ func (n *wsNotifier) BatchNotify(ctx context.Context,
 
 type wsClient struct {
 	conn     *websocket.Conn
-	notifier *wsNotifier
+	notifier *WSNotifier
 
 	id   string
 	user string

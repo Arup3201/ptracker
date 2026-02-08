@@ -7,6 +7,7 @@ import (
 
 	"github.com/ptracker/internal/controllers"
 	"github.com/ptracker/internal/controllers/middlewares"
+	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
 	"github.com/rs/cors"
@@ -25,12 +26,15 @@ type app struct {
 	projectController interfaces.ProjectController
 	taskController    interfaces.TaskController
 	publicController  interfaces.PublicController
+
+	notificationHandler http.Handler
 }
 
 func NewApp(config *Config,
 	db interfaces.Execer,
 	inMemory interfaces.InMemory,
-	rateLimiter interfaces.RateLimiter) *app {
+	rateLimiter interfaces.RateLimiter,
+	notifier *infra.WSNotifier) *app {
 
 	handler := http.NewServeMux()
 
@@ -48,8 +52,8 @@ func NewApp(config *Config,
 		config.KeycloakClientSecret,
 		config.KeycloakRedirectURI,
 		config.EncryptionKey)
-	projectService := services.NewProjectService(store)
-	taskService := services.NewTaskService(store)
+	projectService := services.NewProjectService(store, notifier)
+	taskService := services.NewTaskService(store, notifier)
 	publicService := services.NewPublicService(store)
 	limitService := services.NewLimiterService(store)
 
@@ -60,6 +64,9 @@ func NewApp(config *Config,
 	app.projectController = controllers.NewProjectController(projectService)
 	app.taskController = controllers.NewTaskController(taskService)
 	app.publicController = controllers.NewPublicController(publicService)
+
+	// TODO: restrict origins
+	app.notificationHandler = infra.NewNotificationHandler([]string{}, notifier)
 
 	return app
 }
@@ -108,6 +115,8 @@ func (a *app) AttachRoutes(prefix string) *app {
 
 	a.attachMiddleware("GET", "/public/projects", a.publicController.ListProjects)
 	a.attachMiddleware("GET", "/public/projects/{id}", a.publicController.GetProject)
+
+	a.handler.Handle("GET /ws", a.authMiddleware.Handler(a.notificationHandler))
 
 	return a
 }
