@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"slices"
 	"sync"
@@ -21,7 +22,7 @@ const (
 )
 
 type notificationHandler struct {
-	upgrader websocket.Upgrader
+	upgrader *websocket.Upgrader
 	notifier *WSNotifier
 }
 
@@ -41,7 +42,7 @@ func NewNotificationHandler(allowOrigins []string, n *WSNotifier) http.Handler {
 	}
 
 	return &notificationHandler{
-		upgrader: upgrader,
+		upgrader: &upgrader,
 		notifier: n,
 	}
 }
@@ -49,6 +50,7 @@ func NewNotificationHandler(allowOrigins []string, n *WSNotifier) http.Handler {
 func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	conn, err := h.upgrader.Upgrade(w, r, nil)
 	if err != nil {
+		log.Printf("[ERROR] websocket upgrade: %s", err)
 		return
 	}
 
@@ -57,6 +59,7 @@ func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		conn.SetWriteDeadline(time.Now().Add(WRITE_WAIT))
 		conn.WriteMessage(websocket.CloseMessage, []byte{})
 		conn.Close()
+		log.Printf("[ERROR] websocket closed: get user id: %s", err)
 		return
 	}
 
@@ -76,7 +79,7 @@ func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 }
 
 type WSNotifier struct {
-	mutex sync.RWMutex
+	mutex *sync.RWMutex
 
 	register   chan *wsClient
 	unregister chan *wsClient
@@ -87,7 +90,7 @@ type WSNotifier struct {
 func NewWsNotifier() *WSNotifier {
 
 	return &WSNotifier{
-		mutex: sync.RWMutex{},
+		mutex: &sync.RWMutex{},
 
 		register:   make(chan *wsClient),
 		unregister: make(chan *wsClient),
@@ -135,6 +138,8 @@ func (n *WSNotifier) Run() {
 
 func (n *WSNotifier) Notify(ctx context.Context,
 	user string, message domain.Message) error {
+	n.mutex.Lock()
+	defer n.mutex.Unlock()
 	clients, ok := n.clients[user]
 	if !ok {
 		return fmt.Errorf("user is offline")
@@ -153,7 +158,7 @@ func (n *WSNotifier) BatchNotify(ctx context.Context,
 	for _, user := range users {
 		err := n.Notify(ctx, user, message)
 		if err != nil {
-			fmt.Println("[ERROR] batch notify: %w", err)
+			fmt.Printf("[ERROR] batch notify: %s", err)
 		}
 	}
 

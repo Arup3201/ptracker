@@ -34,8 +34,9 @@ func main() {
 
 	inMemory := infra.NewInMemory(redis)
 	rateLimiter := infra.NewRateLimiter(redis, 5, 2)
+	notifier := infra.NewWsNotifier()
 
-	err = internal.NewApp(config, database, inMemory, rateLimiter).
+	err = internal.NewApp(config, database, inMemory, rateLimiter, notifier).
 		AttachRoutes("/api/v1").
 		Start()
 	if err != nil {

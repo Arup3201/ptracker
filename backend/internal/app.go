@@ -123,7 +123,9 @@ func (a *app) AttachRoutes(prefix string) *app {
 
 func (a *app) Start() error {
 
-	logging := middlewares.NewLoggingMiddleware()
+	// TODO: some problem with not implementing http.Hijacker interface
+	// when using with websocket
+	// logging := middlewares.NewLoggingMiddleware()
 
 	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{a.config.HomeURL},
@@ -133,8 +135,9 @@ func (a *app) Start() error {
 
 	// server
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%s", a.config.ServerHost, a.config.ServerPort),
-		Handler:      cors.Handler(logging.Handler(a.handler)),
+		Addr: fmt.Sprintf("%s:%s", a.config.ServerHost, a.config.ServerPort),
+		// Handler:      logging.Handler(cors.Handler(a.handler)),
+		Handler:      cors.Handler(a.handler),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}
