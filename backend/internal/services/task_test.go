@@ -15,11 +15,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx,
+		_, _, err := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{})
@@ -33,11 +32,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		taskId, _, _ := service.CreateTask(suite.ctx,
+		taskId, _, _ := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{})
@@ -61,11 +59,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			OwnerID: USER_ONE,
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx,
+		_, _, err := suite.taskService.CreateTask(suite.ctx,
 			p, USER_TWO,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{})
@@ -79,11 +76,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewTaskService(suite.store)
 		sample_title := ""
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx,
+		_, _, err := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{})
@@ -99,11 +95,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, _, err := service.CreateTask(suite.ctx,
+		_, _, err := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO, USER_THREE})
@@ -119,11 +114,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, warnings, _ := service.CreateTask(suite.ctx,
+		_, warnings, _ := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO, USER_THREE})
@@ -139,11 +133,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		id, _, _ := service.CreateTask(suite.ctx,
+		id, _, _ := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO, USER_THREE})
@@ -169,11 +162,10 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
-		_, warnings, _ := service.CreateTask(suite.ctx,
+		_, warnings, _ := suite.taskService.CreateTask(suite.ctx,
 			p, USER_ONE,
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO, "asdfd"})
@@ -197,9 +189,8 @@ func (suite *ServiceTestSuite) TestListTasks() {
 			ProjectId: p,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		_, err := service.ListTasks(suite.ctx, p, USER_ONE)
+		_, err := suite.taskService.ListTasks(suite.ctx, p, USER_ONE)
 
 		suite.Cleanup()
 
@@ -216,9 +207,8 @@ func (suite *ServiceTestSuite) TestListTasks() {
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 
-		_, err := service.ListTasks(suite.ctx, p, USER_TWO)
+		_, err := suite.taskService.ListTasks(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -234,9 +224,8 @@ func (suite *ServiceTestSuite) TestListTasks() {
 			ProjectId: p,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		_, err := service.ListTasks(suite.ctx, p, USER_TWO)
+		_, err := suite.taskService.ListTasks(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -257,9 +246,8 @@ func (suite *ServiceTestSuite) TestGetTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		_, err := service.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+		_, err := suite.taskService.GetTask(suite.ctx, projectId, taskId, USER_ONE)
 
 		suite.Cleanup()
 
@@ -276,9 +264,8 @@ func (suite *ServiceTestSuite) TestGetTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		task, _ := service.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+		task, _ := suite.taskService.GetTask(suite.ctx, projectId, taskId, USER_ONE)
 
 		suite.Cleanup()
 
@@ -297,9 +284,8 @@ func (suite *ServiceTestSuite) TestGetTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		_, err := service.GetTask(suite.ctx, projectId, taskId, USER_TWO)
+		_, err := suite.taskService.GetTask(suite.ctx, projectId, taskId, USER_TWO)
 
 		suite.Cleanup()
 
@@ -320,10 +306,9 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		updatedTaskTitle := "Project title updated"
 
-		err := service.UpdateTask(suite.ctx,
+		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
 			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
 			nil, nil)
@@ -342,10 +327,9 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		updatedTaskTitle := "Project title updated"
 
-		service.UpdateTask(suite.ctx,
+		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
 			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
 			nil, nil)
@@ -370,10 +354,9 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		updatedTaskDesc := "Project description updated"
 
-		service.UpdateTask(suite.ctx,
+		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
 			task_title, updatedTaskDesc, domain.TASK_STATUS_ABANDONED,
 			nil, nil)
@@ -402,9 +385,8 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 
-		service.UpdateTask(suite.ctx,
+		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
 			task_title, "", domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO}, nil)
@@ -431,9 +413,8 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 			Assignees: []string{USER_TWO},
 		})
-		service := NewTaskService(suite.store)
 
-		service.UpdateTask(suite.ctx,
+		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
 			task_title, "", domain.TASK_STATUS_UNASSIGNED,
 			nil, []string{USER_TWO})
@@ -458,10 +439,9 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
-		service := NewTaskService(suite.store)
 		updatedTaskTitle := "Project title updated"
 
-		err := service.UpdateTask(suite.ctx,
+		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_TWO,
 			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
 			nil, nil)
@@ -482,10 +462,9 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 			Assignees: []string{USER_TWO},
 		})
-		service := NewTaskService(suite.store)
 		updatedTaskTitle := "Project title updated"
 
-		err := service.UpdateTask(suite.ctx,
+		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_TWO,
 			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
 			nil, nil)
@@ -510,10 +489,9 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		sampleComment := "Hello there!"
 
-		id, err := service.AddComment(suite.ctx,
+		id, err := suite.taskService.AddComment(suite.ctx,
 			projectId, taskId, USER_TWO, sampleComment)
 
 		suite.Cleanup()
@@ -532,10 +510,9 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		sampleComment := "Hello there!"
 
-		id, _ := service.AddComment(suite.ctx,
+		id, _ := suite.taskService.AddComment(suite.ctx,
 			projectId, taskId, USER_TWO, sampleComment)
 
 		var comment string
@@ -556,10 +533,9 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		sampleComment := "Hello there!"
 
-		_, err := service.AddComment(suite.ctx,
+		_, err := suite.taskService.AddComment(suite.ctx,
 			projectId, taskId, USER_TWO, sampleComment)
 
 		suite.Cleanup()
@@ -577,10 +553,9 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		service := NewTaskService(suite.store)
 		sampleComment := ""
 
-		_, err := service.AddComment(suite.ctx,
+		_, err := suite.taskService.AddComment(suite.ctx,
 			projectId, taskId, USER_TWO, sampleComment)
 
 		suite.Cleanup()

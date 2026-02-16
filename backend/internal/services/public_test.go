@@ -14,9 +14,8 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
 
-		err := service.JoinProject(suite.ctx, p, USER_TWO)
+		err := suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -27,9 +26,8 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
 
-		service.JoinProject(suite.ctx, p, USER_TWO)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
 		var status string
 		suite.db.QueryRowContext(
@@ -50,10 +48,9 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
-		service.JoinProject(suite.ctx, p, USER_TWO)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.JoinProject(suite.ctx, p, USER_TWO)
+		err := suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -69,9 +66,8 @@ func (suite *ServiceTestSuite) TestPublicServiceGet() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
 
-		_, err := service.GetPublicProject(suite.ctx, p, USER_TWO)
+		_, err := suite.publicService.GetPublicProject(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -82,9 +78,8 @@ func (suite *ServiceTestSuite) TestPublicServiceGet() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
 
-		project, _ := service.GetPublicProject(suite.ctx, p, USER_TWO)
+		project, _ := suite.publicService.GetPublicProject(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -95,10 +90,9 @@ func (suite *ServiceTestSuite) TestPublicServiceGet() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		service := NewPublicService(suite.store)
-		service.JoinProject(suite.ctx, p, USER_TWO)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		project, _ := service.GetPublicProject(suite.ctx, p, USER_TWO)
+		project, _ := suite.publicService.GetPublicProject(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 

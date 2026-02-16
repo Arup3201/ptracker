@@ -15,8 +15,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -33,8 +32,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		service := NewProjectService(suite.store)
-		id, _ := service.CreateProject(suite.ctx,
+		id, _ := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -61,8 +59,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_name := "Test Project"
 		sample_skills := "C++, Java"
 
-		service := NewProjectService(suite.store)
-		id, _ := service.CreateProject(suite.ctx,
+		id, _ := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			nil,
 			&sample_skills,
@@ -89,8 +86,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			nil,
@@ -119,8 +115,7 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		service := NewProjectService(suite.store)
-		_, err := service.CreateProject(suite.ctx,
+		_, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -140,15 +135,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
 			USER_ONE,
 		)
 
-		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
+		project, err := suite.projectService.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Cleanup()
 
@@ -159,15 +154,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
 			USER_ONE,
 		)
 
-		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
+		project, err := suite.projectService.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Cleanup()
 
@@ -180,15 +175,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
 			USER_ONE,
 		)
 
-		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
+		project, err := suite.projectService.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Cleanup()
 
@@ -199,15 +194,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
 			USER_ONE,
 		)
 
-		project, err := service.GetPrivateProject(suite.ctx, id, USER_ONE)
+		project, err := suite.projectService.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Require().NoError(err)
 		var m domain.Member
@@ -232,15 +227,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
-		service := NewProjectService(suite.store)
-		id, err := service.CreateProject(suite.ctx,
+
+		id, err := suite.projectService.CreateProject(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
 			USER_ONE,
 		)
 
-		_, err = service.GetPrivateProject(suite.ctx, id, USER_TWO)
+		_, err = suite.projectService.GetPrivateProject(suite.ctx, id, USER_TWO)
 
 		suite.Cleanup()
 
@@ -258,8 +253,7 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 
-		service := NewProjectService(suite.store)
-		members, err := service.GetProjectMembers(suite.ctx, p, USER_TWO)
+		members, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -274,8 +268,7 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
 
-		service := NewProjectService(suite.store)
-		members, err := service.GetProjectMembers(suite.ctx, p, USER_TWO)
+		members, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
@@ -289,8 +282,7 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 		})
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
 
-		service := NewProjectService(suite.store)
-		_, err := service.GetProjectMembers(suite.ctx, p, USER_THREE)
+		_, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_THREE)
 
 		suite.Cleanup()
 
@@ -306,10 +298,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Cleanup()
 
@@ -320,10 +311,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var status string
 		suite.db.QueryRowContext(suite.ctx,
@@ -343,10 +333,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		var role string
 		suite.db.QueryRowContext(suite.ctx,
@@ -366,10 +355,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
 		var status string
 		suite.db.QueryRowContext(suite.ctx,
@@ -389,10 +377,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
 		err := suite.db.QueryRowContext(suite.ctx,
 			"SELECT "+
@@ -410,11 +397,11 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
 		suite.Cleanup()
 
@@ -425,11 +412,11 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Cleanup()
 
@@ -440,11 +427,11 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		service.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
+
+		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
 		var status string
 		suite.db.QueryRowContext(suite.ctx,
@@ -464,12 +451,11 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 		// just for testing transaction working fine...
 		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		projectService := NewProjectService(suite.store)
 
-		err := projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().ErrorContains(err, "transaction: store role create")
 		var status string
@@ -491,10 +477,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Cleanup()
 
@@ -506,10 +491,9 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			OwnerID: USER_ONE,
 		})
 		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
-		NewPublicService(suite.store).JoinProject(suite.ctx, p, USER_TWO)
-		service := NewProjectService(suite.store)
+		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		err := service.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
+		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Cleanup()
 

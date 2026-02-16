@@ -7,6 +7,7 @@ import (
 
 	"github.com/ptracker/internal/controllers"
 	"github.com/ptracker/internal/controllers/middlewares"
+	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
 	"github.com/rs/cors"
@@ -25,12 +26,15 @@ type app struct {
 	projectController interfaces.ProjectController
 	taskController    interfaces.TaskController
 	publicController  interfaces.PublicController
+
+	notificationHandler http.Handler
 }
 
 func NewApp(config *Config,
 	db interfaces.Execer,
 	inMemory interfaces.InMemory,
-	rateLimiter interfaces.RateLimiter) *app {
+	rateLimiter interfaces.RateLimiter,
+	notifier *infra.WSNotifier) *app {
 
 	handler := http.NewServeMux()
 
@@ -48,8 +52,8 @@ func NewApp(config *Config,
 		config.KeycloakClientSecret,
 		config.KeycloakRedirectURI,
 		config.EncryptionKey)
-	projectService := services.NewProjectService(store)
-	taskService := services.NewTaskService(store)
+	projectService := services.NewProjectService(store, notifier)
+	taskService := services.NewTaskService(store, notifier)
 	publicService := services.NewPublicService(store)
 	limitService := services.NewLimiterService(store)
 
@@ -60,6 +64,9 @@ func NewApp(config *Config,
 	app.projectController = controllers.NewProjectController(projectService)
 	app.taskController = controllers.NewTaskController(taskService)
 	app.publicController = controllers.NewPublicController(publicService)
+
+	// TODO: restrict origins
+	app.notificationHandler = infra.NewNotificationHandler([]string{}, notifier)
 
 	return app
 }
@@ -109,12 +116,17 @@ func (a *app) AttachRoutes(prefix string) *app {
 	a.attachMiddleware("GET", "/public/projects", a.publicController.ListProjects)
 	a.attachMiddleware("GET", "/public/projects/{id}", a.publicController.GetProject)
 
+	// TODO: Add proper authentication method
+	a.handler.Handle("GET /ws", a.authMiddleware.Handler(a.notificationHandler))
+
 	return a
 }
 
 func (a *app) Start() error {
 
-	logging := middlewares.NewLoggingMiddleware()
+	// TODO: some problem with not implementing http.Hijacker interface
+	// when using with websocket
+	// logging := middlewares.NewLoggingMiddleware()
 
 	cors := cors.New(cors.Options{
 		AllowedOrigins:   []string{a.config.HomeURL},
@@ -124,8 +136,9 @@ func (a *app) Start() error {
 
 	// server
 	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%s", a.config.ServerHost, a.config.ServerPort),
-		Handler:      cors.Handler(logging.Handler(a.handler)),
+		Addr: fmt.Sprintf("%s:%s", a.config.ServerHost, a.config.ServerPort),
+		// Handler:      logging.Handler(cors.Handler(a.handler)),
+		Handler:      cors.Handler(a.handler),
 		ReadTimeout:  20 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

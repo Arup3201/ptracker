@@ -45,13 +45,13 @@ func (r *projectRepo) Get(ctx context.Context, projectId string) (*domain.Projec
 	err := r.db.QueryRowContext(
 		ctx,
 		"SELECT "+
-			"p.id, p.name, p.description, p.skills, "+
+			"p.id, p.name, p.description, p.skills, p.owner, "+
 			"ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, "+
 			"p.created_at, p.updated_at "+
 			"FROM projects as p "+
 			"LEFT JOIN project_summary as ps ON p.id=ps.id "+
 			"WHERE p.id=($1)",
-		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills,
+		projectId).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner,
 		&p.UnassignedTasks, &p.OngoingTasks, &p.CompletedTasks, &p.AbandonedTasks,
 		&p.CreatedAt, &p.UpdatedAt)
 	if err != nil {

@@ -11,9 +11,13 @@ import (
 )
 
 func main() {
+	var err error
 
 	config := &internal.Config{}
-	config.Load()
+	err = config.Load()
+	if err != nil {
+		log.Fatalf("[ERROR] configuration load: %s", err)
+	}
 
 	// DB connection
 	database, err := infra.NewDatabase("postgres",
@@ -34,8 +38,10 @@ func main() {
 
 	inMemory := infra.NewInMemory(redis)
 	rateLimiter := infra.NewRateLimiter(redis, 5, 2)
+	notifier := infra.NewWsNotifier()
+	go notifier.Run()
 
-	err = internal.NewApp(config, database, inMemory, rateLimiter).
+	err = internal.NewApp(config, database, inMemory, rateLimiter, notifier).
 		AttachRoutes("/api/v1").
 		Start()
 	if err != nil {
