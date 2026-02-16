@@ -31,7 +31,8 @@ For dev, you can COPY the following `.env` and it should work fine.
 ```sh
 HOST=localhost
 PORT=8081
-ENCRYPTION_SECRET=...
+HOME_URL=http://localhost:5173
+ENCRYPTION_SECRET=6dee83baf4eb0bea602a632c4eed37ff
 PG_HOST=localhost
 PG_USER=postgres
 PG_PORT=5432
@@ -41,7 +42,7 @@ KC_URL=http://localhost:8080
 KC_REALM=ptracker
 KC_CLIENT_ID=api
 KC_CLIENT_SECRET=cp50avHQeX18cESEraheJvr3RhUBMq2A
-KC_REDIRECT_URI=http://localhost:8081/api/auth/callback
+KC_REDIRECT_URI=http://localhost:8081/api/v1/auth/callback
 ```
 
 Export the environment variables to your shell(Linux).
