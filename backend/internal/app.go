@@ -117,7 +117,7 @@ func (a *app) AttachRoutes(prefix string) *app {
 	a.attachMiddleware("GET", "/public/projects/{id}", a.publicController.GetProject)
 
 	// TODO: Add proper authentication method
-	a.handler.Handle("GET /ws", a.notificationHandler)
+	a.handler.Handle("GET /ws", a.authMiddleware.Handler(a.notificationHandler))
 
 	return a
 }

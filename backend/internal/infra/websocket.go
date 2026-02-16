@@ -75,6 +75,8 @@ func (h *notificationHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 	h.notifier.register <- client
 
+	fmt.Printf("[INFO] websocket connection established for user: %s\n", userId)
+
 	go client.writePump()
 }
 
@@ -99,21 +101,19 @@ func NewWsNotifier() *WSNotifier {
 }
 
 func (n *WSNotifier) Run() {
+	fmt.Printf("[INFO] Notifier is running on the background...\n")
 	for {
 		select {
 		case client := <-n.register:
 			n.mutex.Lock()
-
 			if _, ok := n.clients[client.user]; !ok {
 				n.clients[client.user] = []*wsClient{}
 			}
 
 			n.clients[client.user] = append(n.clients[client.user], client)
-
 			n.mutex.Unlock()
 		case client := <-n.unregister:
 			n.mutex.Lock()
-
 			if _, ok := n.clients[client.user]; ok {
 				if len(n.clients[client.user]) == 1 {
 					close(client.send)
@@ -127,10 +127,10 @@ func (n *WSNotifier) Run() {
 						continue
 					}
 
-					n.clients[client.user] = n.clients[client.user][i : i+1]
+					n.clients[client.user] = append(n.clients[client.user][:i],
+						n.clients[client.user][i+1:]...)
 				}
 			}
-
 			n.mutex.Unlock()
 		}
 	}
@@ -142,7 +142,7 @@ func (n *WSNotifier) Notify(ctx context.Context,
 	defer n.mutex.Unlock()
 	clients, ok := n.clients[user]
 	if !ok {
-		return fmt.Errorf("user is offline")
+		return fmt.Errorf("[ERROR] notify: user is offline\n")
 	}
 
 	for _, client := range clients {
@@ -156,10 +156,7 @@ func (n *WSNotifier) BatchNotify(ctx context.Context,
 	users []string, message domain.Message) error {
 
 	for _, user := range users {
-		err := n.Notify(ctx, user, message)
-		if err != nil {
-			fmt.Printf("[ERROR] batch notify: %s", err)
-		}
+		n.Notify(ctx, user, message)
 	}
 
 	return nil
@@ -184,6 +181,7 @@ func (c *wsClient) writePump() {
 		c.conn.SetWriteDeadline(time.Now().Add(WRITE_WAIT))
 		c.conn.WriteMessage(websocket.CloseMessage, nil)
 		c.conn.Close()
+		fmt.Printf("[INFO] websocket connection closed for user: %s\n", c.user)
 	}()
 
 	for {
@@ -193,7 +191,7 @@ func (c *wsClient) writePump() {
 
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
-				break
+				return
 			}
 
 			bytes, err := json.Marshal(message)
