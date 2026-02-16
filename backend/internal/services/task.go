@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ptracker/internal/apierr"
+	"github.com/ptracker/internal/constants"
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
 )
@@ -107,7 +108,7 @@ func (s *taskService) AddAssignees(ctx context.Context,
 			var message domain.Message
 			if project != nil && task != nil {
 				message = domain.Message{
-					Type: "assign_add",
+					Type: constants.ASSIGNEE_ADDED,
 					Data: map[string]string{
 						"project_id":   projectId,
 						"task_id":      taskId,
@@ -115,19 +116,11 @@ func (s *taskService) AddAssignees(ctx context.Context,
 						"task_name":    task.Title,
 					},
 				}
-			} else {
-				message = domain.Message{
-					Type: "assign_add",
-					Data: map[string]string{
-						"project_id": projectId,
-						"task_id":    taskId,
-					},
-				}
-			}
 
-			err = s.notifier.Notify(ctx, assignee, message)
-			if err != nil {
-				fmt.Printf("[WARNING] notifier error: %s\n", err)
+				err = s.notifier.Notify(ctx, assignee, message)
+				if err != nil {
+					fmt.Printf("[WARNING] notifier error: %s\n", err)
+				}
 			}
 		}
 	}
@@ -169,7 +162,7 @@ func (s *taskService) RemoveAssignees(ctx context.Context,
 			var message domain.Message
 			if project != nil && task != nil {
 				message = domain.Message{
-					Type: "assign_remove",
+					Type: constants.ASSIGNEE_REMOVED,
 					Data: map[string]string{
 						"project_id":   projectId,
 						"task_id":      taskId,
@@ -177,20 +170,12 @@ func (s *taskService) RemoveAssignees(ctx context.Context,
 						"task_name":    task.Title,
 					},
 				}
-			} else {
-				message = domain.Message{
-					Type: "assign_remove",
-					Data: map[string]string{
-						"project_id": projectId,
-						"task_id":    taskId,
-					},
+				err = s.notifier.Notify(ctx, assignee, message)
+				if err != nil {
+					fmt.Printf("[WARNING] notifier error: %s\n", err)
 				}
 			}
 
-			err = s.notifier.Notify(ctx, assignee, message)
-			if err != nil {
-				fmt.Printf("[WARNING] notifier error: %s\n", err)
-			}
 		}
 	}
 
@@ -282,6 +267,7 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		return apierr.ErrInvalidValue
 	}
 
+	var hasUpdated = false
 	taskTitle := task.Title
 
 	if title != task.Title {
@@ -295,6 +281,7 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		task.Title = title
+		hasUpdated = true
 	}
 
 	if task.Description != nil {
@@ -310,6 +297,7 @@ func (s *taskService) UpdateTask(ctx context.Context,
 			}
 
 			*task.Description = description
+			hasUpdated = true
 		}
 	} else if description != "" {
 		permitted, err := s.permissionService.CanUpdateTask(ctx,
@@ -322,6 +310,7 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		task.Description = &description
+		hasUpdated = true
 	}
 
 	if status != task.Status {
@@ -335,6 +324,7 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		task.Status = status
+		hasUpdated = true
 	}
 
 	err = s.store.Task().Update(ctx, task)
@@ -344,27 +334,29 @@ func (s *taskService) UpdateTask(ctx context.Context,
 
 	// Notifications
 
-	message := domain.Message{
-		Type: "task_update",
-		Data: map[string]string{
-			"task_id": taskId,
-			"title":   taskTitle,
-		},
-	}
-
-	project, _ := s.store.Project().Get(ctx, projectId)
-	assignees, _ := s.store.List().Assignees(ctx, projectId)
-
-	var users []string
-	if userId != project.Owner {
-		users = []string{project.Owner}
-	}
-	for _, assignee := range assignees {
-		if userId != assignee.UserId {
-			users = append(users, assignee.UserId)
+	if hasUpdated {
+		message := domain.Message{
+			Type: constants.TASK_UPDATED,
+			Data: map[string]string{
+				"task_id": taskId,
+				"title":   taskTitle,
+			},
 		}
+
+		project, _ := s.store.Project().Get(ctx, projectId)
+		assignees, _ := s.store.List().Assignees(ctx, taskId)
+
+		users := []string{}
+		if userId != project.Owner {
+			users = append(users, project.Owner)
+		}
+		for _, assignee := range assignees {
+			if userId != assignee.UserId {
+				users = append(users, assignee.UserId)
+			}
+		}
+		s.notifier.BatchNotify(ctx, users, message)
 	}
-	s.notifier.BatchNotify(ctx, users, message)
 
 	s.AddAssignees(ctx, projectId, taskId, addedAssignees)
 	s.RemoveAssignees(ctx, projectId, taskId, removedAssignees)
@@ -398,7 +390,7 @@ func (s *taskService) AddComment(ctx context.Context,
 
 	task, _ := s.store.Task().Get(ctx, taskId)
 	message := domain.Message{
-		Type: "task_comment",
+		Type: constants.COMMENT_ADDED,
 		Data: map[string]string{
 			"task_id": taskId,
 			"title":   task.Title,
@@ -406,11 +398,11 @@ func (s *taskService) AddComment(ctx context.Context,
 	}
 
 	project, _ := s.store.Project().Get(ctx, projectId)
-	assignees, _ := s.store.List().Assignees(ctx, projectId)
+	assignees, _ := s.store.List().Assignees(ctx, taskId)
 
-	var users []string
+	users := []string{}
 	if userId != project.Owner {
-		users = []string{project.Owner}
+		users = append(users, project.Owner)
 	}
 	for _, assignee := range assignees {
 		if userId != assignee.UserId {

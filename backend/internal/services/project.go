@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ptracker/internal/apierr"
+	"github.com/ptracker/internal/constants"
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
 )
@@ -217,6 +218,11 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 		return apierr.ErrInvalidValue
 	}
 
+	project, err := s.store.Project().Get(ctx, projectId)
+	if err != nil {
+		return fmt.Errorf("project get: %w", err)
+	}
+
 	err = s.store.WithTx(ctx, func(txStore interfaces.Store) error {
 		var err error
 
@@ -231,6 +237,16 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 				return fmt.Errorf("store role create: %w", err)
 			}
 		}
+		if joinStatus == domain.JOIN_STATUS_REJECTED {
+			message := domain.Message{
+				Type: constants.JOIN_REJECTED,
+				Data: map[string]string{
+					"project_id":   projectId,
+					"project_name": project.Name,
+				},
+			}
+			s.notifier.Notify(ctx, requestorId, message)
+		}
 
 		return nil
 	})
@@ -238,18 +254,16 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 		return fmt.Errorf("transaction: %w", err)
 	}
 
-	project, err := s.store.Project().Get(ctx, projectId)
-	if err != nil {
-		return fmt.Errorf("project get: %w", err)
+	if joinStatus != domain.JOIN_STATUS_ACCEPTED {
+		message := domain.Message{
+			Type: constants.JOIN_ACCEPTED,
+			Data: map[string]string{
+				"project_id":   projectId,
+				"project_name": project.Name,
+			},
+		}
+		s.notifier.Notify(ctx, requestorId, message)
 	}
-	message := domain.Message{
-		Type: "join",
-		Data: map[string]string{
-			"project_id":   projectId,
-			"project_name": project.Name,
-		},
-	}
-	s.notifier.Notify(ctx, requestorId, message)
 
 	return nil
 }
