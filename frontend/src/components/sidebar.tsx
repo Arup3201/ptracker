@@ -4,7 +4,6 @@ import { Logo } from "./logo";
 import { Button } from "./button";
 import { useCurrentUser } from "../hooks/current_user";
 import { ApiRequest } from "../api/request";
-import { useWebSocketContext } from "../context/ws";
 
 const NavItems = [
   {
@@ -44,13 +43,6 @@ export function Sidebar() {
       console.error(err);
     }
   }
-
-  const { isConnected, notifications, reconnect } = useWebSocketContext();
-  if (!isConnected) {
-    console.log("Trying to reconnect...");
-    reconnect();
-  }
-  console.log(notifications);
 
   return (
     <aside className="flex w-60 flex-col border-r border-(--border-default) bg-(--bg-surface)">

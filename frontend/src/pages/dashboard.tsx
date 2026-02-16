@@ -20,8 +20,6 @@ import {
   type DashboardTasksResponse,
 } from "../types/dashboard.ts";
 import { ApiRequest } from "../api/request.ts";
-import { useWebsocket } from "../hooks/ws.tsx";
-import { WEBSOCKET_URL } from "../api/ws.ts";
 
 export function Dashboard() {
   const [showModal, setShowModal] = useState(false);
@@ -38,20 +36,6 @@ export function Dashboard() {
   const [recentlyJoinedProjects, setRecentlyJoinedProjects] = useState<
     DashboardProject[]
   >([]);
-
-  const { isConnected, reconnect } = useWebsocket({
-    url: WEBSOCKET_URL,
-    reconnect: true,
-  });
-
-  useEffect(() => {
-    console.log(isConnected);
-
-    if (!isConnected) {
-      console.log("Trying to reconnect...");
-      reconnect();
-    }
-  }, [isConnected]);
 
   async function getRecentAssignedTasks() {
     try {

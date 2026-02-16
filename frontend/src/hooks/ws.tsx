@@ -38,9 +38,13 @@ export function useWebsocket({
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
-        setIsConnected(true);
-        onOpen?.();
+        setTimeout(() => {
+          if (ws.readyState === 1) {
+            console.log("WebSocket connected");
+            setIsConnected(true);
+            onOpen?.();
+          }
+        }, 10);
       };
 
       ws.onmessage = (event) => {
