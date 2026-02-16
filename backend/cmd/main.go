@@ -11,9 +11,13 @@ import (
 )
 
 func main() {
+	var err error
 
 	config := &internal.Config{}
-	config.Load()
+	err = config.Load()
+	if err != nil {
+		log.Fatalf("[ERROR] configuration load: %s", err)
+	}
 
 	// DB connection
 	database, err := infra.NewDatabase("postgres",
