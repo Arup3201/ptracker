@@ -4,35 +4,25 @@ import type { ReactNode } from "react";
 export function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
-      <div className="w-full">{children}</div>
+      <div className="w-full overflow-x-auto">
+        <table className="w-full min-w-150 table-fixed border-collapse text-sm">
+          {children}
+        </table>
+      </div>
     </div>
   );
 }
 
 export function TableHeader({ children }: { children: ReactNode }) {
   return (
-    <table className="w-full table-fixed border-collapse text-sm">
-      <thead className="border-b border-border-muted bg-bg-elevated">
-        <tr>{children}</tr>
-      </thead>
-    </table>
+    <thead className="bg-bg-elevated sticky top-0 z-10 border-b border-border-muted">
+      <tr>{children}</tr>
+    </thead>
   );
 }
 
-export function TableBody({
-  children,
-  maxHeight = 500,
-}: {
-  children: ReactNode;
-  maxHeight?: number | string;
-}) {
-  return (
-    <div className="overflow-y-auto" style={{ maxHeight }}>
-      <table className="w-full table-fixed border-collapse text-sm">
-        <tbody>{children}</tbody>
-      </table>
-    </div>
-  );
+export function TableBody({ children }: { children: ReactNode }) {
+  return <tbody>{children}</tbody>;
 }
 
 export function TableRow({
@@ -60,9 +50,11 @@ export function TableRow({
 export function TableHead({
   children,
   align = "left",
+  hideOnMobile = false,
 }: {
   children: ReactNode;
   align?: "left" | "right" | "center";
+  hideOnMobile?: boolean;
 }) {
   return (
     <th
@@ -71,6 +63,7 @@ export function TableHead({
         align === "left" && "text-left",
         align === "right" && "text-right",
         align === "center" && "text-center",
+        hideOnMobile && "hidden sm:table-cell",
       )}
     >
       {children}
@@ -82,10 +75,12 @@ export function TableCell({
   children,
   align = "left",
   muted,
+  hideOnMobile = false,
 }: {
   children: ReactNode;
   align?: "left" | "right" | "center";
   muted?: boolean;
+  hideOnMobile?: boolean;
 }) {
   return (
     <td
@@ -95,6 +90,7 @@ export function TableCell({
         align === "right" && "text-right",
         align === "center" && "text-center",
         muted ? "text-text-secondary" : "text-text-primary",
+        hideOnMobile && "hidden sm:table-cell",
       )}
     >
       {children}
