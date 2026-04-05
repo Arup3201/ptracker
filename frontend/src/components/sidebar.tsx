@@ -130,7 +130,7 @@ export function Sidebar() {
           onClick={() => setShowUserMenu(true)}
           className="relative flex flex-col items-center justify-center gap-1 py-1.5 rounded-md w-full transition duration-fast cursor-pointer hover:bg-zinc-800 group"
         >
-          <div className="h-[18px] w-[18px] rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-semibold text-emerald-400 ring-1 ring-zinc-700 group-hover:ring-emerald-500 transition duration-fast">
+          <div className="h-4.5 w-4.5 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-semibold text-emerald-400 ring-1 ring-zinc-700 group-hover:ring-emerald-500 transition duration-fast">
             {initials}
           </div>
           <span className="text-[10px] font-medium leading-none text-zinc-500 group-hover:text-zinc-300 transition duration-fast">
