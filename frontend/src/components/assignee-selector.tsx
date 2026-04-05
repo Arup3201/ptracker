@@ -23,7 +23,6 @@ const AssigneeSelector = ({
 }: AssigneeSelectorProps) => {
   const [selectedAssignees, setSelectedAssignees] = useState(initialAssignees);
 
-  // Convert members to react-select format
   const options = members.map((member) => ({
     value: member.userId,
     label: member.username,
@@ -31,7 +30,6 @@ const AssigneeSelector = ({
     avatar: member.avatarUrl,
   }));
 
-  // Convert selected assignees to react-select format
   const selectedValues = useMemo<Option[]>(() => {
     return selectedAssignees
       .map((assigneeId) => options.find((opt) => opt.value === assigneeId))
@@ -45,13 +43,11 @@ const AssigneeSelector = ({
   };
 
   const formatOptionLabel = (option: Option) => (
-    <div className="flex items-center gap-2 p-1 rounded-xs bg-(--bg-tertiary) border border-(--border-muted)">
+    <div className="flex items-center gap-2">
       <div className="flex flex-col min-w-0">
-        <span className="text-sm font-medium text-(--text-primary) truncate">
+        <span className="text-sm font-medium text-text-primary truncate">
           {option.label}
-          <span className="text-[11px] text-(--text-secondary) truncate">
-            ({option.email})
-          </span>
+          <span className="text-xs text-text-muted ml-1">({option.email})</span>
         </span>
       </div>
     </div>
@@ -60,67 +56,72 @@ const AssigneeSelector = ({
   const customStyles: StylesConfig<Option, true> = {
     control: (base, state) => ({
       ...base,
-      minHeight: "32px",
-      backgroundColor: "var(--bg-surface)",
+      minHeight: "36px",
+      backgroundColor: "var(--bg-elevated)",
       borderColor: state.isFocused ? "var(--primary)" : "var(--border-default)",
-      borderRadius: "2px", // rounded-xs
-      boxShadow: "none",
+      borderRadius: "8px",
+      boxShadow: state.isFocused ? "var(--tw-shadow-focus-primary)" : "none",
       "&:hover": {
         borderColor: state.isFocused
           ? "var(--primary)"
-          : "var(--border-default)",
+          : "var(--border-strong)",
       },
+      transition: "border-color 150ms, box-shadow 150ms",
     }),
     valueContainer: (base) => ({
       ...base,
-      padding: "2px 2px",
+      padding: "2px 8px",
       gap: "4px",
     }),
     multiValue: (base) => ({
       ...base,
-      backgroundColor: "var(--bg-tertiary)",
-      borderRadius: "2px",
-      padding: "0px",
+      backgroundColor: "var(--bg-overlay)",
+      borderRadius: "6px",
+      border: "1px solid var(--border-default)",
       margin: "0px",
+      padding: "0px",
     }),
     multiValueLabel: (base) => ({
       ...base,
-      color: "var(--text-primary)",
-      fontSize: "0.875rem",
-      fontWeight: "400",
+      color: "var(--text-secondary)",
+      fontSize: "12px",
+      fontWeight: "500",
       padding: "2px 6px",
-      paddingLeft: "6px",
+      paddingLeft: "8px",
     }),
     multiValueRemove: (base) => ({
       ...base,
-      color: "var(--text-secondary)",
+      color: "var(--text-muted)",
       cursor: "pointer",
+      borderRadius: "0 6px 6px 0",
       paddingLeft: "2px",
-      paddingRight: "4px",
+      paddingRight: "6px",
       "&:hover": {
-        backgroundColor: "var(--bg-hover)",
-        color: "var(--text-primary)",
+        backgroundColor: "var(--danger-muted)",
+        color: "var(--danger)",
       },
     }),
     input: (base) => ({
       ...base,
       color: "var(--text-primary)",
-      fontSize: "0.875rem",
+      fontSize: "13px",
       margin: "0px",
       padding: "0px",
     }),
     placeholder: (base) => ({
       ...base,
-      color: "var(--text-tertiary)",
-      fontSize: "0.875rem",
+      color: "var(--text-muted)",
+      fontSize: "13px",
     }),
     menu: (base) => ({
       ...base,
-      backgroundColor: "var(--bg-surface)",
-      borderRadius: "4px",
+      backgroundColor: "var(--bg-elevated)",
+      borderRadius: "10px",
       border: "1px solid var(--border-default)",
-      boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+      boxShadow:
+        "0 8px 24px rgba(0,0,0,0.7), 0 0 0 0.5px rgba(255,255,255,0.04)",
       marginTop: "4px",
+      overflow: "hidden",
     }),
     menuList: (base) => ({
       ...base,
@@ -129,19 +130,18 @@ const AssigneeSelector = ({
     option: (base, state) => ({
       ...base,
       backgroundColor: state.isSelected
-        ? "var(--primary)"
+        ? "var(--primary-muted)"
         : state.isFocused
-          ? "rgba(59, 130, 246, 0.08)" // Light blue on hover
+          ? "var(--bg-overlay)"
           : "transparent",
-      color: state.isSelected ? "white" : "var(--text-primary)",
+      color: state.isSelected ? "var(--primary)" : "var(--text-primary)",
       cursor: "pointer",
-      borderRadius: "2px",
-      padding: "4px",
-      fontSize: "0.875rem",
+      borderRadius: "6px",
+      padding: "6px 8px",
+      fontSize: "13px",
+      transition: "background-color 150ms",
       "&:active": {
-        backgroundColor: state.isSelected
-          ? "var(--primary)"
-          : "rgba(59, 130, 246, 0.12)", // Slightly darker blue on click
+        backgroundColor: "var(--primary-muted)",
       },
     }),
     indicatorSeparator: () => ({
@@ -149,35 +149,33 @@ const AssigneeSelector = ({
     }),
     dropdownIndicator: (base, state) => ({
       ...base,
-      color: "var(--text-tertiary)",
-      padding: "4px",
+      color: "var(--text-muted)",
+      padding: "0 8px",
       "&:hover": {
         color: "var(--text-secondary)",
       },
       transform: state.selectProps.menuIsOpen ? "rotate(180deg)" : undefined,
-      transition: "transform 0.2s",
+      transition: "transform 150ms, color 150ms",
     }),
     clearIndicator: (base) => ({
       ...base,
-      color: "var(--text-tertiary)",
-      padding: "4px",
+      color: "var(--text-muted)",
+      padding: "0 4px",
       "&:hover": {
         color: "var(--text-secondary)",
       },
     }),
     noOptionsMessage: (base) => ({
       ...base,
-      color: "var(--text-secondary)",
-      fontSize: "0.875rem",
+      color: "var(--text-muted)",
+      fontSize: "13px",
       padding: "8px",
     }),
   };
 
   return (
     <>
-      <label className="text-[12px] font-medium text-(--text-primary)">
-        Assignees
-      </label>
+      <label className="text-sm font-medium text-text-primary">Assignees</label>
 
       <Select
         isMulti
@@ -195,7 +193,7 @@ const AssigneeSelector = ({
       />
 
       {selectedAssignees.length === 0 && (
-        <p className="text-[11px] text-(--text-tertiary)">
+        <p className="text-xs text-text-muted">
           No assignees yet. Task will be unassigned.
         </p>
       )}

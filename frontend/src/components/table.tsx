@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 export function Table({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-sm border border-(--border-default) bg-(--bg-surface) shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+    <div className="overflow-hidden rounded-lg border border-border bg-bg-surface shadow-sm">
       <div className="w-full">{children}</div>
     </div>
   );
@@ -12,7 +12,7 @@ export function Table({ children }: { children: ReactNode }) {
 export function TableHeader({ children }: { children: ReactNode }) {
   return (
     <table className="w-full table-fixed border-collapse text-sm">
-      <thead className="border-b border-(--border-muted) text-(--text-muted)">
+      <thead className="border-b border-border-muted bg-bg-elevated">
         <tr>{children}</tr>
       </thead>
     </table>
@@ -47,8 +47,8 @@ export function TableRow({
   return (
     <tr
       className={clsx(
-        "border-b border-(--border-muted) last:border-0 hover:bg-(--bg-elevated)",
-        className
+        "border-b border-border-muted last:border-0 transition duration-fast hover:bg-bg-overlay cursor-default",
+        className,
       )}
       onClick={onClick}
     >
@@ -64,7 +64,18 @@ export function TableHead({
   children: ReactNode;
   align?: "left" | "right" | "center";
 }) {
-  return <th className={`px-3 py-2 text-${align} font-medium`}>{children}</th>;
+  return (
+    <th
+      className={clsx(
+        "px-4 py-2.5 text-xs font-medium text-text-muted tracking-wide",
+        align === "left" && "text-left",
+        align === "right" && "text-right",
+        align === "center" && "text-center",
+      )}
+    >
+      {children}
+    </th>
+  );
 }
 
 export function TableCell({
@@ -78,9 +89,13 @@ export function TableCell({
 }) {
   return (
     <td
-      className={`px-3 py-2 text-${align} ${
-        muted ? "text-(--text-secondary)" : ""
-      }`}
+      className={clsx(
+        "px-4 py-2.5 text-sm",
+        align === "left" && "text-left",
+        align === "right" && "text-right",
+        align === "center" && "text-center",
+        muted ? "text-text-secondary" : "text-text-primary",
+      )}
     >
       {children}
     </td>

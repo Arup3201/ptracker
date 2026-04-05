@@ -30,21 +30,26 @@ const StatusSelector: React.FC<StatusSelectorProps> = ({
 }) => {
   return (
     <>
-      <label className="text-[12px] font-medium text-(--text-primary)">
-        Status
-      </label>
+      <label className="text-sm font-medium text-text-primary">Status</label>
 
       <select
         value={status}
         onChange={(e) => onChange(e.target.value)}
         className={clsx(
-          "h-8 rounded-xs bg-(--bg-surface) px-2 text-sm text-(--text-primary)",
-          "border border-(--border-default) outline-none",
-          "focus:border-(--primary)",
+          "h-9 w-full rounded-md bg-bg-elevated px-3 text-sm text-text-primary",
+          "border border-border outline-none transition duration-fast",
+          "focus:border-primary focus:shadow-focus-primary",
+          "cursor-pointer",
         )}
       >
         {TASK_STATUS.map((status) => (
-          <option value={status.value}>{status.label}</option>
+          <option
+            key={status.value}
+            value={status.value}
+            className="bg-bg-elevated"
+          >
+            {status.label}
+          </option>
         ))}
       </select>
     </>

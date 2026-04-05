@@ -11,10 +11,10 @@ export function Tab({
     <button
       onClick={onClick}
       className={
-        "pb-2 text-sm font-medium transition-colors " +
+        "pb-2.5 text-sm font-medium transition duration-fast cursor-pointer focus:outline-none " +
         (active
-          ? "border-b-2 border-(--primary) text-(--text-primary)"
-          : "text-(--text-muted) hover:text-(--text-primary) cursor-pointer")
+          ? "border-b-2 border-primary text-text-primary"
+          : "border-b-2 border-transparent text-text-muted hover:text-text-secondary")
       }
     >
       {label}

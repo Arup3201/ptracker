@@ -20,7 +20,7 @@ export function Input({
       value={value}
       onChange={(e) => handleChange(e)}
       placeholder={placeholder}
-      className="h-8 w-full rounded-xs border border-(--border-default) bg-(--bg-surface) px-3 text-sm placeholder:text-(--text-muted) focus:border-(--primary) focus:outline-none"
+      className="h-9 w-full rounded-md border border-border bg-bg-elevated px-3 text-sm text-text-primary placeholder:text-text-muted transition duration-fast focus:border-primary focus:outline-none focus:shadow-focus-primary"
     />
   );
 }

@@ -5,18 +5,30 @@ import { Button } from "./button";
 import { useCurrentUser } from "../hooks/current_user";
 import { ApiRequest } from "../api/request";
 
+import type { LucideIcon } from "lucide-react";
+import {
+  LogOut,
+  ChevronsUpDown,
+  MenuIcon,
+  SquareCheckBig,
+  Telescope,
+} from "lucide-react";
+
 const NavItems = [
   {
     name: "Dashboard",
     path: "/",
+    icon: MenuIcon,
   },
   {
     name: "Projects",
     path: "/projects",
+    icon: SquareCheckBig,
   },
   {
     name: "Explore",
     path: "/explore",
+    icon: Telescope,
   },
 ];
 
@@ -45,46 +57,50 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex w-60 flex-col border-r border-(--border-default) bg-(--bg-surface)">
-      <div className="px-4 py-3 text-sm font-semibold self-center">
+    <aside className="flex w-56 flex-col bg-zinc-950 border-r border-zinc-800">
+      {/* Logo */}
+      <div className="h-14 flex items-center px-4 border-b border-zinc-800 shrink-0">
         <Logo />
       </div>
 
-      <nav className="flex-1 px-2">
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
         {NavItems.map((navitem, i) => (
           <NavItem
-            key={`${navitem}-${i}`}
+            key={`${navitem.name}-${i}`}
             active={active === i}
-            onClick={() => {
-              navigate(navitem.path);
-            }}
+            icon={navitem.icon}
+            onClick={() => navigate(navitem.path)}
           >
             {navitem.name}
           </NavItem>
         ))}
       </nav>
 
-      <div className="border-t border-(--border-default) p-2">
-        <div className="flex items-center gap-3 p-2 rounded-md">
-          <div className="h-10 w-10 rounded-full bg-(--bg-elevated) flex items-center justify-center text-sm font-medium text-(--text-primary)">
+      {/* User footer */}
+      <div className="shrink-0 border-t border-zinc-800 p-2 space-y-1">
+        <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-zinc-900 transition-colors duration-150 cursor-default">
+          <div className="h-7 w-7 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-semibold text-emerald-400 shrink-0 ring-1 ring-zinc-700">
             {initials}
           </div>
-
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold truncate">
+            <p className="text-xs font-semibold text-zinc-100 truncate leading-tight">
               {currentUser?.displayName}
-            </div>
-            <div className="text-xs text-(--text-secondary) truncate">
-              {currentUser?.username}
-            </div>
-            <div className="text-xs text-(--text-secondary) truncate">
+            </p>
+            <p className="text-[11px] text-zinc-500 truncate leading-tight">
               {currentUser?.email}
-            </div>
+            </p>
           </div>
+          <ChevronsUpDown size={13} className="text-zinc-600 shrink-0" />
         </div>
 
-        <Button variant="danger" className="w-full" onClick={handleLogout}>
-          Logout
+        <Button
+          variant="danger"
+          className="w-full gap-1.5"
+          onClick={handleLogout}
+        >
+          <LogOut size={13} />
+          Sign out
         </Button>
       </div>
     </aside>
@@ -94,23 +110,39 @@ export function Sidebar() {
 function NavItem({
   children,
   active,
+  icon: Icon,
   onClick = () => {},
 }: {
   children: string;
   active?: boolean;
+  icon?: LucideIcon;
   onClick?: () => void;
 }) {
   return (
     <div
-      className={clsx(
-        "rounded-xs px-3 py-2 text-sm cursor-pointer",
-        active
-          ? "bg-(--bg-elevated) text-(--text-primary)"
-          : "text-(--text-secondary) hover:bg-(--bg-elevated)",
-      )}
       onClick={onClick}
+      className={clsx(
+        "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer transition-all duration-150 select-none",
+        active
+          ? "bg-zinc-800 text-zinc-100 font-medium"
+          : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300",
+      )}
     >
-      {children}
+      {Icon && (
+        <Icon
+          size={15}
+          className={clsx(
+            "shrink-0 transition-colors duration-150",
+            active
+              ? "text-emerald-400"
+              : "text-zinc-600 group-hover:text-zinc-400",
+          )}
+        />
+      )}
+      <span className="truncate">{children}</span>
+      {active && (
+        <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400 shrink-0" />
+      )}
     </div>
   );
 }

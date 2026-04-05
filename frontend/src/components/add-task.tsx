@@ -56,12 +56,12 @@ export const AddTaskModal = ({
       open={open}
       title="New Task"
       body={
-        <form onSubmit={handleSubmit} className="px-4 py-4 flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-medium text-(--text-primary)">
-              Title <span className="text-(--danger)">*</span>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+          {/* Title */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-text-primary">
+              Title <span className="text-danger">*</span>
             </label>
-
             <input
               autoFocus
               value={title}
@@ -71,50 +71,51 @@ export const AddTaskModal = ({
               }}
               placeholder="e.g. Set up database migrations"
               className={clsx(
-                "h-8 rounded-xs bg-(--bg-surface) px-2 text-sm text-(--text-primary)",
-                "border outline-none",
+                "h-9 w-full rounded-md bg-bg-elevated px-3 text-sm text-text-primary",
+                "border outline-none transition duration-fast",
+                "placeholder:text-text-muted",
                 error
-                  ? "border-(--danger)"
-                  : "border-(--border-default) focus:border-(--primary)",
+                  ? "border-danger focus:shadow-focus-danger"
+                  : "border-border focus:border-primary focus:shadow-focus-primary",
               )}
             />
-
-            {error && (
-              <span className="text-[11px] text-(--danger)">{error}</span>
-            )}
+            {error && <span className="text-xs text-danger">{error}</span>}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-[12px] font-medium text-(--text-primary)">
+          {/* Description */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-text-primary">
               Description
             </label>
-
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add more context if needed"
               rows={3}
               className={clsx(
-                "rounded-xs bg-(--bg-surface) px-2 py-1 text-sm text-(--text-primary)",
-                "border border-(--border-default) outline-none resize-none",
-                "focus:border-(--primary)",
+                "w-full rounded-md bg-bg-elevated px-3 py-2 text-sm text-text-primary",
+                "border border-border outline-none resize-none transition duration-fast",
+                "placeholder:text-text-muted",
+                "focus:border-primary focus:shadow-focus-primary",
               )}
             />
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* Assignees */}
+          <div className="flex flex-col gap-1.5">
             <AssigneeSelector members={members} onChange={setAssignees} />
           </div>
 
-          <div className="flex flex-col gap-1">
+          {/* Status */}
+          <div className="flex flex-col gap-1.5">
             <StatusSelector status={status} onChange={setStatus} />
           </div>
 
-          <div className="flex justify-end gap-2 px-4 py-3 border-t border-(--border-muted)">
+          {/* Footer */}
+          <div className="flex justify-end gap-2 border-t border-border-muted pt-4 mt-1">
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-
             <Button type="submit" disabled={!title?.trim()}>
               Create task
             </Button>
