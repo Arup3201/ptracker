@@ -14,3 +14,8 @@ export function renderTaskSignal(project: ProjectSummary | DashboardProject) {
 
   return parts.length > 0 ? parts.join(" · ") : "—";
 }
+
+export function renderLocalTime(utcTimestamp: string) {
+  const local = new Date(utcTimestamp);
+  return local.toLocaleString();
+}

@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "../components/table.tsx";
-import { renderTaskSignal } from "../utils.ts";
+import { renderTaskSignal, renderLocalTime } from "../utils.ts";
 import {
   MapDashboardProject,
   MapDashboardTask,
@@ -151,7 +151,7 @@ export function Dashboard() {
                     <TableCell muted>{task.projectName}</TableCell>
                     <TableCell muted>{task.status}</TableCell>
                     <TableCell align="right" muted>
-                      {task.updatedAt}
+                      {task.updatedAt && renderLocalTime(task.updatedAt)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -197,7 +197,7 @@ export function Dashboard() {
                     <TableCell muted>{task.projectName}</TableCell>
                     <TableCell muted>{task.status}</TableCell>
                     <TableCell align="right" muted>
-                      {task.updatedAt}
+                      {task.updatedAt && renderLocalTime(task.updatedAt)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -241,7 +241,7 @@ export function Dashboard() {
                     </TableCell>
                     <TableCell>{renderTaskSignal(project)}</TableCell>
                     <TableCell align="right" muted>
-                      {project.updatedAt}
+                      {project.updatedAt && renderLocalTime(project.updatedAt)}
                     </TableCell>
                   </TableRow>
                 ))
@@ -285,7 +285,7 @@ export function Dashboard() {
                     </TableCell>
                     <TableCell>{renderTaskSignal(project)}</TableCell>
                     <TableCell align="right" muted>
-                      {project.updatedAt}
+                      {project.updatedAt && renderLocalTime(project.updatedAt)}
                     </TableCell>
                   </TableRow>
                 ))

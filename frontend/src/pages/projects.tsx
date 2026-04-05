@@ -19,7 +19,7 @@ import {
 import { Button } from "../components/button";
 import { Input } from "../components/input.tsx";
 import { CreateProjectModal } from "../components/create-project.tsx";
-import { renderTaskSignal } from "../utils.ts";
+import { renderLocalTime, renderTaskSignal } from "../utils.ts";
 
 export function ProjectsPage() {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ export function ProjectsPage() {
                   <TableCell muted>{project.role}</TableCell>
                   <TableCell muted>{renderTaskSignal(project)}</TableCell>
                   <TableCell align="right" muted>
-                    {project.updatedAt}
+                    {project.updatedAt && renderLocalTime(project.updatedAt)}
                   </TableCell>
                 </TableRow>
               ))

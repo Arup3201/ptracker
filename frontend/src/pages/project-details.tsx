@@ -30,6 +30,7 @@ import { ApiRequest } from "../api/request";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";
 import { JOIN_STATUS } from "../types/explore";
+import { renderLocalTime } from "../utils";
 
 export default function ProjectDetailsPage() {
   const [activeTab, setActiveTab] = useState<"tasks" | "members" | "requests">(
@@ -281,7 +282,7 @@ function TasksSection({
                 </TableCell>
                 <TableCell muted>{task.status}</TableCell>
                 <TableCell align="right" muted>
-                  {task.updatedAt}
+                  {task.updatedAt && renderLocalTime(task.updatedAt)}
                 </TableCell>
               </TableRow>
             ))
@@ -323,7 +324,7 @@ function MembersSection({ members }: { members: Member[] }) {
                 </div>
               </TableCell>
               <TableCell align="right" muted>
-                {member.createdAt}
+                {renderLocalTime(member.createdAt)}
               </TableCell>
             </TableRow>
           ))
