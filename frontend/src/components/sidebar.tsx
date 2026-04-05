@@ -57,9 +57,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex w-56 flex-col bg-zinc-950 border-r border-zinc-800">
+    <aside className="flex w-56 flex-col bg-bg-surface border-r border-border">
       {/* Logo */}
-      <div className="h-14 flex items-center px-4 border-b border-zinc-800 shrink-0">
+      <div className="h-14 flex items-center px-4 border-b border-border shrink-0">
         <Logo />
       </div>
 
@@ -84,14 +84,14 @@ export function Sidebar() {
             {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-zinc-100 truncate leading-tight">
+            <p className="text-sm font-semibold text-text-primary truncate leading-tight">
               {currentUser?.displayName}
             </p>
-            <p className="text-[11px] text-zinc-500 truncate leading-tight">
+            <p className="text-xs text-text-muted truncate leading-tight">
               {currentUser?.email}
             </p>
           </div>
-          <ChevronsUpDown size={13} className="text-zinc-600 shrink-0" />
+          <ChevronsUpDown size={13} className="text-text-muted shrink-0" />
         </div>
 
         <Button
@@ -122,7 +122,7 @@ function NavItem({
     <div
       onClick={onClick}
       className={clsx(
-        "group flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm cursor-pointer transition-all duration-150 select-none",
+        "group flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm cursor-pointer transition-all duration-fast select-none",
         active
           ? "bg-zinc-800 text-zinc-100 font-medium"
           : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300",

@@ -2,20 +2,20 @@
 
 :root {
     /* Backgrounds */
-    --bg-root: #09090b;
-    --bg-surface: #111113;
-    --bg-elevated: #1c1c1f;
-    --bg-overlay: #28282c;
+    --bg-root: #111118;
+    --bg-surface: #18181f;
+    --bg-elevated: #22222c;
+    --bg-overlay: #2e2e3a;
 
     /* Borders */
-    --border-default: #2e2e32;
-    --border-muted: #1f1f23;
-    --border-strong: #3f3f46;
+    --border-default: #32323e;
+    --border-muted: #26262f;
+    --border-strong: #44445a;
 
     /* Text */
-    --text-primary: #f4f4f5;
-    --text-secondary: #a1a1aa;
-    --text-muted: #52525b;
+    --text-primary: #e2e2e8;
+    --text-secondary: #a0a0b0;
+    --text-muted: #62626f;
     --text-disabled: #3f3f46;
 
     /* Primary — Emerald */
