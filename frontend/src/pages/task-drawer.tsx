@@ -177,7 +177,8 @@ export function TaskDrawer({
         ) : null
       }
     >
-      <div className="space-y-1 mb-4">
+      {/* Title + meta */}
+      <div className="space-y-2 mb-6">
         {editMode && (canEditAll || isAssignee) ? (
           <input
             value={title}
@@ -185,17 +186,24 @@ export function TaskDrawer({
               setTitle(e.target.value);
               setDirty(true);
             }}
-            className="w-full h-8 rounded-xs bg-(--bg-surface) px-2 text-sm border border-(--border-default) outline-none focus:border-(--primary)"
+            className="w-full h-9 rounded-md bg-bg-elevated px-3 text-sm text-text-primary border border-border outline-none transition duration-fast focus:border-primary focus:shadow-focus-primary"
           />
         ) : (
-          <h3 className="text-sm font-medium text-(--text-primary)">{title}</h3>
+          <h3 className="text-base font-semibold text-text-primary tracking-snug">
+            {title}
+          </h3>
         )}
 
         {!editMode && (
-          <div className="text-xs text-(--text-muted)">
-            Status: {status} · Assignee:{" "}
-            {currentAssignees.map((a) => a.username).join(", ") || "Unassigned"}
-          </div>
+          <p className="text-xs text-text-muted">
+            Status: <span className="text-text-secondary">{status}</span>
+            {" · "}
+            Assignee:{" "}
+            <span className="text-text-secondary">
+              {currentAssignees.map((a) => a.username).join(", ") ||
+                "Unassigned"}
+            </span>
+          </p>
         )}
 
         {!editMode && (canEditAll || isAssignee) && (
@@ -205,11 +213,11 @@ export function TaskDrawer({
         )}
       </div>
 
-      <section className="mb-6">
-        <h4 className="text-xs font-medium text-(--text-primary) mb-1">
+      {/* Description */}
+      <section className="mb-6 space-y-1.5">
+        <h4 className="text-xs font-medium text-text-muted uppercase tracking-wider">
           Description
         </h4>
-
         {editMode && (canEditAll || isAssignee) ? (
           <textarea
             rows={4}
@@ -218,22 +226,22 @@ export function TaskDrawer({
               setDescription(e.target.value);
               setDirty(true);
             }}
-            className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
+            className="w-full rounded-md bg-bg-elevated px-3 py-2 text-sm text-text-primary border border-border outline-none resize-none transition duration-fast focus:border-primary focus:shadow-focus-primary"
           />
         ) : (
-          <p className="text-sm text-(--text-secondary)">
-            {description || "No description provided"}
+          <p className="text-sm text-text-secondary leading-relaxed">
+            {description || "No description provided."}
           </p>
         )}
       </section>
 
+      {/* Edit fields */}
       {editMode && (canEditAll || isAssignee) && (
-        <section className="mb-6 space-y-3">
-          <div className="flex flex-col gap-1">
+        <section className="mb-6 space-y-4">
+          <div className="flex flex-col gap-1.5">
             <StatusSelector status={status} onChange={setStatus} />
           </div>
-
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1.5">
             <AssigneeSelector
               initialAssignees={initialAssignees.map((a) => a.userId)}
               members={members}
@@ -244,32 +252,30 @@ export function TaskDrawer({
         </section>
       )}
 
-      <section>
-        <h4 className="text-xs font-medium text-(--text-primary) mb-2">
+      {/* Comments */}
+      <section className="space-y-4">
+        <h4 className="text-xs font-medium text-text-muted uppercase tracking-wider">
           Comments
         </h4>
 
-        <div className="space-y-3 mb-3">
-          {!editMode && (
-            <div className="flex flex-col gap-2 mb-4">
-              <textarea
-                placeholder="Add a comment…"
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={2}
-                className="w-full rounded-xs bg-(--bg-surface) px-2 py-1 text-sm border border-(--border-default) outline-none resize-none focus:border-(--primary)"
-              />
-              <Button
-                onClick={handleAddComment}
-                className="bg-(--primary) text-white px-4 py-1 rounded-xs self-end"
-              >
-                Send
-              </Button>
-            </div>
-          )}
+        {!editMode && (
+          <div className="flex flex-col gap-2">
+            <textarea
+              placeholder="Add a comment…"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={2}
+              className="w-full rounded-md bg-bg-elevated px-3 py-2 text-sm text-text-primary border border-border outline-none resize-none transition duration-fast placeholder:text-text-muted focus:border-primary focus:shadow-focus-primary"
+            />
+            <Button onClick={handleAddComment} className="self-end">
+              Send
+            </Button>
+          </div>
+        )}
 
+        <div className="space-y-4">
           {comments.length === 0 ? (
-            <p className="text-sm text-(--text-secondary)">No comments yet.</p>
+            <p className="text-sm text-text-muted">No comments yet.</p>
           ) : (
             comments.map((comment, index) => (
               <Comment
@@ -315,12 +321,17 @@ function Comment({
   else timeAgo = "just now";
 
   return (
-    <div className="space-y-0.5">
-      <div className="text-xs text-(--text-muted)">
-        <span className="font-medium text-(--text-primary)">{author}</span> ·{" "}
-        {timeAgo}
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5">
+        <div className="h-5 w-5 rounded-full bg-bg-elevated border border-border flex items-center justify-center text-[10px] font-semibold text-primary shrink-0">
+          {author?.charAt(0).toUpperCase()}
+        </div>
+        <span className="text-xs font-medium text-text-primary">{author}</span>
+        <span className="text-xs text-text-muted">· {timeAgo}</span>
       </div>
-      <p className="text-sm text-(--text-secondary)">{children}</p>
+      <p className="text-sm text-text-secondary leading-relaxed pl-6">
+        {children}
+      </p>
     </div>
   );
 }

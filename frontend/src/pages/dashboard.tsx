@@ -113,174 +113,186 @@ export function Dashboard() {
         }
       />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
-        <h2 className="font-semibold">Recent Assigned Tasks</h2>
-
-        <Table>
-          <TableHeader>
-            <TableHead>Task</TableHead>
-            <TableHead>Project</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead align="right">Updated</TableHead>
-          </TableHeader>
-
-          <TableBody>
-            {recentAssignedTasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-3 py-6 text-center text-sm text-(--text-muted)"
-                >
-                  No tasks found
-                </td>
-              </tr>
-            )}
-            {recentAssignedTasks.map((task) => (
-              <TableRow key={task.id}>
-                <TableCell>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                    }}
+      <div className="flex-1 overflow-y-auto p-6 space-y-8">
+        {/* Recent Assigned Tasks */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-text-primary tracking-snug">
+            Recent Assigned Tasks
+          </h2>
+          <Table>
+            <TableHeader>
+              <TableHead>Task</TableHead>
+              <TableHead>Project</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead align="right">Updated</TableHead>
+            </TableHeader>
+            <TableBody>
+              {recentAssignedTasks.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-sm text-text-muted"
                   >
-                    <span className="font-medium">{task.title}</span>
-                  </a>
-                </TableCell>
-                <TableCell muted>{task.projectName}</TableCell>
-                <TableCell muted>{task.status}</TableCell>
-                <TableCell align="right" muted>
-                  {task.updatedAt}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    No tasks found
+                  </td>
+                </tr>
+              ) : (
+                recentAssignedTasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="font-medium text-text-primary hover:text-primary transition duration-fast"
+                      >
+                        {task.title}
+                      </a>
+                    </TableCell>
+                    <TableCell muted>{task.projectName}</TableCell>
+                    <TableCell muted>{task.status}</TableCell>
+                    <TableCell align="right" muted>
+                      {task.updatedAt}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </section>
 
-        <h2 className="font-semibold">Recent Unassigned Tasks</h2>
-
-        <Table>
-          <TableHeader>
-            <TableHead>Task</TableHead>
-            <TableHead>Assignee</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead align="right">Updated</TableHead>
-          </TableHeader>
-
-          <TableBody>
-            {recentUnassignedTasks.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-3 py-6 text-center text-sm text-(--text-muted)"
-                >
-                  No tasks found
-                </td>
-              </tr>
-            )}
-            {recentUnassignedTasks.map((task) => (
-              <TableRow key={task.id}>
-                <TableCell>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                    }}
+        {/* Recent Unassigned Tasks */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-text-primary tracking-snug">
+            Recent Unassigned Tasks
+          </h2>
+          <Table>
+            <TableHeader>
+              <TableHead>Task</TableHead>
+              <TableHead>Assignee</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead align="right">Updated</TableHead>
+            </TableHeader>
+            <TableBody>
+              {recentUnassignedTasks.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-8 text-center text-sm text-text-muted"
                   >
-                    <span className="font-medium">{task.title}</span>
-                  </a>
-                </TableCell>
-                <TableCell muted>{task.projectName}</TableCell>
-                <TableCell muted>{task.status}</TableCell>
-                <TableCell align="right" muted>
-                  {task.updatedAt}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    No tasks found
+                  </td>
+                </tr>
+              ) : (
+                recentUnassignedTasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="font-medium text-text-primary hover:text-primary transition duration-fast"
+                      >
+                        {task.title}
+                      </a>
+                    </TableCell>
+                    <TableCell muted>{task.projectName}</TableCell>
+                    <TableCell muted>{task.status}</TableCell>
+                    <TableCell align="right" muted>
+                      {task.updatedAt}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </section>
 
-        <h2 className="font-semibold">Recently Created Projects</h2>
-
-        <Table>
-          <TableHeader>
-            <TableHead>Project</TableHead>
-            <TableHead>Tasks</TableHead>
-            <TableHead align="right">Updated</TableHead>
-          </TableHeader>
-
-          <TableBody>
-            {recentlyCreatedProjects.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-3 py-6 text-center text-sm text-(--text-muted)"
-                >
-                  No recently created projects found
-                </td>
-              </tr>
-            )}
-            {recentlyCreatedProjects.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                    }}
+        {/* Recently Created Projects */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-text-primary tracking-snug">
+            Recently Created Projects
+          </h2>
+          <Table>
+            <TableHeader>
+              <TableHead>Project</TableHead>
+              <TableHead>Tasks</TableHead>
+              <TableHead align="right">Updated</TableHead>
+            </TableHeader>
+            <TableBody>
+              {recentlyCreatedProjects.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-sm text-text-muted"
                   >
-                    <span className="font-medium">{project.name}</span>
-                  </a>
-                </TableCell>
-                <TableCell>{renderTaskSignal(project)}</TableCell>
-                <TableCell align="right" muted>
-                  {project.updatedAt}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    No recently created projects found
+                  </td>
+                </tr>
+              ) : (
+                recentlyCreatedProjects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="font-medium text-text-primary hover:text-primary transition duration-fast"
+                      >
+                        {project.name}
+                      </a>
+                    </TableCell>
+                    <TableCell>{renderTaskSignal(project)}</TableCell>
+                    <TableCell align="right" muted>
+                      {project.updatedAt}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </section>
 
-        <h2 className="font-semibold">Recently Joined Projects</h2>
-
-        <Table>
-          <TableHeader>
-            <TableHead>Project</TableHead>
-            <TableHead>Tasks</TableHead>
-            <TableHead align="right">Updated</TableHead>
-          </TableHeader>
-
-          <TableBody>
-            {recentlyJoinedProjects.length === 0 && (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-3 py-6 text-center text-sm text-(--text-muted)"
-                >
-                  No recently joined projects found
-                </td>
-              </tr>
-            )}
-            {recentlyJoinedProjects.map((project) => (
-              <TableRow key={project.id}>
-                <TableCell>
-                  <a
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                    }}
+        {/* Recently Joined Projects */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-text-primary tracking-snug">
+            Recently Joined Projects
+          </h2>
+          <Table>
+            <TableHeader>
+              <TableHead>Project</TableHead>
+              <TableHead>Tasks</TableHead>
+              <TableHead align="right">Updated</TableHead>
+            </TableHeader>
+            <TableBody>
+              {recentlyJoinedProjects.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-sm text-text-muted"
                   >
-                    <span className="font-medium">{project.name}</span>
-                  </a>
-                </TableCell>
-                <TableCell>{renderTaskSignal(project)}</TableCell>
-                <TableCell align="right" muted>
-                  {project.updatedAt}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    No recently joined projects found
+                  </td>
+                </tr>
+              ) : (
+                recentlyJoinedProjects.map((project) => (
+                  <TableRow key={project.id}>
+                    <TableCell>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="font-medium text-text-primary hover:text-primary transition duration-fast"
+                      >
+                        {project.name}
+                      </a>
+                    </TableCell>
+                    <TableCell>{renderTaskSignal(project)}</TableCell>
+                    <TableCell align="right" muted>
+                      {project.updatedAt}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </section>
       </div>
 
       <CreateProjectModal

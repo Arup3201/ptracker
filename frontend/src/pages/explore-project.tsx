@@ -58,58 +58,50 @@ export default function ProjectExplorePage() {
       <TopBar
         title="Projects / Project Details"
         actions={
-          <div className="flex gap-1">
-            <Button
-              disabled={joinStatus !== JOIN_STATUS.NOT_REQUESTED}
-              onClick={handleJoin}
-            >
-              {joinStatus === JOIN_STATUS.NOT_REQUESTED
-                ? "Join Project"
-                : joinStatus}
-            </Button>
-          </div>
+          <Button
+            disabled={joinStatus !== JOIN_STATUS.NOT_REQUESTED}
+            onClick={handleJoin}
+          >
+            {joinStatus === JOIN_STATUS.NOT_REQUESTED
+              ? "Join Project"
+              : joinStatus}
+          </Button>
         }
       />
 
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Project meta */}
         <div className="space-y-3">
-          <h1 className="max-w-3xl truncate text-lg font-semibold text-(--text-primary)">
-            {details?.name || "-"}
+          <h1 className="max-w-3xl truncate text-2xl font-semibold text-text-primary tracking-tight">
+            {details?.name || "—"}
           </h1>
 
-          <p className="max-w-2xl text-sm text-(--text-secondary)">
-            {details?.description || "-"}
+          <p className="max-w-2xl text-sm text-text-secondary leading-relaxed">
+            {details?.description || "—"}
           </p>
 
-          <p className="text-xs text-(--text-muted)">
-            Skills: {details?.skills || "-"}
-          </p>
+          {details?.skills && (
+            <p className="text-xs text-text-muted">Skills: {details.skills}</p>
+          )}
 
-          <div className="flex gap-4 text-sm text-(--text-secondary)">
-            <span>
-              Unassigned:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.unassignedTasks}
-              </strong>
-            </span>
-            <span>
-              Ongoing:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.ongoingTasks}
-              </strong>
-            </span>
-            <span>
-              Completed:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.completedTasks}
-              </strong>
-            </span>
-            <span>
-              Abandoned:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.abandonedTasks}
-              </strong>
-            </span>
+          {/* Stats row */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {[
+              { label: "Unassigned", value: details?.unassignedTasks },
+              { label: "Ongoing", value: details?.ongoingTasks },
+              { label: "Completed", value: details?.completedTasks },
+              { label: "Abandoned", value: details?.abandonedTasks },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-bg-elevated px-3 py-1.5"
+              >
+                <span className="text-xs text-text-muted">{label}</span>
+                <span className="text-sm font-semibold text-text-primary">
+                  {value ?? 0}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

@@ -131,7 +131,7 @@ export default function ProjectDetailsPage() {
       <TopBar
         title="Projects / Project Details"
         actions={
-          <div className="flex gap-1">
+          <div className="flex gap-2">
             {details?.role === ROLES.OWNER && (
               <Button variant="secondary" onClick={() => setEditProject(true)}>
                 Edit Project
@@ -144,56 +144,48 @@ export default function ProjectDetailsPage() {
         }
       />
 
-      <div className="flex-1 p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Project meta */}
         <div className="space-y-3">
-          <h1 className="max-w-3xl truncate text-lg font-semibold text-(--text-primary)">
-            {details?.name || "-"}
+          <h1 className="max-w-3xl truncate text-2xl font-semibold text-text-primary tracking-tight">
+            {details?.name || "—"}
           </h1>
-
-          <p className="max-w-2xl text-sm text-(--text-secondary)">
-            {details?.description || "-"}
+          <p className="max-w-2xl text-sm text-text-secondary leading-relaxed">
+            {details?.description || "—"}
           </p>
+          {details?.skills && (
+            <p className="text-xs text-text-muted">Skills: {details.skills}</p>
+          )}
 
-          <p className="text-xs text-(--text-muted)">
-            Skills: {details?.skills || "-"}
-          </p>
-
-          <div className="flex gap-4 text-sm text-(--text-secondary)">
-            <span>
-              Unassigned:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.unassignedTasks}
-              </strong>
-            </span>
-            <span>
-              Ongoing:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.ongoingTasks}
-              </strong>
-            </span>
-            <span>
-              Completed:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.completedTasks}
-              </strong>
-            </span>
-            <span>
-              Abandoned:{" "}
-              <strong className="text-(--text-primary)">
-                {details?.abandonedTasks}
-              </strong>
-            </span>
-          </div>
-
-          <div className="text-sm text-(--text-muted)">
-            Members:{" "}
-            <span className="font-medium text-(--text-primary)">
-              {details?.membersCount}
-            </span>
+          {/* Stats row */}
+          <div className="flex items-center gap-1 flex-wrap">
+            {[
+              { label: "Unassigned", value: details?.unassignedTasks },
+              { label: "Ongoing", value: details?.ongoingTasks },
+              { label: "Completed", value: details?.completedTasks },
+              { label: "Abandoned", value: details?.abandonedTasks },
+            ].map(({ label, value }) => (
+              <div
+                key={label}
+                className="flex items-center gap-1.5 rounded-md border border-border bg-bg-elevated px-3 py-1.5"
+              >
+                <span className="text-xs text-text-muted">{label}</span>
+                <span className="text-sm font-semibold text-text-primary">
+                  {value ?? 0}
+                </span>
+              </div>
+            ))}
+            <div className="flex items-center gap-1.5 rounded-md border border-border bg-bg-elevated px-3 py-1.5">
+              <span className="text-xs text-text-muted">Members</span>
+              <span className="text-sm font-semibold text-text-primary">
+                {details?.membersCount ?? 0}
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-4 border-b border-(--border-muted)">
+        {/* Tabs */}
+        <div className="flex gap-5 border-b border-border-muted">
           <Tab
             label="Tasks"
             active={activeTab === "tasks"}
@@ -211,6 +203,7 @@ export default function ProjectDetailsPage() {
           />
         </div>
 
+        {/* Tab panels */}
         {activeTab === "tasks" && (
           <TasksSection onOpenTask={openTask} tasks={tasks} />
         )}
@@ -219,6 +212,7 @@ export default function ProjectDetailsPage() {
           <JoinRequestsSection requests={joinRequests} />
         )}
       </div>
+
       <AddTaskModal
         projectId={projectId}
         members={members}
@@ -246,8 +240,8 @@ function TasksSection({
 }) {
   return (
     <div className="space-y-3">
-      <div className="w-80">
-        <Input placeholder="Search tasks" onChange={() => {}} />
+      <div className="w-72">
+        <Input placeholder="Search tasks..." onChange={() => {}} />
       </div>
 
       <Table>
@@ -257,40 +251,41 @@ function TasksSection({
           <TableHead>Status</TableHead>
           <TableHead align="right">Updated</TableHead>
         </TableHeader>
-
         <TableBody>
-          {tasks.length === 0 && (
+          {tasks.length === 0 ? (
             <tr>
               <td
                 colSpan={4}
-                className="px-3 py-6 text-center text-sm text-(--text-muted)"
+                className="px-4 py-8 text-center text-sm text-text-muted"
               >
                 No tasks found
               </td>
             </tr>
+          ) : (
+            tasks.map((task) => (
+              <TableRow key={task.id}>
+                <TableCell>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onOpenTask(task.id);
+                    }}
+                    className="font-medium text-text-primary hover:text-primary transition duration-fast"
+                  >
+                    {task.title}
+                  </a>
+                </TableCell>
+                <TableCell muted>
+                  {task.assignees.map((a) => a.username).join(", ") || "—"}
+                </TableCell>
+                <TableCell muted>{task.status}</TableCell>
+                <TableCell align="right" muted>
+                  {task.updatedAt}
+                </TableCell>
+              </TableRow>
+            ))
           )}
-          {tasks.map((task) => (
-            <TableRow key={task.id}>
-              <TableCell>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onOpenTask(task.id);
-                  }}
-                >
-                  <span className="font-medium">{task.title}</span>
-                </a>
-              </TableCell>
-              <TableCell muted>
-                {task.assignees.map((a) => a.username).join(", ") ?? "—"}
-              </TableCell>
-              <TableCell muted>{task.status}</TableCell>
-              <TableCell align="right" muted>
-                {task.updatedAt}
-              </TableCell>
-            </TableRow>
-          ))}
         </TableBody>
       </Table>
     </div>
@@ -304,28 +299,35 @@ function MembersSection({ members }: { members: Member[] }) {
         <TableHead>Name</TableHead>
         <TableHead align="right">Joined</TableHead>
       </TableHeader>
-
       <TableBody>
-        {members.length === 0 && (
+        {members.length === 0 ? (
           <tr>
             <td
-              colSpan={4}
-              className="px-3 py-6 text-center text-sm text-(--text-muted)"
+              colSpan={2}
+              className="px-4 py-8 text-center text-sm text-text-muted"
             >
               No members found
             </td>
           </tr>
+        ) : (
+          members.map((member) => (
+            <TableRow key={member.userId}>
+              <TableCell>
+                <div className="flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-bg-elevated border border-border flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                    {member.displayName?.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="font-medium text-text-primary">
+                    {member.displayName}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell align="right" muted>
+                {member.createdAt}
+              </TableCell>
+            </TableRow>
+          ))
         )}
-        {members.map((member) => (
-          <TableRow key={member.userId}>
-            <TableCell>
-              <span className="font-medium">{member.displayName}</span>
-            </TableCell>
-            <TableCell align="right" muted>
-              {member.createdAt}
-            </TableCell>
-          </TableRow>
-        ))}
       </TableBody>
     </Table>
   );
@@ -352,41 +354,53 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
   );
 
   return (
-    <div className="divide-y divide-(--border-muted) rounded-md border border-(--border-default)">
-      {pendingRequests.length === 0 && (
-        <div className="px-3 py-6 text-center text-sm text-(--text-muted)">
-          No join requests found
+    <div className="rounded-lg border border-border bg-bg-surface overflow-hidden">
+      {pendingRequests.length === 0 ? (
+        <div className="px-4 py-8 text-center text-sm text-text-muted">
+          No pending join requests
+        </div>
+      ) : (
+        <div className="divide-y divide-border-muted">
+          {pendingRequests.map((req) => (
+            <div
+              key={req.projectId + req.userId}
+              className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-bg-elevated transition duration-fast"
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="h-7 w-7 rounded-full bg-bg-elevated border border-border flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+                  {req.displayName?.charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">
+                    {req.displayName}
+                  </p>
+                  <p className="text-xs text-text-muted truncate">
+                    {req.username}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  variant="secondary"
+                  onClick={() =>
+                    handleUpdate(req.projectId, req.userId, "Rejected")
+                  }
+                >
+                  Reject
+                </Button>
+                <Button
+                  onClick={() =>
+                    handleUpdate(req.projectId, req.userId, "Accepted")
+                  }
+                >
+                  Accept
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
-      {pendingRequests.map((req) => (
-        <div
-          key={req.projectId + req.userId}
-          className="flex items-start justify-between p-4"
-        >
-          <div className="space-y-1">
-            <div className="text-sm font-medium">{req.username}</div>
-            <p className="text-sm text-(--text-secondary)">{req.displayName}</p>
-          </div>
-
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={() =>
-                handleUpdate(req.projectId, req.userId, "Rejected")
-              }
-            >
-              Reject
-            </Button>
-            <Button
-              onClick={() =>
-                handleUpdate(req.projectId, req.userId, "Accepted")
-              }
-            >
-              Accept
-            </Button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }

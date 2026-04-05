@@ -23,28 +23,29 @@ function ProjectCard({ project }: { project: ExploreProject }) {
   };
 
   return (
-    <div className="rounded-sm border border-(--border-default) bg-(--bg-surface) p-4 shadow-[0_1px_2px_rgba(0,0,0,0.4)]">
+    <div className="flex flex-col rounded-lg border border-border bg-bg-surface p-4 shadow-sm hover:border-border-strong transition duration-fast">
       <div className="flex items-start justify-between gap-2">
-        <h3 className="text-[14px] font-semibold text-(--text-primary) leading-snug">
+        <h3 className="text-base font-semibold text-text-primary leading-snug">
           {project.name}
         </h3>
-
         {project.role !== "User" && (
-          <span className="text-[11px] font-medium text-(--text-muted) border border-(--border-muted) rounded-xs px-2 py-0.5">
+          <span className="shrink-0 text-xs font-medium text-text-muted border border-border rounded-md px-2 py-0.5">
             {project.role}
           </span>
         )}
       </div>
 
-      <p className="mt-2 text-[13px] text-(--text-secondary) leading-relaxed line-clamp-3">
+      <p className="mt-2 text-sm text-text-secondary leading-relaxed line-clamp-3">
         {project.description}
       </p>
 
-      <span className="mt-2 block text-[12px] text-(--text-muted)">
-        Skills: {project.skills}
-      </span>
+      {project.skills && (
+        <span className="mt-2 block text-xs text-text-muted">
+          Skills: {project.skills}
+        </span>
+      )}
 
-      <div className="mt-4">
+      <div className="mt-4 pt-4 border-t border-border-muted">
         <Button variant="secondary" onClick={handleView}>
           View Project
         </Button>
@@ -87,19 +88,21 @@ export default function ExploreProjectsPage() {
     <>
       <TopBar title="Explore Projects" />
 
-      <div className="p-4 space-y-4">
-        <p className="text-[12px] text-(--text-secondary)">
-          Browse active projects and decide where to collaborate.
-        </p>
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            Browse active projects and decide where to collaborate.
+          </p>
+          <div className="w-72">
+            <Input
+              placeholder="Search projects..."
+              onChange={(text) => setQuery(text)}
+            />
+          </div>
+        </div>
 
-        <Input
-          placeholder="Search projects"
-          onChange={(text) => setQuery(text)}
-        />
-      </div>
-      <div className="p-4 overflow-y-auto">
         {filteredProjects.length === 0 ? (
-          <p className="text-[12px] text-(--text-muted) text-center">
+          <p className="text-sm text-text-muted text-center py-12">
             No projects found.
           </p>
         ) : (
