@@ -3,15 +3,15 @@ package repo_fixtures
 import (
 	"context"
 
-	"github.com/ptracker/internal/interfaces"
+	"gorm.io/gorm"
 )
 
 type Fixtures struct {
 	ctx context.Context
-	db  interfaces.Execer
+	db  *gorm.DB
 }
 
-func New(ctx context.Context, db interfaces.Execer) *Fixtures {
+func New(ctx context.Context, db *gorm.DB) *Fixtures {
 	return &Fixtures{
 		ctx: ctx,
 		db:  db,

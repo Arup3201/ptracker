@@ -6,15 +6,18 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/ptracker/internal/apierr"
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/repositories/models"
+	"gorm.io/gorm"
 )
 
 type SessionRepo struct {
-	db interfaces.Execer
+	db *gorm.DB
 }
 
-func NewSessionRepo(db interfaces.Execer) interfaces.SessionRepository {
+func NewSessionRepo(db *gorm.DB) interfaces.SessionRepository {
 	return &SessionRepo{
 		db: db,
 	}
@@ -27,65 +30,70 @@ func (r *SessionRepo) Create(ctx context.Context,
 	expireAt time.Time) (string, error) {
 
 	id := uuid.NewString()
-	_, err := r.db.ExecContext(ctx,
-		"INSERT INTO "+
-			"sessions(id, user_id, refresh_token_encrypted, user_agent, "+
-			"ip_address, device_name, expires_at)"+
-			"VALUES($1, $2, $3, $4, $5, $6, $7)",
-		id, userId, encryptedToken, userAgent, ipAddress, deviceName, expireAt)
+	session := models.Session{
+		ID:                    id,
+		UserID:                userId,
+		RefreshTokenEncrypted: encryptedToken,
+		UserAgent:             userAgent,
+		IpAddress:             ipAddress,
+		DeviceName:            deviceName,
+		ExpiresAt:             expireAt,
+	}
+	err := gorm.G[models.Session](r.db).Create(ctx, &session)
 	if err != nil {
-		return "", fmt.Errorf("postgres create session: %w", err)
+		return "", fmt.Errorf("gorm create: %w", err)
 	}
 
-	return id, nil
+	return session.ID, nil
 }
 
-func (r *SessionRepo) Get(ctx context.Context, id string) (*domain.Session, error) {
-	var session domain.Session
-	err := r.db.QueryRowContext(ctx,
-		"SELECT "+
-			"id, user_id, refresh_token_encrypted, "+
-			"user_agent, ip_address, device_name, "+
-			"created_at, last_active_at, revoked_at, expires_at "+
-			"FROM sessions "+
-			"WHERE id=($1)",
-		id).
-		Scan(&session.Id, &session.UserId, &session.RefreshTokenEncrypted,
-			&session.UserAgent, &session.IpAddress, &session.DeviceName,
-			&session.CreatedAt, &session.LastActive,
-			&session.RevokedAt, &session.ExpiresAt)
-	if err != nil {
-		return nil, fmt.Errorf("postgres create session get: %w", err)
+func (r *SessionRepo) Get(ctx context.Context, id string) (domain.Session, error) {
+
+	session, err := gorm.G[models.Session](r.db).Where("id = ? AND revoked_at IS NULL",
+		id).First(ctx)
+	if err == gorm.ErrRecordNotFound {
+		return session.ToSessionDomain(), apierr.ErrNotFound
+	} else if err != nil {
+		return session.ToSessionDomain(), fmt.Errorf("gorm query: %w", err)
 	}
 
-	return &session, nil
+	return session.ToSessionDomain(), nil
 }
 
 func (r *SessionRepo) Revoke(ctx context.Context, id string) error {
-	_, err := r.db.ExecContext(ctx,
-		"UPDATE sessions "+
-			"SET revoked_at = CURRENT_TIMESTAMP "+
-			"WHERE id=($1)", id)
 
+	session, err := r.Get(ctx, id)
 	if err != nil {
-		return fmt.Errorf("postgres make session inactive: %w", err)
+		return fmt.Errorf("session get: %w", err)
+	}
+
+	now := time.Now().UTC()
+	session.RevokedAt = &now
+
+	err = r.db.Save(&session).Error
+	if err != nil {
+		return fmt.Errorf("gorm db save: %w", err)
 	}
 
 	return nil
 }
 
-func (r *SessionRepo) Update(ctx context.Context, sessionId string,
+func (r *SessionRepo) Update(ctx context.Context, id string,
 	refreshTokenEncrypted []byte,
 	expiresAt time.Time) error {
-	_, err := r.db.ExecContext(ctx,
-		"UPDATE sessions "+
-			"SET refresh_token_encrypted = ($1), "+
-			"expires_at = ($2), "+
-			"last_active_at = CURRENT_TIMESTAMP "+
-			"WHERE id=($3)", refreshTokenEncrypted, expiresAt, sessionId)
 
+	session, err := r.Get(ctx, id)
 	if err != nil {
-		return fmt.Errorf("postgres update session: %w", err)
+		return fmt.Errorf("session get: %w", err)
 	}
+
+	session.RefreshTokenEncrypted = refreshTokenEncrypted
+	session.ExpiresAt = expiresAt
+
+	err = r.db.Save(&session).Error
+	if err != nil {
+		return fmt.Errorf("gorm db save: %w", err)
+	}
+
 	return nil
 }

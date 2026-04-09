@@ -17,18 +17,10 @@ func GetCommentRow(projectId, taskId, userId, content string) CommentParam {
 }
 
 func (f *Fixtures) InsertComment(c CommentParam) {
-	_, err := f.db.ExecContext(
-		f.ctx,
-		`
-		INSERT INTO comments (project_id, task_id, user_id, content)
-		VALUES ($1,$2,$3,$4)
-		`,
-		c.ProjectId,
-		c.TaskId,
-		c.UserId,
-		c.Content,
-	)
-	if err != nil {
-		panic("insert comment fixture failed: " + err.Error())
+	if f.db != nil {
+		if err := f.db.WithContext(f.ctx).Create(&c).Error; err != nil {
+			panic("insert comment fixture failed: " + err.Error())
+		}
+		return
 	}
 }

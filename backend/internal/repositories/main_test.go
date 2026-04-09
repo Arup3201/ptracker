@@ -6,16 +6,16 @@ import (
 	"testing"
 
 	"github.com/ptracker/internal/infra"
-	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/repo_fixtures"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/gorm"
 )
 
 type RepositoryTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
-	db          interfaces.Execer
+	db          *gorm.DB
 	fixtures    *repo_fixtures.Fixtures
 	ctx         context.Context
 }
@@ -32,7 +32,7 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.db, err = infra.NewDatabase("postgres", suite.pgContainer.ConnectionString)
+	suite.db, err = infra.NewDatabase(suite.pgContainer.ConnectionString)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 }
 
 func (suite *RepositoryTestSuite) TearDownSuite() {
-	_, err := suite.db.ExecContext(suite.ctx, "TRUNCATE users CASCADE")
+	err := suite.db.Raw("TRUNCATE users CASCADE").Error
 	suite.Require().NoError(err)
 
 	if err := suite.pgContainer.Terminate(suite.ctx); err != nil {
@@ -54,7 +54,7 @@ func (suite *RepositoryTestSuite) TearDownSuite() {
 }
 
 func (suite *RepositoryTestSuite) Cleanup() {
-	_, err := suite.db.ExecContext(suite.ctx, "DELETE FROM projects")
+	err := suite.db.Raw("DELETE FROM projects").Error
 	suite.Require().NoError(err)
 }
 

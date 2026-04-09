@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/internal/repositories/models"
 	"github.com/ptracker/internal/testhelpers/repo_fixtures"
+	"gorm.io/gorm"
 )
 
 func (suite *RepositoryTestSuite) TestCreateTask() {
@@ -33,19 +35,11 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		taskRepo := NewTaskRepo(suite.db)
 		id, _ := taskRepo.Create(suite.ctx, p,
 			sample_title, sample_description, sample_status)
-		var task domain.Task
-		suite.db.QueryRowContext(
-			suite.ctx,
-			"SELECT "+
-				"id, project_id, title, description, status "+
-				"FROM tasks "+
-				"WHERE id=($1)",
-			id,
-		).Scan(&task.Id, &task.ProjectId, &task.Title, &task.Description, &task.Status)
+		task, _ := gorm.G[models.Task](suite.db).Where("id = ?", id).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(id, task.Id)
+		suite.Require().Equal(id, task.ID)
 		suite.Require().Equal(sample_title, task.Title)
 		suite.Require().Equal(sample_description, *task.Description)
 		suite.Require().Equal(sample_status, task.Status)
@@ -62,5 +56,56 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
+	})
+}
+
+func (suite *RepositoryTestSuite) TestGetTask() {
+	t := suite.T()
+
+	t.Run("should list assignees", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_TWO, domain.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		repo := NewTaskRepo(suite.db)
+
+		_, err := repo.Get(suite.ctx, taskID)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should list 2 assignees", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_THREE, domain.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskID, USER_THREE))
+		repo := NewTaskRepo(suite.db)
+
+		task, _ := repo.Get(suite.ctx, taskID)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(2, len(task.Assignees))
+	})
+	t.Run("should list 2 assignees with ID", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_THREE, domain.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		suite.fixtures.InsertAssignee(repo_fixtures.GetAssigneeRow(p, taskID, USER_THREE))
+		repo := NewTaskRepo(suite.db)
+
+		task, _ := repo.Get(suite.ctx, taskID)
+
+		suite.Cleanup()
+
+		suite.ElementsMatch(
+			[]string{USER_TWO, USER_THREE},
+			[]string{task.Assignees[0].UserID, task.Assignees[1].UserID},
+		)
 	})
 }
