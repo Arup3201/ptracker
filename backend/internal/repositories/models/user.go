@@ -8,8 +8,8 @@ import (
 
 type User struct {
 	ID            string `gorm:"primaryKey"`
-	IdpSubject    string
-	IdpProvider   string
+	IdpSubject    string `gorm:"index:idx_user_idp,unique"`
+	IdpProvider   string `gorm:"index:idx_user_idp,unique"`
 	Username      string
 	DisplayName   *string // nullable
 	Email         string
@@ -19,12 +19,12 @@ type User struct {
 	UpdatedAt     time.Time // nullable
 	LastLoginTime time.Time
 
-	Sessions     []Session
-	Projects     []Project `gorm:"foreignKey:OwnerID"`
-	Memberships  []Membership
-	JoinRequests []JoinRequest
-	Comments     []Comment
-	Assignees    []Assignee
+	Sessions     []Session     `gorm:"constraint:OnDelete:CASCADE"`
+	Projects     []Project     `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
+	Memberships  []Membership  `gorm:"constraint:OnDelete:CASCADE"`
+	JoinRequests []JoinRequest `gorm:"constraint:OnDelete:CASCADE"`
+	Comments     []Comment     `gorm:"constraint:OnDelete:CASCADE"`
+	Assignees    []Assignee    `gorm:"constraint:OnDelete:CASCADE"`
 }
 
 func (u User) ToUserDomain() domain.User {

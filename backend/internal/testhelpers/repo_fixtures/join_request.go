@@ -11,7 +11,7 @@ func GetJoinRequest(projectID, userID string) models.JoinRequest {
 	return models.JoinRequest{
 		ProjectID: projectID,
 		UserID:    userID,
-		Status:    domain.JOIN_STATUS_PENDING,
+		Status:    models.JoinStatus{String: domain.JOIN_STATUS_PENDING},
 	}
 }
 

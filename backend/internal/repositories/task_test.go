@@ -42,7 +42,7 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 		suite.Require().Equal(id, task.ID)
 		suite.Require().Equal(sample_title, task.Title)
 		suite.Require().Equal(sample_description, *task.Description)
-		suite.Require().Equal(sample_status, task.Status)
+		suite.Require().Equal(sample_status, task.Status.String)
 	})
 	t.Run("should create task without description", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))

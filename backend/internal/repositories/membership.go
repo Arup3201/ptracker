@@ -26,7 +26,9 @@ func (r *MembershipRepo) Create(ctx context.Context,
 	role := models.Membership{
 		ProjectID: projectId,
 		UserID:    userId,
-		Role:      userRole,
+		Role: models.UserRole{
+			String: userRole,
+		},
 	}
 	err := gorm.G[models.Membership](r.db).Create(ctx, &role)
 	if err != nil {
@@ -47,7 +49,7 @@ func (r *MembershipRepo) Role(ctx context.Context, projectId, userId string) (st
 		return "", fmt.Errorf("gorm query: %w", err)
 	}
 
-	return membership.Role, nil
+	return membership.Role.String, nil
 }
 
 func (r *MembershipRepo) CountMembers(ctx context.Context, projectId string) (int64, error) {

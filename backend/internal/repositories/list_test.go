@@ -30,9 +30,7 @@ func (suite *RepositoryTestSuite) TestProjects() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
-		expected := 2
-		actual := len(projects)
-		suite.Require().Equal(expected, actual)
+		suite.Require().Equal(2, len(projects))
 	})
 }
 
@@ -198,7 +196,7 @@ func (suite *RepositoryTestSuite) TestListTasks() {
 func (suite *RepositoryTestSuite) TestListMembers() {
 	t := suite.T()
 
-	t.Run("should get empty list", func(t *testing.T) {
+	t.Run("should get one member for owner", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		repo := NewListRepo(suite.db)
 
@@ -208,9 +206,9 @@ func (suite *RepositoryTestSuite) TestListMembers() {
 
 		suite.Require().NoError(err)
 		suite.Require().NotNil(members)
-		suite.Require().Equal(0, len(members))
+		suite.Require().Equal(1, len(members))
 	})
-	t.Run("should list members", func(t *testing.T) {
+	t.Run("should list 2 members with owner and 1 member", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_TWO, domain.ROLE_MEMBER))
 		repo := NewListRepo(suite.db)
@@ -220,8 +218,7 @@ func (suite *RepositoryTestSuite) TestListMembers() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
-		suite.Require().Equal(1, len(members))
-		suite.Require().Equal(USER_TWO, members[0].UserID)
+		suite.Require().Equal(2, len(members))
 	})
 }
 

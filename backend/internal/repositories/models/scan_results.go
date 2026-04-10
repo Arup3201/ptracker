@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ptracker/internal/domain"
+	"gorm.io/datatypes"
 )
 
 type ProjectSummaryRow struct {
@@ -127,17 +128,23 @@ func (r ProjectPublicDetailRow) ToProjectPublicDetailDomain() domain.ProjectPubl
 	}
 }
 
-type AssigneeRow struct {
-	ProjectID string    `gorm:"column:project_id"`
-	TaskID    string    `gorm:"column:task_id"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
+/*
+Used with datatypes.JSONSlice to store list of AssigneeRow
 
-	AssigneeID          string  `gorm:"column:assignee_id"`
-	AssigneeUsername    string  `gorm:"column:assignee_username"`
-	AssigneeDisplayName *string `gorm:"column:assignee_display_name"`
-	AssigneeEmail       string  `gorm:"column:assignee_email"`
-	AssigneeAvatarURL   *string `gorm:"column:assignee_avatar_url"`
+It uses json unmarshalling to map the values from query result.
+So json tags are used instead of gorm tags.
+*/
+type AssigneeRow struct {
+	ProjectID string    `json:"project_id"`
+	TaskID    string    `json:"task_id"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+
+	AssigneeID          string  `json:"assignee_id"`
+	AssigneeUsername    string  `json:"assignee_username"`
+	AssigneeDisplayName *string `json:"assignee_display_name"`
+	AssigneeEmail       string  `json:"assignee_email"`
+	AssigneeAvatarURL   *string `json:"assignee_avatar_url"`
 }
 
 func (a AssigneeRow) ToAssigneeDomain() domain.Assignee {
@@ -157,15 +164,15 @@ func (a AssigneeRow) ToAssigneeDomain() domain.Assignee {
 }
 
 type ProjectTaskItemRow struct {
-	ID          string    `gorm:"column:id"`
-	Title       string    `gorm:"column:title"`
-	Description *string   `gorm:"column:description"`
-	Status      string    `gorm:"column:status"`
-	CreatedAt   time.Time `gorm:"column:created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at"`
+	ID          string     `gorm:"column:id"`
+	Title       string     `gorm:"column:title"`
+	Description *string    `gorm:"column:description"`
+	Status      TaskStatus `gorm:"column:status"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at"`
 
-	ProjectID string        `gorm:"column:project_id"`
-	Assignees []AssigneeRow `gorm:"column:assignees"`
+	ProjectID string                           `gorm:"column:project_id"`
+	Assignees datatypes.JSONSlice[AssigneeRow] `gorm:"column:assignees"`
 }
 
 func (t ProjectTaskItemRow) ToProjectTaskItemDomain() domain.ProjectTaskItem {
@@ -173,7 +180,7 @@ func (t ProjectTaskItemRow) ToProjectTaskItemDomain() domain.ProjectTaskItem {
 		ID:          t.ID,
 		Title:       t.Title,
 		Description: t.Description,
-		Status:      t.Status,
+		Status:      t.Status.String,
 		CreatedAt:   t.CreatedAt,
 		UpdatedAt:   t.UpdatedAt,
 		Assignees:   []domain.Assignee{},
@@ -197,21 +204,21 @@ func MapToProjectTaskItemDomain(ts []ProjectTaskItemRow) []domain.ProjectTaskIte
 
 type MembershipRow struct {
 	ProjectID string    `gorm:"column:project_id"`
-	Role      string    `gorm:"column:role"`
+	Role      UserRole  `gorm:"column:role"`
 	CreatedAt time.Time `gorm:"column:created_at"`
 	UpdatedAt time.Time `gorm:"column:updated_at"`
 
-	UserID      string  `gorm:"column:user_id"`
-	Username    string  `gorm:"column:username"`
-	DisplayName *string `gorm:"column:display_name"`
-	Email       string  `gorm:"column:email"`
-	AvatarURL   *string `gorm:"column:avatar_url"`
+	UserID      string  `gorm:"column:member_user_id"`
+	Username    string  `gorm:"column:member_username"`
+	DisplayName *string `gorm:"column:member_display_name"`
+	Email       string  `gorm:"column:member_email"`
+	AvatarURL   *string `gorm:"column:member_avatar_url"`
 }
 
 func (m MembershipRow) ToMembershipDomain() domain.Membership {
 	return domain.Membership{
 		ProjectID: m.ProjectID,
-		Role:      m.Role,
+		Role:      m.Role.String,
 		CreatedAt: m.CreatedAt,
 		UpdatedAt: m.UpdatedAt,
 		Avatar: domain.Avatar{
@@ -233,22 +240,22 @@ func MapToMembershipDomain(ms []MembershipRow) []domain.Membership {
 }
 
 type JoinRequestRow struct {
-	ProjectID string    `gorm:"column:project_id"`
-	Status    string    `gorm:"column:status"`
-	CreatedAt time.Time `gorm:"column:created_at"`
-	UpdatedAt time.Time `gorm:"column:updated_at"`
+	ProjectID string     `gorm:"column:project_id"`
+	Status    JoinStatus `gorm:"column:status"`
+	CreatedAt time.Time  `gorm:"column:created_at"`
+	UpdatedAt time.Time  `gorm:"column:updated_at"`
 
-	UserID      string  `gorm:"column:user_id"`
-	Username    string  `gorm:"column:username"`
-	DisplayName *string `gorm:"column:display_name"`
-	Email       string  `gorm:"column:email"`
-	AvatarURL   *string `gorm:"column:avatar_url"`
+	UserID      string  `gorm:"column:requestor_user_id"`
+	Username    string  `gorm:"column:requestor_username"`
+	DisplayName *string `gorm:"column:requestor_display_name"`
+	Email       string  `gorm:"column:requestor_email"`
+	AvatarURL   *string `gorm:"column:requestor_avatar_url"`
 }
 
 func (j JoinRequestRow) ToJoinRequestDomain() domain.JoinRequest {
 	return domain.JoinRequest{
 		ProjectID: j.ProjectID,
-		Status:    j.Status,
+		Status:    j.Status.String,
 		CreatedAt: j.CreatedAt,
 		UpdatedAt: j.UpdatedAt,
 		Avatar: domain.Avatar{
@@ -311,12 +318,12 @@ func MapToCommentDomain(cs []CommentRow) []domain.Comment {
 }
 
 type DashboardTaskItemRow struct {
-	ID          string    `gorm:"column:id"`
-	Title       string    `gorm:"column:title"`
-	Description *string   `gorm:"column:description"`
-	Status      string    `gorm:"column:status"`
-	CreatedAt   time.Time `gorm:"column:created_at"`
-	UpdatedAt   time.Time `gorm:"column:updated_at"`
+	ID          string     `gorm:"column:id"`
+	Title       string     `gorm:"column:title"`
+	Description *string    `gorm:"column:description"`
+	Status      TaskStatus `gorm:"column:status"`
+	CreatedAt   time.Time  `gorm:"column:created_at"`
+	UpdatedAt   time.Time  `gorm:"column:updated_at"`
 
 	ProjectID   string `gorm:"column:project_id"`
 	ProjectName string `gorm:"column:project_name"`
@@ -327,7 +334,7 @@ func (d DashboardTaskItemRow) ToDashboardTaskItemDomain() domain.DashboardTaskIt
 		ID:          d.ID,
 		Title:       d.Title,
 		Description: d.Description,
-		Status:      d.Status,
+		Status:      d.Status.String,
 		CreatedAt:   d.CreatedAt,
 		UpdatedAt:   d.UpdatedAt,
 		ProjectID:   d.ProjectID,

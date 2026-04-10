@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/internal/infra"
+	"github.com/ptracker/internal/testdata"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/repo_fixtures"
 	"github.com/stretchr/testify/suite"
@@ -37,6 +38,11 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
+	err = testdata.TestMigrate(suite.db)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	suite.fixtures = repo_fixtures.New(suite.ctx, suite.db)
 
 	USER_ONE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
@@ -54,7 +60,8 @@ func (suite *RepositoryTestSuite) TearDownSuite() {
 }
 
 func (suite *RepositoryTestSuite) Cleanup() {
-	err := suite.db.Raw("DELETE FROM projects").Error
+	err := suite.db.WithContext(suite.ctx).
+		Exec("DELETE FROM projects").Error
 	suite.Require().NoError(err)
 }
 

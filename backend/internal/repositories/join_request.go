@@ -28,7 +28,9 @@ func (r *JoinRequestRepo) Create(ctx context.Context,
 	joinReq := models.JoinRequest{
 		ProjectID: projectId,
 		UserID:    userId,
-		Status:    joinStatus,
+		Status: models.JoinStatus{
+			String: joinStatus,
+		},
 	}
 	err = gorm.G[models.JoinRequest](r.db).Create(ctx, &joinReq)
 	if err == gorm.ErrDuplicatedKey {
@@ -51,7 +53,7 @@ func (r *JoinRequestRepo) Status(ctx context.Context, projectId, userId string) 
 		return "", fmt.Errorf("gorm query: %w", err)
 	}
 
-	return joinReq.Status, nil
+	return joinReq.Status.String, nil
 }
 
 func (r *JoinRequestRepo) Update(ctx context.Context, projectId, userId, joinStatus string) error {
@@ -63,7 +65,9 @@ func (r *JoinRequestRepo) Update(ctx context.Context, projectId, userId, joinSta
 		return fmt.Errorf("join request get: %w", err)
 	}
 
-	joinReq.Status = joinStatus
+	joinReq.Status = models.JoinStatus{
+		String: joinStatus,
+	}
 	err = r.db.Save(&joinReq).Error
 	if err == gorm.ErrInvalidValue {
 		return apierr.ErrInvalidValue

@@ -10,7 +10,7 @@ func GetMembershipRow(projectID, userID, role string) models.Membership {
 	return models.Membership{
 		ProjectID: projectID,
 		UserID:    userID,
-		Role:      role,
+		Role:      models.UserRole{String: role},
 	}
 }
 

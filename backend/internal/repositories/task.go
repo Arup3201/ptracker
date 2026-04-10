@@ -31,7 +31,9 @@ func (r *TaskRepo) Create(ctx context.Context,
 		ProjectID:   projectId,
 		Title:       title,
 		Description: &description,
-		Status:      status,
+		Status: models.TaskStatus{
+			String: status,
+		},
 	}
 
 	err := gorm.G[models.Task](r.db).Create(ctx, &task)
@@ -55,7 +57,7 @@ func (r *TaskRepo) Get(ctx context.Context, id string) (domain.ProjectTaskItem, 
 					'assignee_username', u.username,
 					'assignee_display_name', u.display_name,
 					'assignee_email', u.email,
-					'assignee_avatar_url', u.avatar_url,
+					'assignee_avatar_url', u.avatar_url
 				)
 				) FILTER (WHERE a.user_id IS NOT NULL),
 				'[]'
@@ -64,7 +66,7 @@ func (r *TaskRepo) Get(ctx context.Context, id string) (domain.ProjectTaskItem, 
 			LEFT JOIN assignees AS a ON a.task_id=t.id 
 			LEFT JOIN users AS u ON u.id=a.user_id 
 			WHERE t.id = ? 
-			GROUP BY t.id`
+			GROUP BY t.id, t.title, t.status, t.created_at, t.updated_at`
 
 	task, err := gorm.G[models.ProjectTaskItemRow](r.db).Raw(query, id).First(ctx)
 	if err != nil {

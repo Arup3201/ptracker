@@ -17,7 +17,7 @@ func RandomTaskRow(projectId, status string) models.Task {
 		ProjectID:   projectId,
 		Title:       "Test Task " + tId,
 		Description: &desc,
-		Status:      status,
+		Status:      models.TaskStatus{String: status},
 	}
 }
 

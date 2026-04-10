@@ -13,9 +13,9 @@ type Project struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	Tasks        []Task
-	Roles        []Membership
-	JoinRequests []JoinRequest
-	Assignees    []Assignee
-	Comments     []Comment
+	Tasks        []Task        `gorm:"constraint:OnDelete:CASCADE"`
+	Roles        []Membership  `gorm:"constraint:OnDelete:CASCADE"`
+	JoinRequests []JoinRequest `gorm:"constraint:OnDelete:CASCADE"`
+	Assignees    []Assignee    `gorm:"constraint:OnDelete:CASCADE"`
+	Comments     []Comment     `gorm:"constraint:OnDelete:CASCADE"`
 }
