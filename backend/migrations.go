@@ -33,7 +33,7 @@ func Migrate(db *gorm.DB) error {
 				COUNT(t.id) FILTER (WHERE t.status='Abandoned') as abandoned_tasks`).
 		Joins("LEFT JOIN tasks as t ON p.id=t.project_id").
 		Group("p.id")
-	err = db.Migrator().CreateView("project_summary", gorm.ViewOption{Query: query})
+	err = db.Migrator().CreateView("project_summary", gorm.ViewOption{Query: query, Replace: true})
 	if err != nil {
 		return fmt.Errorf("gorm db migrator create view: %w", err)
 	}
