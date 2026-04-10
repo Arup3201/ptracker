@@ -5,6 +5,7 @@ import (
 	"log"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	backend "github.com/ptracker"
 	"github.com/ptracker/internal"
 	"github.com/ptracker/internal/infra"
 	"github.com/redis/go-redis/v9"
@@ -28,6 +29,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
 	}
+
+	backend.Migrate(database)
 
 	// Redis
 	redis := redis.NewClient(&redis.Options{
