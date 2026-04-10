@@ -41,8 +41,14 @@ export function TaskDrawer({
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [status, setStatus] = useState<string>("Unassigned");
+
+  const [editedTitle, setEditedTitle] = useState<string>("");
+  const [editedDescription, setEditedDescription] = useState<string>("");
+  const [editedStatus, setEditedStatus] = useState<string>("Unassigned");
+
   const [initialAssignees, setInitialAssignees] = useState<Member[]>([]);
   const [currentAssignees, setCurrentAssignees] = useState<Member[]>([]);
+
   const [comments, setComments] = useState<TaskComment[]>([]);
 
   const [comment, setComment] = useState<string>("");
@@ -57,8 +63,11 @@ export function TaskDrawer({
       if (taskDetailsResponse) {
         const taskDetails = MapTaskDetails(taskDetailsResponse);
         setTitle(taskDetails.title || "");
+        setEditedTitle(taskDetails.title || "");
         setDescription(taskDetails.description || "");
+        setEditedDescription(taskDetails.description || "");
         setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
+        setEditedStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
 
         setInitialAssignees(taskDetails.assignees || []);
         setCurrentAssignees(taskDetails.assignees || []);
@@ -92,30 +101,33 @@ export function TaskDrawer({
     onClose();
   };
 
+  function AssigneeDiff(a1: Member[], a2: Member[]): string[] {
+    return a1
+      .filter(
+        (a) =>
+          a2.findIndex((ia) => ia.avatar.userId === a.avatar.userId) === -1,
+      )
+      .map((a) => a.avatar.userId);
+  }
+
   async function handleEditSave() {
-    const assigneesToAdd = currentAssignees
-      .filter(
-        (a) =>
-          initialAssignees.findIndex(
-            (ia) => ia.avatar.userId === a.avatar.userId,
-          ) === -1,
-      )
-      .map((a) => a.avatar.userId);
-    const assigneesToRemove = initialAssignees
-      .filter(
-        (a) =>
-          currentAssignees.findIndex(
-            (ca) => ca.avatar.userId === a.avatar.userId,
-          ) === -1,
-      )
-      .map((a) => a.avatar.userId);
+    const assigneesToAdd = AssigneeDiff(currentAssignees, initialAssignees);
+    const assigneesToRemove = AssigneeDiff(initialAssignees, currentAssignees);
+
+    function nullFilter(editedValue: string, originalValue: string) {
+      if (editedValue !== originalValue) return editedValue;
+
+      return null;
+    }
 
     const data = {
-      title: title,
-      description: description,
-      status: status,
-      assignees_to_add: assigneesToAdd,
-      assignees_to_remove: assigneesToRemove,
+      title: nullFilter(editedTitle, title),
+      description: nullFilter(editedDescription, description),
+      status: nullFilter(editedStatus, status),
+
+      assignees_to_add: assigneesToAdd.length > 0 ? assigneesToAdd : null,
+      assignees_to_remove:
+        assigneesToRemove.length > 0 ? assigneesToRemove : null,
     };
 
     try {
@@ -175,11 +187,24 @@ export function TaskDrawer({
               onClick={() => {
                 setEditMode(false);
                 setDirty(false);
+                setEditedTitle(title);
+                setEditedDescription(description);
+                setEditedStatus(status);
               }}
             >
               Cancel
             </Button>
-            <Button onClick={handleEditSave}>Save</Button>
+            <Button
+              disabled={
+                editedTitle === title &&
+                editedDescription === description &&
+                editedStatus === status &&
+                AssigneeDiff(currentAssignees, initialAssignees).length === 0
+              }
+              onClick={handleEditSave}
+            >
+              Save
+            </Button>
           </div>
         ) : null
       }
@@ -188,9 +213,9 @@ export function TaskDrawer({
       <div className="space-y-2 mb-6">
         {editMode && (canEditAll || isAssignee) ? (
           <input
-            value={title}
+            value={editedTitle}
             onChange={(e) => {
-              setTitle(e.target.value);
+              setEditedTitle(e.target.value);
               setDirty(true);
             }}
             className="w-full h-9 rounded-md bg-bg-elevated px-3 text-sm text-text-primary border border-border outline-none transition duration-fast focus:border-primary focus:shadow-focus-primary"
@@ -228,9 +253,9 @@ export function TaskDrawer({
         {editMode && (canEditAll || isAssignee) ? (
           <textarea
             rows={4}
-            value={description}
+            value={editedDescription}
             onChange={(e) => {
-              setDescription(e.target.value);
+              setEditedDescription(e.target.value);
               setDirty(true);
             }}
             className="w-full rounded-md bg-bg-elevated px-3 py-2 text-sm text-text-primary border border-border outline-none resize-none transition duration-fast focus:border-primary focus:shadow-focus-primary"
@@ -246,7 +271,7 @@ export function TaskDrawer({
       {editMode && (canEditAll || isAssignee) && (
         <section className="mb-6 space-y-4">
           <div className="flex flex-col gap-1.5">
-            <StatusSelector status={status} onChange={setStatus} />
+            <StatusSelector status={editedStatus} onChange={setEditedStatus} />
           </div>
           <div className="flex flex-col gap-1.5">
             <AssigneeSelector

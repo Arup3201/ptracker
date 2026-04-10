@@ -58,13 +58,13 @@ export function WebSocketProvider({ children, url }: WebSocketProviderProps) {
           break;
         case "assignee_added":
           showCustomToast(
-            `You have been assigned to task "${message.data["title"]}"`,
+            `You have been assigned to task "${message.data["task_name"]}"`,
             <UserRoundPlus color="#e4d004" size={18} />,
           );
           break;
         case "assignee_removed":
           showCustomToast(
-            `You have been removed as assignee from task "${message.data["title"]}"`,
+            `You have been removed as assignee from task "${message.data["task_name"]}"`,
             <UserRoundPlus color="#e23d28" size={18} />,
           );
           break;
