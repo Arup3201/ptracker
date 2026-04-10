@@ -62,6 +62,28 @@ func (suite *RepositoryTestSuite) TestCreateTask() {
 func (suite *RepositoryTestSuite) TestGetTask() {
 	t := suite.T()
 
+	t.Run("should get title description and status of the task", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		sample_title := "sample task"
+		sample_description := "sample description"
+		sample_status := domain.TASK_STATUS_UNASSIGNED
+		taskID := suite.fixtures.InsertTask(models.Task{
+			ProjectID:   p,
+			Title:       sample_title,
+			Description: &sample_description,
+			Status:      models.TaskStatus{String: sample_status},
+		})
+		repo := NewTaskRepo(suite.db)
+
+		task, _ := repo.Get(suite.ctx, taskID)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(taskID, task.ID)
+		suite.Require().Equal(sample_title, task.Title)
+		suite.Require().Equal(sample_description, *task.Description)
+		suite.Require().Equal(sample_status, task.Status)
+	})
 	t.Run("should list assignees", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertMembership(repo_fixtures.GetMembershipRow(p, USER_TWO, domain.ROLE_MEMBER))

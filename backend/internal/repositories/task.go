@@ -47,7 +47,7 @@ func (r *TaskRepo) Create(ctx context.Context,
 func (r *TaskRepo) Get(ctx context.Context, id string) (domain.ProjectTaskItem, error) {
 
 	query := `SELECT 
-			t.id, t.title, t.status, t.created_at, t.updated_at, 
+			t.id, t.title, t.description, t.status, t.created_at, t.updated_at, 
 			COALESCE(
 				json_agg(
 				json_build_object(

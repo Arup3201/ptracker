@@ -263,6 +263,26 @@ func (suite *ServiceTestSuite) TestGetTask() {
 		suite.Require().Equal(sample_title, task.Title)
 		suite.Require().Equal(domain.TASK_STATUS_UNASSIGNED, task.Status)
 	})
+	t.Run("should get task with description", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		sample_title := "sample task"
+		sample_description := "Project description"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			ProjectId:   projectId,
+			Title:       sample_title,
+			Description: sample_description,
+			Status:      domain.TASK_STATUS_UNASSIGNED,
+		})
+
+		task, _ := suite.taskService.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(sample_description, *task.Description)
+	})
 	t.Run("should be forbidden for non-member", func(t *testing.T) {
 		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
