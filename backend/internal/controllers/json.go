@@ -26,9 +26,9 @@ type UpdateJoinRequest struct {
 }
 
 type UpdateTaskRequest struct {
-	Title             string   `json:"title" validate:"required"`
-	Description       string   `json:"description" validate:"required"`
-	Status            string   `json:"status" validate:"required"`
+	Title             *string  `json:"title" validate:"required"`
+	Description       *string  `json:"description" validate:"required"`
+	Status            *string  `json:"status" validate:"required"`
 	AssigneesToAdd    []string `json:"assignees_to_add" validate:"required"`
 	AssigneesToRemove []string `json:"assignees_to_remove" validate:"required"`
 }
@@ -39,45 +39,45 @@ type AddCommentRequest struct {
 }
 
 type ListedPrivateProjectsResponse struct {
-	ProjectSummaries []*domain.PrivateProjectListed `json:"projects"`
-	Page             int                            `json:"page"`
-	Limit            int                            `json:"limit"`
-	HasNext          bool                           `json:"has_next"`
+	ProjectSummaries []domain.ProjectSummary `json:"projects"`
+	Page             int                     `json:"page"`
+	Limit            int                     `json:"limit"`
+	HasNext          bool                    `json:"has_next"`
 }
 
 type ListedTasksResponse struct {
-	ProjectTasks []*domain.TaskListed `json:"tasks"`
-	Page         int                  `json:"page"`
-	Limit        int                  `json:"limit"`
-	HasNext      bool                 `json:"has_next"`
+	ProjectTasks []domain.ProjectTaskItem `json:"tasks"`
+	Page         int                      `json:"page"`
+	Limit        int                      `json:"limit"`
+	HasNext      bool                     `json:"has_next"`
 }
 
 type ListedPublicProjectsResponse struct {
-	Projects []*domain.PublicProjectListed `json:"projects"`
-	Page     int                           `json:"page"`
-	Limit    int                           `json:"limit"`
-	HasNext  bool                          `json:"has_next"`
+	Projects []domain.ProjectPreview `json:"projects"`
+	Page     int                     `json:"page"`
+	Limit    int                     `json:"limit"`
+	HasNext  bool                    `json:"has_next"`
 }
 
 type ListedJoinRequestsResponse struct {
-	Requests []*domain.JoinRequestListed `json:"join_requests"`
+	Requests []domain.JoinRequest `json:"join_requests"`
 }
 
 type ListedMembersResponse struct {
-	Members []*domain.Member `json:"members"`
+	Members []domain.Membership `json:"members"`
 }
 
 type ListedCommentsResponse struct {
-	Comments []*domain.Comment `json:"comments"`
-	Page     int               `json:"page"`
-	Limit    int               `json:"limit"`
-	HasNext  bool              `json:"has_next"`
+	Comments []domain.Comment `json:"comments"`
+	Page     int              `json:"page"`
+	Limit    int              `json:"limit"`
+	HasNext  bool             `json:"has_next"`
 }
 
 type ListedRecentProjectsResponse struct {
-	Projects []*domain.RecentProjectListed `json:"projects"`
+	Projects []domain.ProjectSummary `json:"projects"`
 }
 
 type ListedRecentTasksResponse struct {
-	Tasks []*domain.RecentTaskListed `json:"tasks"`
+	Tasks []domain.DashboardTaskItem `json:"tasks"`
 }

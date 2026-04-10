@@ -82,7 +82,7 @@ func (c *authController) Callback(w http.ResponseWriter, r *http.Request) error 
 
 	cookie := &http.Cookie{
 		Name:     constants.SESSION_COOKIE_NAME,
-		Value:    session.Id,
+		Value:    session.ID,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,

@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/internal/repositories/models"
 	"github.com/ptracker/internal/testhelpers/service_fixtures"
+	"gorm.io/gorm"
 )
 
 func (suite *ServiceTestSuite) TestCreateProject() {
@@ -39,21 +41,14 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 			USER_ONE,
 		)
 
-		var p domain.Project
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"id, name, description, skills, owner, created_at, updated_at "+
-				"FROM projects "+
-				"WHERE id=($1)",
-			id,
-		).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner, &p.CreatedAt, &p.UpdatedAt)
-
+		p, _ := gorm.G[models.Project](suite.db).
+			Where("id = ?", id).First(suite.ctx)
 		suite.Cleanup()
 
 		suite.Require().Equal(sample_name, p.Name)
 		suite.Require().Equal(sample_description, *p.Description)
 		suite.Require().Equal(sample_skills, *p.Skills)
-		suite.Require().Equal(USER_ONE, p.Owner)
+		suite.Require().Equal(USER_ONE, p.OwnerID)
 	})
 	t.Run("should create project without description", func(t *testing.T) {
 		sample_name := "Test Project"
@@ -66,21 +61,15 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 			USER_ONE,
 		)
 
-		var p domain.Project
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"id, name, description, skills, owner, created_at, updated_at "+
-				"FROM projects "+
-				"WHERE id=($1)",
-			id,
-		).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner, &p.CreatedAt, &p.UpdatedAt)
-
+		p, _ := gorm.G[models.Project](suite.db).
+			Where("id = ?", id).First(suite.ctx)
 		suite.Cleanup()
 
 		suite.Require().Equal(sample_name, p.Name)
 		suite.Require().Equal((*string)(nil), p.Description)
 		suite.Require().Equal(sample_skills, *p.Skills)
-		suite.Require().Equal(USER_ONE, p.Owner)
+		suite.Require().Equal(USER_ONE, p.OwnerID)
+
 	})
 	t.Run("should create project without skills", func(t *testing.T) {
 		sample_name := "Test Project"
@@ -94,21 +83,15 @@ func (suite *ServiceTestSuite) TestCreateProject() {
 		)
 
 		suite.Require().NoError(err)
-		var p domain.Project
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"id, name, description, skills, owner, created_at, updated_at "+
-				"FROM projects "+
-				"WHERE id=($1)",
-			id,
-		).Scan(&p.Id, &p.Name, &p.Description, &p.Skills, &p.Owner, &p.CreatedAt, &p.UpdatedAt)
 
+		p, _ := gorm.G[models.Project](suite.db).
+			Where("id = ?", id).First(suite.ctx)
 		suite.Cleanup()
 
 		suite.Require().Equal(sample_name, p.Name)
 		suite.Require().Equal(sample_description, *p.Description)
 		suite.Require().Equal((*string)(nil), p.Skills)
-		suite.Require().Equal(USER_ONE, p.Owner)
+		suite.Require().Equal(USER_ONE, p.OwnerID)
 	})
 	t.Run("should fail to create project with empty name", func(t *testing.T) {
 		sample_name := ""
@@ -148,7 +131,7 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		suite.Cleanup()
 
 		suite.Require().NoError(err)
-		suite.Require().Equal(id, project.Id)
+		suite.Require().Equal(id, project.ID)
 	})
 	t.Run("should get project with correct name, description and skills", func(t *testing.T) {
 		sample_name := "Test Project"
@@ -205,23 +188,15 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 		project, err := suite.projectService.GetPrivateProject(suite.ctx, id, USER_ONE)
 
 		suite.Require().NoError(err)
-		var m domain.Member
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"id, username, display_name, email, avatar_url, is_active, created_at, updated_at  "+
-				"FROM users "+
-				"WHERE id=($1)",
-			USER_ONE,
-		).Scan(&m.UserId, &m.Username, &m.DisplayName, &m.Email, &m.AvatarURL, &m.IsActive, &m.CreatedAt, &m.UpdatedAt)
-
+		user, _ := gorm.G[models.User](suite.db).
+			Where("id = ?", USER_ONE).First(suite.ctx)
 		suite.Cleanup()
 
-		suite.Require().Equal(m.UserId, project.Owner.UserId)
-		suite.Require().Equal(m.Username, project.Owner.Username)
-		suite.Require().Equal(m.DisplayName, project.Owner.DisplayName)
-		suite.Require().Equal(m.Email, project.Owner.Email)
-		suite.Require().Equal(m.AvatarURL, project.Owner.AvatarURL)
-		suite.Require().Equal(m.IsActive, project.Owner.IsActive)
+		suite.Require().Equal(user.ID, project.Owner.UserID)
+		suite.Require().Equal(user.Username, project.Owner.Username)
+		suite.Require().Equal(user.DisplayName, project.Owner.DisplayName)
+		suite.Require().Equal(user.Email, project.Owner.Email)
+		suite.Require().Equal(user.AvatarURL, project.Owner.AvatarURL)
 	})
 	t.Run("should get forbidden error", func(t *testing.T) {
 		sample_name := "Test Project"
@@ -246,27 +221,12 @@ func (suite *ServiceTestSuite) TestGetPrivateProject() {
 func (suite *ServiceTestSuite) TestGetMembers() {
 	t := suite.T()
 
-	t.Run("should get 1 member", func(t *testing.T) {
+	t.Run("should get 1 member and owner", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-
-		members, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_TWO)
-
-		suite.Cleanup()
-
-		suite.Require().NoError(err)
-		suite.Require().Equal(1, len(members))
-	})
-	t.Run("should get 2 members", func(t *testing.T) {
-		p := suite.fixtures.Project(service_fixtures.ProjectParams{
-			Title:   "Project Fixture A",
-			OwnerID: USER_ONE,
-		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
 
 		members, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_TWO)
 
@@ -275,12 +235,27 @@ func (suite *ServiceTestSuite) TestGetMembers() {
 		suite.Require().NoError(err)
 		suite.Require().Equal(2, len(members))
 	})
+	t.Run("should get 2 members and owner", func(t *testing.T) {
+		p := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
+
+		members, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(3, len(members))
+	})
 	t.Run("should get forbidden error", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
 
 		_, err := suite.projectService.GetProjectMembers(suite.ctx, p, USER_THREE)
 
@@ -315,18 +290,12 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
-		var status string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM join_requests "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&status)
+		joinRequest, _ := gorm.G[models.JoinRequest](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(domain.JOIN_STATUS_ACCEPTED, status)
+		suite.Require().Equal(domain.JOIN_STATUS_ACCEPTED, joinRequest.Status.String)
 	})
 	t.Run("should add role member after accepting join request", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -337,18 +306,12 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
-		var role string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"role "+
-				"FROM roles "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&role)
+		membership, _ := gorm.G[models.Membership](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal("Member", role)
+		suite.Require().Equal("Member", membership.Role.String)
 	})
 	t.Run("should reject join request", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -359,18 +322,12 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
-		var status string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM join_requests "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&status)
+		joinRequest, _ := gorm.G[models.JoinRequest](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(domain.JOIN_STATUS_REJECTED, status)
+		suite.Require().Equal(domain.JOIN_STATUS_REJECTED, joinRequest.Status.String)
 	})
 	t.Run("should reject join request without creating role", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -381,16 +338,12 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_REJECTED)
 
-		err := suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"role "+
-				"FROM roles "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan()
+		_, err := gorm.G[models.Membership](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
+
 		suite.Cleanup()
 
-		suite.Require().ErrorContains(err, "no rows in result set")
+		suite.Require().Error(err, gorm.ErrRecordNotFound)
 	})
 	t.Run("should not transition join status from accepted to pending", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -433,18 +386,12 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 
 		suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_PENDING)
 
-		var status string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM join_requests "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&status)
+		joinRequest, _ := gorm.G[models.JoinRequest](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(domain.JOIN_STATUS_PENDING, status)
+		suite.Require().Equal(domain.JOIN_STATUS_PENDING, joinRequest.Status.String)
 	})
 	t.Run("should not change join status from pending due to transaction error", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -453,24 +400,17 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 		})
 		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 		// just for testing transaction working fine...
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
 
 		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_ONE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)
 
 		suite.Require().ErrorContains(err, "transaction: store role create")
-		var status string
-		suite.db.QueryRowContext(
-			suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM join_requests "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&status)
+		joinRequest, _ := gorm.G[models.JoinRequest](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(status, domain.JOIN_STATUS_PENDING)
+		suite.Require().Equal(domain.JOIN_STATUS_PENDING, joinRequest.Status.String)
 	})
 	t.Run("should be forbidden to change the join status by non-member", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -490,7 +430,7 @@ func (suite *ServiceTestSuite) TestRespondToJoinRequests() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
 		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
 		err := suite.projectService.RespondToJoinRequests(suite.ctx, p, USER_THREE, USER_TWO, domain.JOIN_STATUS_ACCEPTED)

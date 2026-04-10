@@ -8,6 +8,7 @@ import (
 	"github.com/ptracker/internal"
 	"github.com/ptracker/internal/infra"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -22,7 +23,8 @@ func main() {
 	// DB connection
 	database, err := infra.NewDatabase(fmt.Sprintf("host=%s port=%s user=%s "+
 		"password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort,
-		config.DbUser, config.DbPass, config.DbName))
+		config.DbUser, config.DbPass, config.DbName),
+		&gorm.Config{})
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
 	}

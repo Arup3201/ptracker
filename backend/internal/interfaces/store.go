@@ -12,7 +12,7 @@ type Store interface {
 	Project() ProjectRepository
 	Task() TaskRepository
 	Comment() CommentRepository
-	Role() MembershipRepository
+	Membership() MembershipRepository
 	Assignee() AssigneeRepository
 	List() ListRepository
 	JoinRequest() JoinRequestRepository

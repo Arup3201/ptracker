@@ -33,7 +33,7 @@ func (suite *RepositoryTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.db, err = infra.NewDatabase(suite.pgContainer.ConnectionString)
+	suite.db, err = infra.NewDatabase(suite.pgContainer.ConnectionString, &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
 	}

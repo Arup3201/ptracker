@@ -79,9 +79,9 @@ func (r *TaskRepo) Get(ctx context.Context, id string) (domain.ProjectTaskItem, 
 func (r *TaskRepo) Update(ctx context.Context, id string,
 	title, description, status *string) error {
 
-	task, err := r.Get(ctx, id)
+	task, err := gorm.G[models.Task](r.db).Where("id = ?", id).First(ctx)
 	if err != nil {
-		return fmt.Errorf("task get: %w", err)
+		return fmt.Errorf("gorm query task: %w", err)
 	}
 
 	if title != nil {
@@ -93,7 +93,9 @@ func (r *TaskRepo) Update(ctx context.Context, id string,
 	}
 
 	if status != nil {
-		task.Status = *status
+		task.Status = models.TaskStatus{
+			String: *status,
+		}
 	}
 
 	err = r.db.Save(&task).Error

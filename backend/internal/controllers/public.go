@@ -99,7 +99,7 @@ func (c *publicController) GetProject(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("database get project details: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.PublicProjectSummary]{
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.ProjectPublicDetail]{
 		Status: RESPONSE_SUCCESS_STATUS,
 		Data:   project,
 	})

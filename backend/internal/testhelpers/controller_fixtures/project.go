@@ -15,9 +15,9 @@ func (f *ControllerFixtures) Project(project ProjectParams) string {
 		panic("store project create error")
 	}
 
-	err = f.store.Role().Create(f.ctx, id, project.Owner, domain.ROLE_OWNER)
+	err = f.store.Membership().Create(f.ctx, id, project.Owner, domain.ROLE_OWNER)
 	if err != nil {
-		panic("store role create error")
+		panic("store membership create error")
 	}
 
 	return id

@@ -36,7 +36,7 @@ type ProjectService interface {
 	GetPrivateProject(ctx context.Context,
 		projectId, userId string) (*domain.ProjectDetail, error)
 	GetProjectMembers(ctx context.Context,
-		projectId, userId string) ([]domain.User, error)
+		projectId, userId string) ([]domain.Membership, error)
 	ListJoinRequests(ctx context.Context,
 		projectId, userId string) ([]domain.JoinRequest, error)
 	RespondToJoinRequests(ctx context.Context,
@@ -53,6 +53,8 @@ type PublicService interface {
 		userId string) ([]domain.ProjectPreview, error)
 	GetPublicProject(ctx context.Context,
 		projectId, userId string) (*domain.ProjectPublicDetail, error)
+	GetJoinStatus(ctx context.Context,
+		projectId, userId string) (string, error)
 	JoinProject(ctx context.Context,
 		projectId, userId string) error
 }
@@ -68,13 +70,13 @@ type TaskService interface {
 		projectId, taskId, userId string) (*domain.ProjectTaskItem, error)
 	UpdateTask(ctx context.Context,
 		projectId, taskId, userId string,
-		title, description, status string,
+		title, description, status *string,
 		addedAssignees, removedAssignees []string) error
 	AddComment(ctx context.Context,
 		projectId, taskId, userId string,
 		comment string) (string, error)
 	ListComments(ctx context.Context,
-		projectId, taskId, userId string) ([]*domain.Comment, error)
+		projectId, taskId, userId string) ([]domain.Comment, error)
 
 	AssignedTasks(ctx context.Context,
 		userId string) ([]domain.DashboardTaskItem, error)

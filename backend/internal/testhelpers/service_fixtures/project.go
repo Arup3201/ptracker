@@ -32,9 +32,9 @@ func (f *Fixtures) Project(p ProjectParams) string {
 		panic(fmt.Sprintf("failed to create project fixture: %v", err))
 	}
 
-	err = f.store.Role().Create(f.ctx, id, p.OwnerID, domain.ROLE_OWNER)
+	err = f.store.Membership().Create(f.ctx, id, p.OwnerID, domain.ROLE_OWNER)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create owner role fixture: %v", err))
+		panic(fmt.Sprintf("failed to create owner membership fixture: %v", err))
 	}
 
 	return id
