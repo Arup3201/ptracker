@@ -28,11 +28,6 @@ function ProjectCard({ project }: { project: ExploreProject }) {
         <h3 className="text-base font-semibold text-text-primary leading-snug">
           {project.name}
         </h3>
-        {project.role !== "User" && (
-          <span className="shrink-0 text-xs font-medium text-text-muted border border-border rounded-md px-2 py-0.5">
-            {project.role}
-          </span>
-        )}
       </div>
 
       <p className="mt-2 text-sm text-text-secondary leading-relaxed line-clamp-3">

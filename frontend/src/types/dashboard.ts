@@ -7,7 +7,7 @@ export interface DashboardProjectApi {
   ongoing_tasks: number;
   completed_tasks: number;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface DashboardProject {
@@ -17,7 +17,7 @@ export interface DashboardProject {
   ongoingTasks: number;
   completedTasks: number;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export const MapDashboardProject = (
@@ -38,7 +38,7 @@ export interface DashboardTask {
   title: string;
   status: TaskStatus;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export interface DashboardTaskApi {
@@ -47,7 +47,7 @@ export interface DashboardTaskApi {
   title: string;
   status: TaskStatus;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export const MapDashboardTask = (t: DashboardTaskApi): DashboardTask => ({

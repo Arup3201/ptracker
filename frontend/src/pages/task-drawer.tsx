@@ -96,15 +96,19 @@ export function TaskDrawer({
     const assigneesToAdd = currentAssignees
       .filter(
         (a) =>
-          initialAssignees.findIndex((ia) => ia.userId === a.userId) === -1,
+          initialAssignees.findIndex(
+            (ia) => ia.avatar.userId === a.avatar.userId,
+          ) === -1,
       )
-      .map((a) => a.userId);
+      .map((a) => a.avatar.userId);
     const assigneesToRemove = initialAssignees
       .filter(
         (a) =>
-          currentAssignees.findIndex((ca) => ca.userId === a.userId) === -1,
+          currentAssignees.findIndex(
+            (ca) => ca.avatar.userId === a.avatar.userId,
+          ) === -1,
       )
-      .map((a) => a.userId);
+      .map((a) => a.avatar.userId);
 
     const data = {
       title: title,
@@ -126,7 +130,9 @@ export function TaskDrawer({
 
   function handleAssigneeEdit(assignees: string[]) {
     setCurrentAssignees(() => {
-      return members.filter((m) => assignees.find((a) => a === m.userId));
+      return members.filter((m) =>
+        assignees.find((a) => a === m.avatar.userId),
+      );
     });
   }
 
@@ -153,7 +159,8 @@ export function TaskDrawer({
   }
 
   const isAssignee =
-    initialAssignees.findIndex((a) => a.userId === currentUser?.id) !== -1;
+    initialAssignees.findIndex((a) => a.avatar.userId === currentUser?.id) !==
+    -1;
 
   return (
     <Drawer
@@ -200,7 +207,7 @@ export function TaskDrawer({
             {" · "}
             Assignee:{" "}
             <span className="text-text-secondary">
-              {currentAssignees.map((a) => a.username).join(", ") ||
+              {currentAssignees.map((a) => a.avatar.username).join(", ") ||
                 "Unassigned"}
             </span>
           </p>
@@ -243,7 +250,7 @@ export function TaskDrawer({
           </div>
           <div className="flex flex-col gap-1.5">
             <AssigneeSelector
-              initialAssignees={initialAssignees.map((a) => a.userId)}
+              initialAssignees={initialAssignees.map((a) => a.avatar.userId)}
               members={members}
               onChange={handleAssigneeEdit}
               isDisabled={!canEditAll}
@@ -280,7 +287,7 @@ export function TaskDrawer({
             comments.map((comment, index) => (
               <Comment
                 key={index}
-                author={comment.user.username}
+                author={comment.avatar.displayName || comment.avatar.username}
                 time={comment.createdAt}
               >
                 {comment.content}

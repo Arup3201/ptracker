@@ -1,4 +1,11 @@
-import { MapMember, type Member, type MemberApi } from "./project";
+import {
+  MapAvatar,
+  MapMember,
+  type Avatar,
+  type AvatarApi,
+  type Member,
+  type MemberApi,
+} from "./project";
 
 export const TASK_STATUS: Record<string, TaskStatus> = {
   UNASSIGNED: "Unassigned",
@@ -80,7 +87,7 @@ export interface TaskComment {
   id: string;
   projectId: string;
   taskId: string;
-  user: Member;
+  avatar: Avatar;
   content: string;
   createdAt: string;
   updatedAt?: string;
@@ -90,7 +97,7 @@ export interface TaskCommentApi {
   id: string;
   project_id: string;
   task_id: string;
-  user: MemberApi;
+  avatar: AvatarApi;
   content: string;
   created_at: string;
   updated_at?: string;
@@ -100,7 +107,7 @@ export const MapTaskComment = (c: TaskCommentApi): TaskComment => ({
   id: c.id,
   projectId: c.project_id,
   taskId: c.task_id,
-  user: MapMember(c.user),
+  avatar: MapAvatar(c.avatar),
   content: c.content,
   createdAt: c.created_at,
   updatedAt: c.updated_at,
