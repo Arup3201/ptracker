@@ -2,25 +2,24 @@ package services
 
 import (
 	"context"
-	"database/sql"
-	"errors"
 	"sync"
 
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/repositories"
+	"gorm.io/gorm"
 )
 
 type storage struct {
 	mu sync.Mutex
 
-	db interfaces.Execer
+	db *gorm.DB
 
 	sessionRepo     interfaces.SessionRepository
 	userRepo        interfaces.UserRepository
 	projectRepo     interfaces.ProjectRepository
 	taskRepo        interfaces.TaskRepository
 	commentRepo     interfaces.CommentRepository
-	roleRepo        interfaces.RoleRepository
+	membershipRepo  interfaces.MembershipRepository
 	assigneeRepo    interfaces.AssigneeRepository
 	listRepo        interfaces.ListRepository
 	joinRequestRepo interfaces.JoinRequestRepository
@@ -30,7 +29,7 @@ type storage struct {
 	rateLimiter interfaces.RateLimiter
 }
 
-func NewStorage(db interfaces.Execer,
+func NewStorage(db *gorm.DB,
 	memory interfaces.InMemory,
 	rateLimiter interfaces.RateLimiter) interfaces.Store {
 	s := &storage{}
@@ -40,7 +39,7 @@ func NewStorage(db interfaces.Execer,
 	s.projectRepo = repositories.NewProjectRepo(db)
 	s.taskRepo = repositories.NewTaskRepo(db)
 	s.commentRepo = repositories.NewCommentRepo(db)
-	s.roleRepo = repositories.NewRoleRepo(db)
+	s.membershipRepo = repositories.NewMembershipRepo(db)
 	s.assigneeRepo = repositories.NewAssigneeRepo(db)
 	s.listRepo = repositories.NewListRepo(db)
 	s.joinRequestRepo = repositories.NewJoinRequestRepo(db)
@@ -56,32 +55,11 @@ func (s *storage) WithTx(ctx context.Context, fn func(txStore interfaces.Store) 
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	sqlDB, ok := s.db.(*sql.DB)
-	if !ok {
-		return errors.New("WithTx called on non-root store")
-	}
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		return fn(NewStorage(tx, s.inMemory, s.rateLimiter))
+	})
 
-	tx, err := sqlDB.BeginTx(ctx, nil)
-	if err != nil {
-		return err
-	}
-
-	// Ensure rollback on panic or error
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			panic(p)
-		}
-	}()
-
-	storeTx := s.clone(tx)
-
-	if err := fn(storeTx); err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-
-	return tx.Commit()
+	return err
 }
 
 func (s *storage) Session() interfaces.SessionRepository {
@@ -104,8 +82,8 @@ func (s *storage) Comment() interfaces.CommentRepository {
 	return s.commentRepo
 }
 
-func (s *storage) Role() interfaces.RoleRepository {
-	return s.roleRepo
+func (s *storage) Membership() interfaces.MembershipRepository {
+	return s.membershipRepo
 }
 
 func (s *storage) Assignee() interfaces.AssigneeRepository {
@@ -122,10 +100,6 @@ func (s *storage) JoinRequest() interfaces.JoinRequestRepository {
 
 func (s *storage) Public() interfaces.PublicRepository {
 	return s.publicRepo
-}
-
-func (s *storage) clone(tx *sql.Tx) interfaces.Store {
-	return NewStorage(tx, s.inMemory, s.rateLimiter)
 }
 
 func (s *storage) InMemory() interfaces.InMemory {

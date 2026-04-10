@@ -2,7 +2,6 @@ package testhelpers
 
 import (
 	"context"
-	"path/filepath"
 	"time"
 
 	keycloak "github.com/stillya/testcontainers-keycloak"
@@ -20,7 +19,6 @@ type PostgresContainer struct {
 func CreatePostgresContainer(ctx context.Context) (*PostgresContainer, error) {
 	pgContainer, err := postgres.Run(ctx,
 		"postgres:15.3-alpine",
-		postgres.WithInitScripts(filepath.Join("..", "testdata", "init-db.sql")),
 		postgres.WithDatabase("test-db"),
 		postgres.WithUsername("postgres"),
 		postgres.WithPassword("postgres"),

@@ -2,20 +2,19 @@ package repositories
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/ptracker/internal/apierr"
 	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/repositories/models"
+	"gorm.io/gorm"
 )
 
 type JoinRequestRepo struct {
-	db interfaces.Execer
+	db *gorm.DB
 }
 
-func NewJoinRequestRepo(db interfaces.Execer) interfaces.JoinRequestRepository {
+func NewJoinRequestRepo(db *gorm.DB) interfaces.JoinRequestRepository {
 	return &JoinRequestRepo{
 		db: db,
 	}
@@ -23,53 +22,57 @@ func NewJoinRequestRepo(db interfaces.Execer) interfaces.JoinRequestRepository {
 
 func (r *JoinRequestRepo) Create(ctx context.Context,
 	projectId, userId, joinStatus string) error {
-	now := time.Now()
 
-	_, err := r.db.ExecContext(ctx,
-		"INSERT INTO join_requests(user_id, project_id, status, created_at, updated_at) "+
-			"VALUES($1, $2, $3, $4, $4)", userId, projectId, joinStatus, now)
+	var err error
 
-	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-			return apierr.ErrDuplicate
-		}
-		return fmt.Errorf("postgres join project: %w", err)
+	joinReq := models.JoinRequest{
+		ProjectID: projectId,
+		UserID:    userId,
+		Status: models.JoinStatus{
+			String: joinStatus,
+		},
+	}
+	err = gorm.G[models.JoinRequest](r.db).Create(ctx, &joinReq)
+	if err == gorm.ErrDuplicatedKey {
+		return apierr.ErrDuplicate
+	} else if err != nil {
+		return fmt.Errorf("gorm create: %w", err)
 	}
 
 	return nil
 }
 
-func (r *JoinRequestRepo) Get(ctx context.Context, projectId, userId string) (string, error) {
-	var status string
-	err := r.db.QueryRowContext(
-		ctx,
-		"SELECT "+
-			"status "+
-			"FROM join_requests "+
-			"WHERE project_id=($1) AND user_id=($2)",
-		projectId, userId,
-	).Scan(&status)
+func (r *JoinRequestRepo) Status(ctx context.Context, projectId, userId string) (string, error) {
 
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return "", apierr.ErrNotFound
-		}
-		return "", fmt.Errorf("query row context: %w", err)
+	joinReq, err := gorm.G[models.JoinRequest](r.db).Where(
+		"project_id = ? AND user_id = ?",
+		projectId, userId).First(ctx)
+	if err == gorm.ErrRecordNotFound {
+		return "", apierr.ErrNotFound
+	} else if err != nil {
+		return "", fmt.Errorf("gorm query: %w", err)
 	}
 
-	return status, nil
+	return joinReq.Status.String, nil
 }
 
 func (r *JoinRequestRepo) Update(ctx context.Context, projectId, userId, joinStatus string) error {
-	_, err := r.db.ExecContext(ctx, "UPDATE join_requests "+
-		"SET status=($1) "+
-		"WHERE project_id=($2) AND user_id=($3)", joinStatus, projectId, userId)
 
+	joinReq, err := gorm.G[models.JoinRequest](r.db).Where(
+		"project_id = ? AND user_id = ?",
+		projectId, userId).First(ctx)
 	if err != nil {
-		if strings.Contains(err.Error(), "invalid input value") {
-			return apierr.ErrInvalidValue
-		}
-		return fmt.Errorf("service update join request query: %w", err)
+		return fmt.Errorf("join request get: %w", err)
+	}
+
+	joinReq.Status = models.JoinStatus{
+		String: joinStatus,
+	}
+	err = r.db.Save(&joinReq).Error
+	if err == gorm.ErrInvalidValue {
+		return apierr.ErrInvalidValue
+	} else if err != nil {
+		return fmt.Errorf("gorm db save: %w", err)
 	}
 
 	return nil

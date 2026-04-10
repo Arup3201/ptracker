@@ -2,16 +2,19 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/repositories/models"
+	"gorm.io/gorm"
 )
 
 type commentRepo struct {
-	db interfaces.Execer
+	db *gorm.DB
 }
 
-func NewCommentRepo(db interfaces.Execer) interfaces.CommentRepository {
+func NewCommentRepo(db *gorm.DB) interfaces.CommentRepository {
 	return &commentRepo{
 		db: db,
 	}
@@ -19,19 +22,23 @@ func NewCommentRepo(db interfaces.Execer) interfaces.CommentRepository {
 
 func (r *commentRepo) Create(ctx context.Context,
 	projectId, taskId, userId string,
-	comment string) (string, error) {
+	content string) (string, error) {
+
+	var err error
 
 	id := uuid.NewString()
-
-	_, err := r.db.ExecContext(
-		ctx,
-		`INSERT INTO 
-		comments (id, project_id, task_id, user_id, 
-		content, created_at, updated_at) 
-		VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`,
-		id, projectId, taskId, userId, comment)
-	if err != nil {
-		return "", err
+	comment := models.Comment{
+		ID:        id,
+		ProjectID: projectId,
+		TaskID:    taskId,
+		UserID:    userId,
+		Content:   content,
 	}
-	return id, nil
+
+	err = gorm.G[models.Comment](r.db).Create(ctx, &comment)
+	if err != nil {
+		return "", fmt.Errorf("gorm create: %w", err)
+	}
+
+	return comment.ID, nil
 }

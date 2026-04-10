@@ -32,27 +32,29 @@ type ProjectService interface {
 	CreateProject(ctx context.Context, name string,
 		description, skills *string,
 		owner string) (string, error)
-	ListProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error)
+	ListProjects(ctx context.Context, userId string) ([]domain.ProjectSummary, error)
 	GetPrivateProject(ctx context.Context,
 		projectId, userId string) (*domain.ProjectDetail, error)
 	GetProjectMembers(ctx context.Context,
-		projectId, userId string) ([]*domain.Member, error)
+		projectId, userId string) ([]domain.Membership, error)
 	ListJoinRequests(ctx context.Context,
-		projectId, userId string) ([]*domain.JoinRequestListed, error)
+		projectId, userId string) ([]domain.JoinRequest, error)
 	RespondToJoinRequests(ctx context.Context,
 		projectId, ownerId, requestorId, joinStatus string) error
 
 	ListRecentlyCreatedProjects(ctx context.Context,
-		userId string) ([]*domain.RecentProjectListed, error)
+		userId string) ([]domain.ProjectSummary, error)
 	ListRecentlyJoinedProjects(ctx context.Context,
-		userId string) ([]*domain.RecentProjectListed, error)
+		userId string) ([]domain.ProjectSummary, error)
 }
 
 type PublicService interface {
 	ListPublicProjects(ctx context.Context,
-		userId string) ([]*domain.PublicProjectListed, error)
+		userId string) ([]domain.ProjectPreview, error)
 	GetPublicProject(ctx context.Context,
-		projectId, userId string) (*domain.PublicProjectSummary, error)
+		projectId, userId string) (*domain.ProjectPublicDetail, error)
+	GetJoinStatus(ctx context.Context,
+		projectId, userId string) (string, error)
 	JoinProject(ctx context.Context,
 		projectId, userId string) error
 }
@@ -63,23 +65,21 @@ type TaskService interface {
 		title, description, status string,
 		assignees []string) (string, []string, error)
 	ListTasks(ctx context.Context,
-		projectId, userId string) ([]*domain.TaskListed, error)
+		projectId, userId string) ([]domain.ProjectTaskItem, error)
 	GetTask(ctx context.Context,
-		projectId, taskId, userId string) (*domain.Task, error)
+		projectId, taskId, userId string) (*domain.ProjectTaskItem, error)
 	UpdateTask(ctx context.Context,
 		projectId, taskId, userId string,
-		title, description, status string,
+		title, description, status *string,
 		addedAssignees, removedAssignees []string) error
-	GetTaskAssignees(ctx context.Context,
-		projectId, taskId, userId string) ([]*domain.Assignee, error)
 	AddComment(ctx context.Context,
 		projectId, taskId, userId string,
 		comment string) (string, error)
 	ListComments(ctx context.Context,
-		projectId, taskId, userId string) ([]*domain.Comment, error)
+		projectId, taskId, userId string) ([]domain.Comment, error)
 
 	AssignedTasks(ctx context.Context,
-		userId string) ([]*domain.RecentTaskListed, error)
+		userId string) ([]domain.DashboardTaskItem, error)
 	UnassignedTasks(ctx context.Context,
-		userId string) ([]*domain.RecentTaskListed, error)
+		userId string) ([]domain.DashboardTaskItem, error)
 }

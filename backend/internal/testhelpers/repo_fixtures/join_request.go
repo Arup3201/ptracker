@@ -4,28 +4,22 @@ import (
 	"fmt"
 
 	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/internal/repositories/models"
 )
 
-func GetJoinRequest(projectID, userID string) domain.JoinRequest {
-	return domain.JoinRequest{
-		ProjectId: projectID,
-		UserId:    userID,
-		Status:    domain.JOIN_STATUS_PENDING,
+func GetJoinRequest(projectID, userID string) models.JoinRequest {
+	return models.JoinRequest{
+		ProjectID: projectID,
+		UserID:    userID,
+		Status:    models.JoinStatus{String: domain.JOIN_STATUS_PENDING},
 	}
 }
 
-func (f *Fixtures) InsertJoinRequest(j domain.JoinRequest) {
-	_, err := f.db.ExecContext(
-		f.ctx,
-		`
-		INSERT INTO join_requests (project_id, user_id, status)
-		VALUES ($1,$2,$3)
-		`,
-		j.ProjectId,
-		j.UserId,
-		j.Status,
-	)
-	if err != nil {
-		panic(fmt.Sprintf("insert join request fixture failed: %v", err))
+func (f *Fixtures) InsertJoinRequest(j models.JoinRequest) {
+	if f.db != nil {
+		if err := f.db.WithContext(f.ctx).Create(&j).Error; err != nil {
+			panic(fmt.Sprintf("insert join request fixture failed: %v", err))
+		}
+		return
 	}
 }

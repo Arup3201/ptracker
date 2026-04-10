@@ -186,7 +186,7 @@ func (s *authService) Callback(ctx context.Context,
 		return nil, fmt.Errorf("get user info: %w", err)
 	}
 
-	var user *domain.User
+	var user domain.User
 	user, err = s.store.User().GetBySubject(ctx, userInfo.Subject, DEFAULT_PROVIDER)
 	if err != nil {
 		switch err {
@@ -215,7 +215,7 @@ func (s *authService) Callback(ctx context.Context,
 	}
 
 	sessionId, err := s.store.Session().Create(ctx,
-		user.Id, encryptedToken,
+		user.ID, encryptedToken,
 		userAgent, ipAddress, device,
 		expiresAt)
 	if err != nil {
@@ -233,7 +233,7 @@ func (s *authService) Callback(ctx context.Context,
 		return nil, fmt.Errorf("store session get: %w", err)
 	}
 
-	return session, nil
+	return &session, nil
 }
 
 func (s *authService) Authenticate(ctx context.Context,
@@ -255,7 +255,7 @@ func (s *authService) Authenticate(ctx context.Context,
 		return "", fmt.Errorf("store user get by subject: %w: %w", err, apierr.ErrUnauthorized)
 	}
 
-	return user.Id, nil
+	return user.ID, nil
 }
 
 func (s *authService) verifyAccessToken(ctx context.Context,
@@ -363,7 +363,7 @@ func (s *authService) Me(ctx context.Context,
 		return nil, fmt.Errorf("store user get: %w", err)
 	}
 
-	return user, nil
+	return &user, nil
 }
 
 func (s *authService) Logout(ctx context.Context,

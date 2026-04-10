@@ -20,7 +20,8 @@ func NewPublicService(store interfaces.Store) interfaces.PublicService {
 	}
 }
 
-func (s *publicService) ListPublicProjects(ctx context.Context, userId string) ([]*domain.PublicProjectListed, error) {
+func (s *publicService) ListPublicProjects(ctx context.Context,
+	userId string) ([]domain.ProjectPreview, error) {
 	projects, err := s.store.List().PublicProjects(ctx, userId)
 	if err != nil {
 		return nil, fmt.Errorf("store list public projects: %w", err)
@@ -30,44 +31,26 @@ func (s *publicService) ListPublicProjects(ctx context.Context, userId string) (
 }
 
 func (s *publicService) GetPublicProject(ctx context.Context,
-	projectId, userId string) (*domain.PublicProjectSummary, error) {
+	projectId, userId string) (*domain.ProjectPublicDetail, error) {
 
 	project, err := s.store.Public().Get(ctx, projectId)
 	if err != nil {
 		return nil, fmt.Errorf("store public get: %w", err)
 	}
 
-	owner, err := s.store.User().Get(ctx, project.Owner.UserId)
-	if err != nil {
-		return nil, fmt.Errorf("store user get: %w", err)
-	}
+	return &project, nil
+}
 
-	role, err := s.store.Role().Get(ctx, projectId, project.Owner.UserId)
-	if err != nil {
-		return nil, fmt.Errorf("store role get: %w", err)
-	}
-
-	project.Owner = &domain.Member{
-		UserId:      project.Owner.UserId,
-		Username:    owner.Username,
-		DisplayName: owner.DisplayName,
-		Email:       owner.Email,
-		AvatarURL:   owner.AvatarURL,
-		IsActive:    owner.IsActive,
-		CreatedAt:   role.CreatedAt,
-		UpdatedAt:   role.UpdatedAt,
-	}
-
-	joinStatus, err := s.store.JoinRequest().Get(ctx, projectId, userId)
+func (s *publicService) GetJoinStatus(ctx context.Context,
+	projectId, userId string) (string, error) {
+	joinStatus, err := s.store.JoinRequest().Status(ctx, projectId, userId)
 	if err == apierr.ErrNotFound {
-		project.JoinStatus = "Not Requested"
+		joinStatus = "Not Requested"
 	} else if err != nil {
-		return nil, fmt.Errorf("store join request get: %w", err)
-	} else {
-		project.JoinStatus = joinStatus
+		return "", fmt.Errorf("store join request get: %w", err)
 	}
 
-	return project, nil
+	return joinStatus, nil
 }
 
 func (s *publicService) JoinProject(ctx context.Context,

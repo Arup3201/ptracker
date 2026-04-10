@@ -3,33 +3,36 @@ package domain
 import "time"
 
 type Project struct {
-	Id          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description *string    `json:"description"`
-	Skills      *string    `json:"skills"`
-	Owner       string     `json:"owner"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description"`
+	Skills      *string   `json:"skills"`
+	OwnerID     string    `json:"owner_id"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 type ProjectSummary struct {
-	*Project
-	UnassignedTasks int `json:"unassigned_tasks"`
-	OngoingTasks    int `json:"ongoing_tasks"`
-	CompletedTasks  int `json:"completed_tasks"`
-	AbandonedTasks  int `json:"abandoned_tasks"`
+	Project
+	UnassignedTasks int64 `json:"unassigned_tasks"`
+	OngoingTasks    int64 `json:"ongoing_tasks"`
+	CompletedTasks  int64 `json:"completed_tasks"`
+	AbandonedTasks  int64 `json:"abandoned_tasks"`
 }
 
 type ProjectDetail struct {
-	*ProjectSummary
-	Role        string  `json:"role"`
-	MemberCount int     `json:"members_count"`
-	Owner       *Member `json:"owner"`
+	ProjectSummary
+	Role        string `json:"role"`
+	MemberCount int64  `json:"members_count"`
+	Owner       Avatar `json:"owner"`
 }
 
-type PublicProjectSummary struct {
-	*ProjectSummary
-	MemberCount int     `json:"members_count"`
-	Owner       *Member `json:"owner"`
-	JoinStatus  string  `json:"join_status"`
+type ProjectPreview struct {
+	Project
+}
+
+type ProjectPublicDetail struct {
+	ProjectSummary
+	MemberCount int64  `json:"members_count"`
+	Owner       Avatar `json:"owner"`
 }

@@ -47,7 +47,7 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 			return fmt.Errorf("store project create: %w", err)
 		}
 
-		err = txStore.Role().Create(ctx, projectId, owner, domain.ROLE_OWNER)
+		err = txStore.Membership().Create(ctx, projectId, owner, domain.ROLE_OWNER)
 		if err != nil {
 			return fmt.Errorf("store role create: %w", err)
 		}
@@ -61,7 +61,7 @@ func (s *projectService) CreateProject(ctx context.Context, name string,
 	return projectId, nil
 }
 
-func (s *projectService) ListProjects(ctx context.Context, userId string) ([]*domain.PrivateProjectListed, error) {
+func (s *projectService) ListProjects(ctx context.Context, userId string) ([]domain.ProjectSummary, error) {
 	projects, err := s.store.List().PrivateProjects(ctx, userId)
 	if err != nil {
 		return projects, fmt.Errorf("store project all: %w", err)
@@ -87,7 +87,7 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, fmt.Errorf("store project all: %w", err)
 	}
 
-	userRole, err := s.store.Role().Get(ctx, projectId, userId)
+	userRole, err := s.store.Membership().Role(ctx, projectId, userId)
 	if err != nil {
 		return nil, fmt.Errorf("store role get: %w", err)
 	}
@@ -97,43 +97,27 @@ func (s *projectService) GetPrivateProject(ctx context.Context,
 		return nil, fmt.Errorf("store user get: %w", err)
 	}
 
-	memberCount, err := s.store.Role().CountMembers(ctx, projectId)
+	memberCount, err := s.store.Membership().CountMembers(ctx, projectId)
 	if err != nil {
 		return nil, fmt.Errorf("store role count members: %w", err)
 	}
 
 	return &domain.ProjectDetail{
-		ProjectSummary: &domain.ProjectSummary{
-			Project: &domain.Project{
-				Id:          project.Id,
-				Name:        project.Name,
-				Description: project.Description,
-				Skills:      project.Skills,
-				CreatedAt:   project.CreatedAt,
-				UpdatedAt:   project.UpdatedAt,
-			},
-			UnassignedTasks: project.UnassignedTasks,
-			OngoingTasks:    project.OngoingTasks,
-			CompletedTasks:  project.CompletedTasks,
-			AbandonedTasks:  project.AbandonedTasks,
-		},
-		Role:        userRole.Role,
-		MemberCount: memberCount,
-		Owner: &domain.Member{
-			UserId:      user.Id,
+		ProjectSummary: project,
+		Role:           userRole,
+		MemberCount:    memberCount,
+		Owner: domain.Avatar{
+			UserID:      user.ID,
 			Username:    user.Username,
 			DisplayName: user.DisplayName,
 			Email:       user.Email,
 			AvatarURL:   user.AvatarURL,
-			IsActive:    user.IsActive,
-			CreatedAt:   userRole.CreatedAt,
-			UpdatedAt:   userRole.UpdatedAt,
 		},
 	}, nil
 }
 
 func (s *projectService) GetProjectMembers(ctx context.Context,
-	projectId, userId string) ([]*domain.Member, error) {
+	projectId, userId string) ([]domain.Membership, error) {
 
 	permitted, err := s.projectPermission.CanSeeMembers(ctx, projectId, userId)
 	if err != nil {
@@ -153,7 +137,7 @@ func (s *projectService) GetProjectMembers(ctx context.Context,
 }
 
 func (s *projectService) ListJoinRequests(ctx context.Context,
-	projectId, userId string) ([]*domain.JoinRequestListed, error) {
+	projectId, userId string) ([]domain.JoinRequest, error) {
 
 	permitted, err := s.projectPermission.CanSeeMembers(ctx, projectId, userId)
 	if err != nil {
@@ -193,7 +177,7 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 
 	userRole := domain.ROLE_MEMBER
 
-	status, err := s.store.JoinRequest().Get(ctx, projectId, requestorId)
+	status, err := s.store.JoinRequest().Status(ctx, projectId, requestorId)
 	if err != nil {
 		return fmt.Errorf("store join request get: %w", err)
 	}
@@ -232,7 +216,7 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 		}
 
 		if joinStatus == domain.JOIN_STATUS_ACCEPTED {
-			err = txStore.Role().Create(ctx, projectId, requestorId, userRole)
+			err = txStore.Membership().Create(ctx, projectId, requestorId, userRole)
 			if err != nil {
 				return fmt.Errorf("store role create: %w", err)
 			}
@@ -269,7 +253,7 @@ func (s *projectService) RespondToJoinRequests(ctx context.Context,
 }
 
 func (s *projectService) ListRecentlyCreatedProjects(ctx context.Context,
-	userId string) ([]*domain.RecentProjectListed, error) {
+	userId string) ([]domain.ProjectSummary, error) {
 
 	// pick last 10 recently created projects in descending order of their creation time
 	projects, err := s.store.List().RecentlyCreatedProjects(ctx, userId, 10)
@@ -281,7 +265,7 @@ func (s *projectService) ListRecentlyCreatedProjects(ctx context.Context,
 }
 
 func (s *projectService) ListRecentlyJoinedProjects(ctx context.Context,
-	userId string) ([]*domain.RecentProjectListed, error) {
+	userId string) ([]domain.ProjectSummary, error) {
 
 	// pick last 10 recently joined projects in descending order of their joining time
 	projects, err := s.store.List().RecentlyJoinedProjects(ctx, userId, 10)

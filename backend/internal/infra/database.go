@@ -1,28 +1,19 @@
 package infra
 
 import (
-	"database/sql"
 	"fmt"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-func NewDatabase(driver, dataSource string) (*sql.DB, error) {
+func NewDatabase(pgDSN string, config *gorm.Config) (*gorm.DB, error) {
 	var err error
 
-	if dataSource == "" {
-		return nil, fmt.Errorf("missing connection string")
-	}
-
-	var db *sql.DB
-	db, err = sql.Open(driver, dataSource)
+	var db *gorm.DB
+	db, err = gorm.Open(postgres.Open(pgDSN), config)
 	if err != nil {
-		return nil, fmt.Errorf("sql open: %w", err)
-	}
-
-	err = db.Ping()
-	if err != nil {
-		return nil, fmt.Errorf("ping: %w", err)
+		return nil, fmt.Errorf("gorm open: %w", err)
 	}
 
 	return db, nil

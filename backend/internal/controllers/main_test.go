@@ -8,12 +8,14 @@ import (
 
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/infra"
-	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
+	"github.com/ptracker/internal/testdata"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/controller_fixtures"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type mockNotifier struct{}
@@ -32,7 +34,7 @@ type ControllerTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	fixtures    *controller_fixtures.ControllerFixtures
-	db          interfaces.Execer
+	db          *gorm.DB
 	ctx         context.Context
 }
 
@@ -50,12 +52,15 @@ func (suite *ControllerTestSuite) SetupSuite() {
 
 	suite.pgContainer = pgContainer
 
-	dbConnection, err := infra.NewDatabase("postgres", pgContainer.ConnectionString)
+	conn, err := infra.NewDatabase(pgContainer.ConnectionString, &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+	testdata.TestMigrate(conn)
 
-	suite.db = dbConnection
+	suite.db = conn
 
 	redisContainer, err := testhelpers.CreateRedisContainer(suite.ctx)
 	if err != nil {
@@ -83,10 +88,14 @@ func (suite *ControllerTestSuite) SetupSuite() {
 	projectService := services.NewProjectService(store, notifier)
 	projectController := NewProjectController(projectService)
 
+	taskService := services.NewTaskService(store, notifier)
+	taskController := NewTaskController(taskService)
+
 	handler := http.NewServeMux()
 	handler.Handle("POST /projects", HTTPErrorHandler(projectController.Create))
 	handler.Handle("GET /projects", HTTPErrorHandler(projectController.List))
 	handler.Handle("GET /projects/{id}/members", HTTPErrorHandler(projectController.ListMembers))
+	handler.Handle("PUT /projects/{project_id}/tasks/{task_id}", HTTPErrorHandler(taskController.Update))
 
 	suite.fixtures.Handler = handler
 
@@ -111,7 +120,8 @@ func (suite *ControllerTestSuite) TearDownSuite() {
 }
 
 func (suite *ControllerTestSuite) Cleanup() {
-	_, err := suite.db.ExecContext(suite.ctx, "DELETE FROM projects")
+	err := suite.db.WithContext(suite.ctx).
+		Exec("DELETE FROM projects").Error
 	suite.Require().NoError(err)
 }
 

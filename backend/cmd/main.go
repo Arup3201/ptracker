@@ -5,9 +5,11 @@ import (
 	"log"
 
 	_ "github.com/golang-migrate/migrate/v4/source/file"
+	backend "github.com/ptracker"
 	"github.com/ptracker/internal"
 	"github.com/ptracker/internal/infra"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 func main() {
@@ -20,13 +22,15 @@ func main() {
 	}
 
 	// DB connection
-	database, err := infra.NewDatabase("postgres",
-		fmt.Sprintf("host=%s port=%s user=%s "+
-			"password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort,
-			config.DbUser, config.DbPass, config.DbName))
+	database, err := infra.NewDatabase(fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort,
+		config.DbUser, config.DbPass, config.DbName),
+		&gorm.Config{})
 	if err != nil {
 		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
 	}
+
+	backend.Migrate(database)
 
 	// Redis
 	redis := redis.NewClient(&redis.Options{

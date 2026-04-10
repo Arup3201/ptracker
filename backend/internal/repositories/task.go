@@ -3,18 +3,19 @@ package repositories
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/repositories/models"
+	"gorm.io/gorm"
 )
 
 type TaskRepo struct {
-	db interfaces.Execer
+	db *gorm.DB
 }
 
-func NewTaskRepo(db interfaces.Execer) interfaces.TaskRepository {
+func NewTaskRepo(db *gorm.DB) interfaces.TaskRepository {
 	return &TaskRepo{
 		db: db,
 	}
@@ -23,49 +24,83 @@ func NewTaskRepo(db interfaces.Execer) interfaces.TaskRepository {
 func (r *TaskRepo) Create(ctx context.Context,
 	projectId string,
 	title, description, status string) (string, error) {
-	tId := uuid.NewString()
-	now := time.Now()
 
-	_, err := r.db.ExecContext(ctx,
-		"INSERT INTO "+
-			"tasks(id, project_id, title, description, status, created_at, updated_at) "+
-			"VALUES($1, $2, $3, $4, $5, $6, $6)",
-		tId, projectId, title, description, status, now)
-	if err != nil {
-		return "", fmt.Errorf("insert task: %w", err)
+	id := uuid.NewString()
+	task := models.Task{
+		ID:          id,
+		ProjectID:   projectId,
+		Title:       title,
+		Description: &description,
+		Status: models.TaskStatus{
+			String: status,
+		},
 	}
 
-	return tId, nil
-}
-
-func (r *TaskRepo) Get(ctx context.Context, id string) (*domain.Task, error) {
-	var pt domain.Task
-	err := r.db.QueryRowContext(ctx,
-		`SELECT t.id, t.title, t.description, 
-			t.status, t.created_at, t.updated_at 
-			FROM tasks as t 
-			WHERE t.id=($1) AND deleted_at IS NULL`,
-		id).
-		Scan(&pt.Id, &pt.Title, &pt.Description, &pt.Status, &pt.CreatedAt, &pt.UpdatedAt)
+	err := gorm.G[models.Task](r.db).Create(ctx, &task)
 	if err != nil {
-		return &pt, fmt.Errorf("db query row context: %w", err)
+		return "", fmt.Errorf("gorm create: %w", err)
 	}
 
-	return &pt, nil
+	return task.ID, nil
 }
 
-func (r *TaskRepo) Update(ctx context.Context, task *domain.Task) error {
+func (r *TaskRepo) Get(ctx context.Context, id string) (domain.ProjectTaskItem, error) {
 
-	now := time.Now()
-	_, err := r.db.ExecContext(ctx,
-		`UPDATE tasks 
-		SET 
-		title=($2), description=($3), status=($4), updated_at=($5) 
-		WHERE id=($1)`,
-		task.Id,
-		task.Title, task.Description, task.Status, now)
+	query := `SELECT 
+			t.id, t.title, t.description, t.status, t.created_at, t.updated_at, 
+			COALESCE(
+				json_agg(
+				json_build_object(
+					'project_id', a.project_id,
+					'task_id', a.task_id,
+					'assignee_id', a.user_id,
+					'assignee_username', u.username,
+					'assignee_display_name', u.display_name,
+					'assignee_email', u.email,
+					'assignee_avatar_url', u.avatar_url
+				)
+				) FILTER (WHERE a.user_id IS NOT NULL),
+				'[]'
+			) AS assignees 
+			FROM tasks AS t 
+			LEFT JOIN assignees AS a ON a.task_id=t.id 
+			LEFT JOIN users AS u ON u.id=a.user_id 
+			WHERE t.id = ? 
+			GROUP BY t.id, t.title, t.status, t.created_at, t.updated_at`
+
+	task, err := gorm.G[models.ProjectTaskItemRow](r.db).Raw(query, id).First(ctx)
 	if err != nil {
-		return fmt.Errorf("db exec context: %w", err)
+		return task.ToProjectTaskItemDomain(), fmt.Errorf("gorm query task: %w", err)
+	}
+
+	return task.ToProjectTaskItemDomain(), nil
+}
+
+func (r *TaskRepo) Update(ctx context.Context, id string,
+	title, description, status *string) error {
+
+	task, err := gorm.G[models.Task](r.db).Where("id = ?", id).First(ctx)
+	if err != nil {
+		return fmt.Errorf("gorm query task: %w", err)
+	}
+
+	if title != nil {
+		task.Title = *title
+	}
+
+	if description != nil {
+		*task.Description = *description
+	}
+
+	if status != nil {
+		task.Status = models.TaskStatus{
+			String: *status,
+		}
+	}
+
+	err = r.db.Save(&task).Error
+	if err != nil {
+		return fmt.Errorf("gorm db save: %w", err)
 	}
 
 	return nil

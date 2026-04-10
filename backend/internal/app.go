@@ -11,6 +11,7 @@ import (
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/services"
 	"github.com/rs/cors"
+	"gorm.io/gorm"
 )
 
 type app struct {
@@ -31,7 +32,7 @@ type app struct {
 }
 
 func NewApp(config *Config,
-	db interfaces.Execer,
+	db *gorm.DB,
 	inMemory interfaces.InMemory,
 	rateLimiter interfaces.RateLimiter,
 	notifier *infra.WSNotifier) *app {

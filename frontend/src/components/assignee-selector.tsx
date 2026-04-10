@@ -24,10 +24,10 @@ const AssigneeSelector = ({
   const [selectedAssignees, setSelectedAssignees] = useState(initialAssignees);
 
   const options = members.map((member) => ({
-    value: member.userId,
-    label: member.username,
-    email: member.email,
-    avatar: member.avatarUrl,
+    value: member.avatar.userId,
+    label: member.avatar.username,
+    email: member.avatar.email,
+    avatar: member.avatar.avatarUrl,
   }));
 
   const selectedValues = useMemo<Option[]>(() => {

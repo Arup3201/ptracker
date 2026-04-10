@@ -2,45 +2,31 @@ package repo_fixtures
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/internal/repositories/models"
 )
 
-func RandomTaskRow(projectId, status string) domain.Task {
+func RandomTaskRow(projectId, status string) models.Task {
 	tId := uuid.NewString()
 
 	desc := "Description " + tId
 
-	return domain.Task{
-		Id:          tId,
-		ProjectId:   projectId,
+	return models.Task{
+		ID:          tId,
+		ProjectID:   projectId,
 		Title:       "Test Task " + tId,
 		Description: &desc,
-		Status:      status,
+		Status:      models.TaskStatus{String: status},
 	}
 }
 
-func (f *Fixtures) InsertTask(t domain.Task) string {
-	now := time.Now()
-	_, err := f.db.ExecContext(
-		f.ctx,
-		`
-		INSERT INTO tasks (
-			id, project_id, title, description, status, created_at, updated_at
-		) VALUES ($1,$2,$3,$4,$5,$6,$6)
-		`,
-		t.Id,
-		t.ProjectId,
-		t.Title,
-		t.Description,
-		t.Status,
-		now,
-	)
-	if err != nil {
-		panic(fmt.Sprintf("insert task fixture failed: %v", err))
+func (f *Fixtures) InsertTask(t models.Task) string {
+	if f.db != nil {
+		if err := f.db.WithContext(f.ctx).Create(&t).Error; err != nil {
+			panic(fmt.Sprintf("insert task fixture failed: %v", err))
+		}
+		return t.ID
 	}
-
-	return t.Id
+	return ""
 }

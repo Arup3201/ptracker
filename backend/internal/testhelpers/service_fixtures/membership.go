@@ -2,8 +2,8 @@ package service_fixtures
 
 import "fmt"
 
-func (f *Fixtures) Role(projectID, userID, role string) {
-	err := f.store.Role().Create(
+func (f *Fixtures) Membership(projectID, userID, role string) {
+	err := f.store.Membership().Create(
 		f.ctx,
 		projectID,
 		userID,

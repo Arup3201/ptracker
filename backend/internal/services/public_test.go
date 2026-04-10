@@ -3,7 +3,9 @@ package services
 import (
 	"testing"
 
+	"github.com/ptracker/internal/repositories/models"
 	"github.com/ptracker/internal/testhelpers/service_fixtures"
+	"gorm.io/gorm"
 )
 
 func (suite *ServiceTestSuite) TestJoinProject() {
@@ -29,19 +31,12 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 
 		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		var status string
-		suite.db.QueryRowContext(
-			suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM join_requests "+
-				"WHERE project_id=($1) AND user_id=($2)",
-			p, USER_TWO,
-		).Scan(&status)
+		joinRequest, _ := gorm.G[models.JoinRequest](suite.db).
+			Where("project_id = ? AND user_id = ?", p, USER_TWO).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal("Pending", status)
+		suite.Require().Equal("Pending", joinRequest.Status.String)
 	})
 	t.Run("should fail with duplicate value error", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -54,7 +49,7 @@ func (suite *ServiceTestSuite) TestJoinProject() {
 
 		suite.Cleanup()
 
-		suite.Require().ErrorContains(err, "duplicate value")
+		suite.Require().Error(err, gorm.ErrDuplicatedKey)
 	})
 }
 
@@ -73,17 +68,22 @@ func (suite *ServiceTestSuite) TestPublicServiceGet() {
 
 		suite.Require().NoError(err)
 	})
-	t.Run("should get public project details with join status Not Requested", func(t *testing.T) {
+}
+
+func (suite *ServiceTestSuite) TestPublicServiceGetJoinStatus() {
+	t := suite.T()
+
+	t.Run("should get public project join status as Not Requested", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
 
-		project, _ := suite.publicService.GetPublicProject(suite.ctx, p, USER_TWO)
+		status, _ := suite.publicService.GetJoinStatus(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(project.JoinStatus, "Not Requested")
+		suite.Require().Equal("Not Requested", status)
 	})
 	t.Run("should get public project details with join status Pending", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -92,10 +92,10 @@ func (suite *ServiceTestSuite) TestPublicServiceGet() {
 		})
 		suite.publicService.JoinProject(suite.ctx, p, USER_TWO)
 
-		project, _ := suite.publicService.GetPublicProject(suite.ctx, p, USER_TWO)
+		status, _ := suite.publicService.GetJoinStatus(suite.ctx, p, USER_TWO)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(project.JoinStatus, "Pending")
+		suite.Require().Equal("Pending", status)
 	})
 }

@@ -278,7 +278,8 @@ function TasksSection({
                   </a>
                 </TableCell>
                 <TableCell muted>
-                  {task.assignees.map((a) => a.username).join(", ") || "—"}
+                  {task.assignees.map((a) => a.avatar.username).join(", ") ||
+                    "—"}
                 </TableCell>
                 <TableCell muted>{task.status}</TableCell>
                 <TableCell align="right" muted>
@@ -298,6 +299,7 @@ function MembersSection({ members }: { members: Member[] }) {
     <Table>
       <TableHeader>
         <TableHead>Name</TableHead>
+        <TableHead>Role</TableHead>
         <TableHead align="right">Joined</TableHead>
       </TableHeader>
       <TableBody>
@@ -312,17 +314,20 @@ function MembersSection({ members }: { members: Member[] }) {
           </tr>
         ) : (
           members.map((member) => (
-            <TableRow key={member.userId}>
+            <TableRow key={member.avatar.userId}>
               <TableCell>
                 <div className="flex items-center gap-2.5">
                   <div className="h-7 w-7 rounded-full bg-bg-elevated border border-border flex items-center justify-center text-xs font-semibold text-primary shrink-0">
-                    {member.displayName?.charAt(0).toUpperCase()}
+                    {member.avatar.displayName
+                      ? member.avatar.displayName?.charAt(0).toUpperCase()
+                      : member.avatar.username}
                   </div>
                   <span className="font-medium text-text-primary">
-                    {member.displayName}
+                    {member.avatar.displayName || member.avatar.username}
                   </span>
                 </div>
               </TableCell>
+              <TableCell>{member.role}</TableCell>
               <TableCell align="right" muted>
                 {renderLocalTime(member.createdAt)}
               </TableCell>
@@ -364,19 +369,21 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
         <div className="divide-y divide-border-muted">
           {pendingRequests.map((req) => (
             <div
-              key={req.projectId + req.userId}
+              key={req.projectId + req.avatar.userId}
               className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-bg-elevated transition duration-fast"
             >
               <div className="flex items-center gap-2.5 min-w-0">
                 <div className="h-7 w-7 rounded-full bg-bg-elevated border border-border flex items-center justify-center text-xs font-semibold text-primary shrink-0">
-                  {req.displayName?.charAt(0).toUpperCase()}
+                  {req.avatar.displayName
+                    ? req.avatar.displayName?.charAt(0).toUpperCase()
+                    : req.avatar.username.charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-text-primary truncate">
-                    {req.displayName}
+                    {req.avatar.displayName || req.avatar.username}
                   </p>
                   <p className="text-xs text-text-muted truncate">
-                    {req.username}
+                    {req.avatar.email}
                   </p>
                 </div>
               </div>
@@ -385,14 +392,14 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
                 <Button
                   variant="secondary"
                   onClick={() =>
-                    handleUpdate(req.projectId, req.userId, "Rejected")
+                    handleUpdate(req.projectId, req.avatar.userId, "Rejected")
                   }
                 >
                   Reject
                 </Button>
                 <Button
                   onClick={() =>
-                    handleUpdate(req.projectId, req.userId, "Accepted")
+                    handleUpdate(req.projectId, req.avatar.userId, "Accepted")
                   }
                 >
                   Accept

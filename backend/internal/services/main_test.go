@@ -8,10 +8,13 @@ import (
 	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/infra"
 	"github.com/ptracker/internal/interfaces"
+	"github.com/ptracker/internal/testdata"
 	"github.com/ptracker/internal/testhelpers"
 	"github.com/ptracker/internal/testhelpers/service_fixtures"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/suite"
+	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type mockNotifier struct{}
@@ -30,7 +33,7 @@ type ServiceTestSuite struct {
 	suite.Suite
 	ctx            context.Context
 	pgContainer    *testhelpers.PostgresContainer
-	db             interfaces.Execer
+	db             *gorm.DB
 	projectService interfaces.ProjectService
 	taskService    interfaces.TaskService
 	publicService  interfaces.PublicService
@@ -49,10 +52,14 @@ func (suite *ServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.db, err = infra.NewDatabase("postgres", suite.pgContainer.ConnectionString)
+	suite.db, err = infra.NewDatabase(suite.pgContainer.ConnectionString, &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	testdata.TestMigrate(suite.db)
 
 	redisContainer, err := testhelpers.CreateRedisContainer(suite.ctx)
 	if err != nil {
@@ -103,7 +110,8 @@ func (suite *ServiceTestSuite) SetupSuite() {
 }
 
 func (suite *ServiceTestSuite) TearDownSuite() {
-	_, err := suite.db.ExecContext(suite.ctx, "TRUNCATE users CASCADE")
+	err := suite.db.WithContext(suite.ctx).
+		Exec("TRUNCATE users CASCADE").Error
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,7 +121,8 @@ func (suite *ServiceTestSuite) TearDownSuite() {
 }
 
 func (suite *ServiceTestSuite) Cleanup() {
-	_, err := suite.db.ExecContext(suite.ctx, "DELETE FROM projects")
+	err := suite.db.WithContext(suite.ctx).
+		Exec("DELETE FROM projects").Error
 	suite.Require().NoError(err)
 }
 

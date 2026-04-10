@@ -1,4 +1,4 @@
-import type { Owner, OwnerApi } from "./project";
+import { MapAvatar, type Avatar, type AvatarApi } from "./project";
 
 export type JoinStatus = "Not Requested" | "Pending" | "Accepted";
 
@@ -50,7 +50,7 @@ export interface ExploredProjectDetailsApi {
   name: string;
   description?: string;
   skills?: string;
-  owner: OwnerApi;
+  owner: AvatarApi;
   unassigned_tasks: number;
   ongoing_tasks: number;
   completed_tasks: number;
@@ -65,7 +65,7 @@ export interface ExploredProjectDetails {
   name: string;
   description?: string;
   skills?: string;
-  owner: Owner;
+  owner: Avatar;
   unassignedTasks: number;
   ongoingTasks: number;
   completedTasks: number;
@@ -80,11 +80,7 @@ export const MapExploredProjectDetails = (p: ExploredProjectDetailsApi) => ({
   name: p.name,
   description: p.description,
   skills: p.skills,
-  owner: {
-    id: p.owner.id,
-    username: p.owner.username,
-    displayName: p.owner.display_name,
-  },
+  owner: MapAvatar(p.owner),
   unassignedTasks: p.unassigned_tasks,
   ongoingTasks: p.ongoing_tasks,
   completedTasks: p.completed_tasks,

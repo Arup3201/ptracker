@@ -5,16 +5,30 @@ export const ROLES: Record<string, Role> = {
 
 export type Role = "Owner" | "Member";
 
-export type OwnerApi = {
-  id: string;
+export interface Avatar {
+  userId: string;
   username: string;
-  display_name: string;
-};
+  displayName?: string;
+  email: string;
+  avatarUrl?: string;
+}
 
-export type Owner = {
-  id: string;
+export interface AvatarApi {
+  user_id: string;
   username: string;
-  displayName: string;
+  display_name?: string;
+  email: string;
+  avatar_url?: string;
+}
+
+export const MapAvatar = (a: AvatarApi): Avatar => {
+  return {
+    userId: a.user_id,
+    username: a.username,
+    displayName: a.display_name,
+    email: a.email,
+    avatarUrl: a.avatar_url,
+  };
 };
 
 export interface ProjectSummaryApi {
@@ -27,7 +41,7 @@ export interface ProjectSummaryApi {
   ongoing_tasks: number;
   completed_tasks: number;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface ProjectSummary {
@@ -40,7 +54,7 @@ export interface ProjectSummary {
   ongoingTasks: number;
   completedTasks: number;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export interface ProjectsApiResponse {
@@ -69,14 +83,14 @@ export interface ProjectDetailsApi {
   description?: string;
   skills?: string;
   role: Role;
-  owner: OwnerApi;
+  owner: AvatarApi;
   unassigned_tasks: number;
   ongoing_tasks: number;
   completed_tasks: number;
   abandoned_tasks: number;
   members_count: number;
   created_at: string;
-  updated_at?: string;
+  updated_at: string;
 }
 
 export interface ProjectDetails {
@@ -85,14 +99,14 @@ export interface ProjectDetails {
   description?: string;
   skills?: string;
   role: Role;
-  owner: Owner;
+  owner: Avatar;
   unassignedTasks: number;
   ongoingTasks: number;
   completedTasks: number;
   abandonedTasks: number;
   membersCount: number;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt: string;
 }
 
 export const MapProjectDetails = (p: ProjectDetailsApi): ProjectDetails => ({
@@ -101,9 +115,11 @@ export const MapProjectDetails = (p: ProjectDetailsApi): ProjectDetails => ({
   description: p.description,
   skills: p.skills,
   owner: {
-    id: p.owner.id,
+    userId: p.owner.user_id,
     username: p.owner.username,
     displayName: p.owner.display_name,
+    email: p.owner.email,
+    avatarUrl: p.owner.avatar_url,
   },
   role: p.role,
   unassignedTasks: p.unassigned_tasks,
@@ -119,38 +135,23 @@ type JoinStatus = "Pending" | "Accepted" | "Rejected";
 
 export interface JoinRequest {
   projectId: string;
-  userId: string;
-  username: string;
-  displayName: string;
-  email: string;
-  avatarURL: string;
-  isActive: boolean;
   status: JoinStatus;
   createdAt: string;
+  avatar: Avatar;
 }
 
 export interface JoinRequestApi {
   project_id: string;
-  user_id: string;
-  username: string;
-  display_name: string;
-  email: string;
-  avatar_url: string;
-  is_active: boolean;
   status: JoinStatus;
   created_at: string;
+  avatar: AvatarApi;
 }
 
 export const MapJoinRequest = (request: JoinRequestApi): JoinRequest => ({
   projectId: request.project_id,
-  userId: request.user_id,
-  username: request.username,
-  displayName: request.display_name,
-  email: request.email,
-  avatarURL: request.avatar_url,
-  isActive: request.is_active,
   status: request.status,
   createdAt: request.created_at,
+  avatar: MapAvatar(request.avatar),
 });
 
 export interface JoinRequestsResponseApi {
@@ -159,26 +160,18 @@ export interface JoinRequestsResponseApi {
 
 export interface Member {
   projectId: string;
-  userId: string;
-  username: string;
-  displayName: string;
-  email: string;
-  avatarUrl: string;
-  isActive: boolean;
+  role: string;
   createdAt: string;
   updatedAt: string;
+  avatar: Avatar;
 }
 
 export interface MemberApi {
   project_id: string;
-  user_id: string;
-  username: string;
-  display_name: string;
-  email: string;
-  avatar_url: string;
-  is_active: boolean;
+  role: string;
   created_at: string;
   updated_at: string;
+  avatar: AvatarApi;
 }
 
 export interface MembersResponse {
@@ -187,12 +180,8 @@ export interface MembersResponse {
 
 export const MapMember = (m: MemberApi): Member => ({
   projectId: m.project_id,
-  userId: m.user_id,
-  username: m.username,
-  displayName: m.display_name,
-  email: m.email,
-  avatarUrl: m.avatar_url,
-  isActive: m.is_active,
+  role: m.role,
   createdAt: m.created_at,
   updatedAt: m.updated_at,
+  avatar: MapAvatar(m.avatar),
 });

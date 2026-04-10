@@ -27,6 +27,6 @@ func (suite *RepositoryTestSuite) TestPublicProjectGet() {
 
 		suite.Cleanup()
 
-		suite.Require().Equal(p, project.Id)
+		suite.Require().Equal(p, project.ID)
 	})
 }

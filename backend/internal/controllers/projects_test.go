@@ -5,7 +5,9 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ptracker/internal/repositories/models"
 	"github.com/ptracker/internal/testhelpers/controller_fixtures"
+	"gorm.io/gorm"
 )
 
 func (suite *ControllerTestSuite) TestProjectControllerCreate() {
@@ -42,19 +44,14 @@ func (suite *ControllerTestSuite) TestProjectControllerCreate() {
 			suite.Require().NoError(err)
 		}
 
-		var name, description, owner string
-		err := suite.db.QueryRowContext(
-			suite.ctx,
-			"SELECT name, description, owner FROM projects WHERE id=($1)",
-			response.Data,
-		).Scan(&name, &description, &owner)
-		suite.Require().NoError(err)
+		p, _ := gorm.G[models.Project](suite.db).
+			Where("id = ?", response.Data).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().Equal(test_name, name)
-		suite.Require().Equal(test_description, description)
-		suite.Require().Equal(USER_ONE, owner)
+		suite.Require().Equal(test_name, p.Name)
+		suite.Require().Equal(test_description, *p.Description)
+		suite.Require().Equal(USER_ONE, p.OwnerID)
 	})
 	t.Run("should get bad request without name", func(t *testing.T) {
 		test_description := "Test Description"
@@ -125,7 +122,7 @@ func (suite *ControllerTestSuite) TestProjectControllerListProjects() {
 func (suite *ControllerTestSuite) TestProjectControllerListMembers() {
 	t := suite.T()
 
-	t.Run("should get empty list of members", func(t *testing.T) {
+	t.Run("should get no member and one owner", func(t *testing.T) {
 		projectId := suite.fixtures.Project(controller_fixtures.ProjectParams{
 			Name:  "Project One",
 			Owner: USER_ONE,
@@ -143,6 +140,6 @@ func (suite *ControllerTestSuite) TestProjectControllerListMembers() {
 			suite.Require().NoError(err)
 		}
 		suite.Require().NotNil(response.Data.Members)
-		suite.Require().Equal(0, len(response.Data.Members))
+		suite.Require().Equal(1, len(response.Data.Members))
 	})
 }

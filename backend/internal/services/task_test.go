@@ -4,7 +4,9 @@ import (
 	"testing"
 
 	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/internal/repositories/models"
 	"github.com/ptracker/internal/testhelpers/service_fixtures"
+	"gorm.io/gorm"
 )
 
 func (suite *ServiceTestSuite) TestCreateTask() {
@@ -40,14 +42,11 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{})
 		var status string
-		suite.db.QueryRowContext(
-			suite.ctx,
-			"SELECT "+
-				"status "+
-				"FROM tasks "+
-				"WHERE id=($1)",
-			taskId,
-		).Scan(&status)
+		suite.db.WithContext(suite.ctx).
+			Table("tasks").
+			Select("status").
+			Where("id = ?", taskId).
+			Scan(&status)
 
 		suite.Cleanup()
 
@@ -58,7 +57,7 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
@@ -93,8 +92,8 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
@@ -112,8 +111,8 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
@@ -131,8 +130,8 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
@@ -141,27 +140,18 @@ func (suite *ServiceTestSuite) TestCreateTask() {
 			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED,
 			[]string{USER_TWO, USER_THREE})
 
-		var userIds = []string{}
-		rows, _ := suite.db.QueryContext(suite.ctx,
-			"SELECT user_id FROM assignees WHERE project_id=($1) AND task_id=($2)",
-			p, id)
-		for rows.Next() {
-			var u string
-			rows.Scan(&u)
-			userIds = append(userIds, u)
-		}
-
+		rows, _ := gorm.G[models.Assignee](suite.db).Where("project_id=? AND task_id=?", p, id).Find(suite.ctx)
 		suite.Cleanup()
 
-		suite.Require().Equal(2, len(userIds))
+		suite.Require().Equal(2, len(rows))
 	})
 	t.Run("should give one warning with 1 invalid assignee", func(t *testing.T) {
 		p := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
-		suite.fixtures.Role(p, USER_THREE, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_THREE, domain.ROLE_MEMBER)
 		sample_title := "sample task"
 		sample_description := "sample description"
 
@@ -206,7 +196,7 @@ func (suite *ServiceTestSuite) TestListTasks() {
 			ProjectId: p,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		suite.fixtures.Role(p, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(p, USER_TWO, domain.ROLE_MEMBER)
 
 		_, err := suite.taskService.ListTasks(suite.ctx, p, USER_TWO)
 
@@ -269,9 +259,29 @@ func (suite *ServiceTestSuite) TestGetTask() {
 
 		suite.Cleanup()
 
-		suite.Require().Equal(taskId, task.Id)
+		suite.Require().Equal(taskId, task.ID)
 		suite.Require().Equal(sample_title, task.Title)
 		suite.Require().Equal(domain.TASK_STATUS_UNASSIGNED, task.Status)
+	})
+	t.Run("should get task with description", func(t *testing.T) {
+		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
+			Title:   "Project Fixture A",
+			OwnerID: USER_ONE,
+		})
+		sample_title := "sample task"
+		sample_description := "Project description"
+		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
+			ProjectId:   projectId,
+			Title:       sample_title,
+			Description: sample_description,
+			Status:      domain.TASK_STATUS_UNASSIGNED,
+		})
+
+		task, _ := suite.taskService.GetTask(suite.ctx, projectId, taskId, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().Equal(sample_description, *task.Description)
 	})
 	t.Run("should be forbidden for non-member", func(t *testing.T) {
 		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
@@ -310,7 +320,7 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 
 		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
-			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			&updatedTaskTitle, nil, nil,
 			nil, nil)
 
 		suite.Cleanup()
@@ -331,13 +341,15 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 
 		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
-			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			&updatedTaskTitle, nil, nil,
 			nil, nil)
 
 		var title string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT title FROM tasks WHERE id=($1) AND project_id=($2)",
-			taskId, projectId).Scan(&title)
+		suite.db.WithContext(suite.ctx).
+			Table("tasks").
+			Select("title").
+			Where("id = ?", taskId).
+			Scan(&title)
 
 		suite.Cleanup()
 
@@ -355,30 +367,27 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
 		updatedTaskDesc := "Project description updated"
+		updatedStatus := domain.TASK_STATUS_ABANDONED
 
 		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
-			task_title, updatedTaskDesc, domain.TASK_STATUS_ABANDONED,
+			nil, &updatedTaskDesc, &updatedStatus,
 			nil, nil)
 
-		var description *string
-		var status string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT description, status FROM tasks WHERE id=($1) AND project_id=($2)",
-			taskId, projectId).Scan(&description, &status)
+		task, _ := gorm.G[models.Task](suite.db).Where("id = ?", taskId).First(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().NotNil(description)
-		suite.Require().Equal(updatedTaskDesc, *description)
-		suite.Require().Equal(domain.TASK_STATUS_ABANDONED, status)
+		suite.Require().NotNil(task.Description)
+		suite.Require().Equal(updatedTaskDesc, *task.Description)
+		suite.Require().Equal(domain.TASK_STATUS_ABANDONED, task.Status.String)
 	})
 	t.Run("should update assignees by adding", func(t *testing.T) {
 		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		task_title := "Project Task A"
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     task_title,
@@ -388,24 +397,21 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 
 		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
-			task_title, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil, nil,
 			[]string{USER_TWO}, nil)
 
-		var tmp int
-		err := suite.db.QueryRowContext(suite.ctx,
-			"SELECT 1 FROM assignees WHERE project_id=($1) AND task_id=($2) AND user_id=($3)",
-			projectId, taskId, USER_TWO).Scan(&tmp)
+		rows, _ := gorm.G[models.Assignee](suite.db).Where("task_id = ?", taskId).Find(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(rows))
 	})
 	t.Run("should update task by removing assignees", func(t *testing.T) {
 		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		task_title := "Project Task A"
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     task_title,
@@ -416,19 +422,16 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 
 		suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_ONE,
-			task_title, "", domain.TASK_STATUS_UNASSIGNED,
+			nil, nil, nil,
 			nil, []string{USER_TWO})
 
-		var tmp int
-		err := suite.db.QueryRowContext(suite.ctx,
-			"SELECT 1 FROM assignees WHERE project_id=($1) AND task_id=($2) AND user_id=($3)",
-			projectId, taskId, USER_TWO).Scan(&tmp)
+		rows, _ := gorm.G[models.Assignee](suite.db).Where("task_id = ?", taskId).Find(suite.ctx)
 
 		suite.Cleanup()
 
-		suite.Require().ErrorContains(err, "no rows in result set")
+		suite.Require().Equal(0, len(rows))
 	})
-	t.Run("should be forbidden to update title for not owner", func(t *testing.T) {
+	t.Run("should be forbidden to update title as member", func(t *testing.T) {
 		projectId := suite.fixtures.Project(service_fixtures.ProjectParams{
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
@@ -438,12 +441,12 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			ProjectId: projectId,
 			Status:    domain.TASK_STATUS_UNASSIGNED,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		updatedTaskTitle := "Project title updated"
 
 		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_TWO,
-			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			&updatedTaskTitle, nil, nil,
 			nil, nil)
 
 		suite.Cleanup()
@@ -455,7 +458,7 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: projectId,
@@ -466,7 +469,7 @@ func (suite *ServiceTestSuite) TestUpdateTask() {
 
 		err := suite.taskService.UpdateTask(suite.ctx,
 			projectId, taskId, USER_TWO,
-			updatedTaskTitle, "", domain.TASK_STATUS_UNASSIGNED,
+			&updatedTaskTitle, nil, nil,
 			nil, nil)
 
 		suite.Cleanup()
@@ -483,7 +486,7 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: projectId,
@@ -504,7 +507,7 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: projectId,
@@ -516,8 +519,11 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			projectId, taskId, USER_TWO, sampleComment)
 
 		var comment string
-		suite.db.QueryRowContext(suite.ctx,
-			"SELECT content FROM comments WHERE id=($1)", id).Scan(&comment)
+		suite.db.WithContext(suite.ctx).
+			Table("comments").
+			Select("content").
+			Where("id = ?", id).
+			Scan(&comment)
 
 		suite.Cleanup()
 
@@ -547,7 +553,7 @@ func (suite *ServiceTestSuite) TestAddComment() {
 			Title:   "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.Role(projectId, USER_TWO, domain.ROLE_MEMBER)
+		suite.fixtures.Membership(projectId, USER_TWO, domain.ROLE_MEMBER)
 		taskId := suite.fixtures.Task(service_fixtures.TaskParams{
 			Title:     "Project Task A",
 			ProjectId: projectId,
