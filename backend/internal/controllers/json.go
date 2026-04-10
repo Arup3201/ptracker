@@ -59,6 +59,11 @@ type ListedPublicProjectsResponse struct {
 	HasNext  bool                    `json:"has_next"`
 }
 
+type PublicProjectResponse struct {
+	domain.ProjectPublicDetail
+	JoinStatus string `json:"join_status"`
+}
+
 type ListedJoinRequestsResponse struct {
 	Requests []domain.JoinRequest `json:"join_requests"`
 }

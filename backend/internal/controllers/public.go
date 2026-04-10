@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/ptracker/internal/apierr"
-	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/internal/interfaces"
 	"github.com/ptracker/internal/utils"
 )
@@ -96,12 +95,20 @@ func (c *publicController) GetProject(w http.ResponseWriter, r *http.Request) er
 
 	project, err := c.service.GetPublicProject(r.Context(), projectId, userId)
 	if err != nil {
-		return fmt.Errorf("database get project details: %w", err)
+		return fmt.Errorf("service get project details: %w", err)
 	}
 
-	json.NewEncoder(w).Encode(HTTPSuccessResponse[domain.ProjectPublicDetail]{
+	status, err := c.service.GetJoinStatus(r.Context(), projectId, userId)
+	if err != nil {
+		return fmt.Errorf("service get join status: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[PublicProjectResponse]{
 		Status: RESPONSE_SUCCESS_STATUS,
-		Data:   project,
+		Data: &PublicProjectResponse{
+			ProjectPublicDetail: *project,
+			JoinStatus:          status,
+		},
 	})
 
 	return nil
