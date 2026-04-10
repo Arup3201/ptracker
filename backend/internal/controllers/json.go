@@ -26,11 +26,11 @@ type UpdateJoinRequest struct {
 }
 
 type UpdateTaskRequest struct {
-	Title             *string  `json:"title" validate:"required"`
-	Description       *string  `json:"description" validate:"required"`
-	Status            *string  `json:"status" validate:"required"`
-	AssigneesToAdd    []string `json:"assignees_to_add" validate:"required"`
-	AssigneesToRemove []string `json:"assignees_to_remove" validate:"required"`
+	Title             *string  `json:"title"`
+	Description       *string  `json:"description"`
+	Status            *string  `json:"status"`
+	AssigneesToAdd    []string `json:"assignees_to_add"`
+	AssigneesToRemove []string `json:"assignees_to_remove"`
 }
 
 type AddCommentRequest struct {

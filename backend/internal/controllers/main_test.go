@@ -88,10 +88,14 @@ func (suite *ControllerTestSuite) SetupSuite() {
 	projectService := services.NewProjectService(store, notifier)
 	projectController := NewProjectController(projectService)
 
+	taskService := services.NewTaskService(store, notifier)
+	taskController := NewTaskController(taskService)
+
 	handler := http.NewServeMux()
 	handler.Handle("POST /projects", HTTPErrorHandler(projectController.Create))
 	handler.Handle("GET /projects", HTTPErrorHandler(projectController.List))
 	handler.Handle("GET /projects/{id}/members", HTTPErrorHandler(projectController.ListMembers))
+	handler.Handle("PUT /projects/{project_id}/tasks/{task_id}", HTTPErrorHandler(taskController.Update))
 
 	suite.fixtures.Handler = handler
 

@@ -89,7 +89,7 @@ func (r *TaskRepo) Update(ctx context.Context, id string,
 	}
 
 	if description != nil {
-		task.Description = description
+		*task.Description = *description
 	}
 
 	if status != nil {

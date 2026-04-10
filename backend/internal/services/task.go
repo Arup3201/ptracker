@@ -241,6 +241,9 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		err = s.store.Task().Update(ctx, taskId, title, nil, nil)
+		if err != nil {
+			return fmt.Errorf("store task update title: %w", err)
+		}
 		hasUpdated = true
 	}
 
@@ -256,6 +259,9 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		err = s.store.Task().Update(ctx, taskId, nil, description, nil)
+		if err != nil {
+			return fmt.Errorf("store task update description: %w", err)
+		}
 		hasUpdated = true
 	}
 
@@ -279,11 +285,10 @@ func (s *taskService) UpdateTask(ctx context.Context,
 		}
 
 		err = s.store.Task().Update(ctx, taskId, nil, nil, status)
+		if err != nil {
+			return fmt.Errorf("store task update status: %w", err)
+		}
 		hasUpdated = true
-	}
-
-	if err != nil {
-		return fmt.Errorf("store task update: %w", err)
 	}
 
 	// Notifications
