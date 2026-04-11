@@ -22,6 +22,7 @@ type projectRepositoryTestSuite struct {
 	pgContainer *testhelpers.PostgresContainer
 	db          *gorm.DB
 	fixtures    *fixtures.Fixtures
+	repo        *ProjectRepository
 	ctx         context.Context
 }
 
@@ -39,6 +40,8 @@ func (suite *projectRepositoryTestSuite) SetupSuite() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	suite.repo = NewProjectRepository(suite.db)
 
 	err = testdata.TestMigrate(suite.db)
 	if err != nil {
@@ -70,8 +73,7 @@ func (suite *projectRepositoryTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		repo := NewProjectRepository(suite.db)
-		_, err := repo.Create(suite.ctx,
+		_, err := suite.repo.Create(suite.ctx,
 			sample_name, &sample_description, &sample_skills,
 			USER_ONE)
 
@@ -82,8 +84,7 @@ func (suite *projectRepositoryTestSuite) TestProjectCreate() {
 	t.Run("should create project with only title", func(t *testing.T) {
 		sample_name := "Test Project"
 
-		repo := NewProjectRepository(suite.db)
-		_, err := repo.Create(suite.ctx,
+		_, err := suite.repo.Create(suite.ctx,
 			sample_name, nil, nil,
 			USER_ONE)
 
@@ -96,8 +97,7 @@ func (suite *projectRepositoryTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		repo := NewProjectRepository(suite.db)
-		_, err := repo.Create(suite.ctx,
+		_, err := suite.repo.Create(suite.ctx,
 			sample_name, &sample_description, &sample_skills,
 			USER_ONE)
 
@@ -110,8 +110,7 @@ func (suite *projectRepositoryTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		repo := NewProjectRepository(suite.db)
-		_, err := repo.Create(suite.ctx,
+		_, err := suite.repo.Create(suite.ctx,
 			sample_name, &sample_description, &sample_skills,
 			USER_ONE+"1234")
 
@@ -132,9 +131,8 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 			Skills:      &skills,
 			OwnerID:     USER_ONE,
 		})
-		repo := NewProjectRepository(suite.db)
 
-		project, err := repo.Get(suite.ctx, projectID)
+		project, err := suite.repo.Get(suite.ctx, projectID)
 
 		suite.Cleanup()
 
@@ -148,9 +146,8 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 	t.Run("should get project summary with 1 ongoing task", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
-		repo := NewProjectRepository(suite.db)
 
-		project, _ := repo.Get(suite.ctx, projectID)
+		project, _ := suite.repo.Get(suite.ctx, projectID)
 
 		suite.Cleanup()
 
@@ -161,9 +158,8 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
 		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
 		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
-		repo := NewProjectRepository(suite.db)
 
-		project, _ := repo.Get(suite.ctx, projectID)
+		project, _ := suite.repo.Get(suite.ctx, projectID)
 
 		suite.Cleanup()
 
@@ -172,9 +168,8 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 	})
 	t.Run("should not get any project with invalid id", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		repo := NewProjectRepository(suite.db)
 
-		_, err := repo.Get(suite.ctx, projectID+"123")
+		_, err := suite.repo.Get(suite.ctx, projectID+"123")
 
 		suite.Cleanup()
 
@@ -186,8 +181,7 @@ func (suite *projectRepositoryTestSuite) TestProjectList() {
 	t := suite.T()
 
 	t.Run("should return empty list", func(t *testing.T) {
-		repo := NewProjectRepository(suite.db)
-		projects, err := repo.List(suite.ctx, USER_ONE)
+		projects, err := suite.repo.List(suite.ctx, USER_ONE)
 
 		suite.Cleanup()
 
@@ -199,8 +193,7 @@ func (suite *projectRepositoryTestSuite) TestProjectList() {
 		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 
-		repo := NewProjectRepository(suite.db)
-		projects, err := repo.List(suite.ctx, USER_ONE)
+		projects, err := suite.repo.List(suite.ctx, USER_ONE)
 
 		suite.Cleanup()
 
@@ -213,9 +206,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyCreated() {
 	t := suite.T()
 
 	t.Run("should get no recently created projects", func(t *testing.T) {
-		repo := NewProjectRepository(suite.db)
 
-		projects, err := repo.RecentlyCreated(suite.ctx, USER_ONE, 10)
+		projects, err := suite.repo.RecentlyCreated(suite.ctx, USER_ONE, 10)
 
 		suite.Cleanup()
 
@@ -226,9 +218,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyCreated() {
 	t.Run("should get 2 recently created projects", func(t *testing.T) {
 		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		repo := NewProjectRepository(suite.db)
 
-		projects, err := repo.RecentlyCreated(suite.ctx, USER_ONE, 10)
+		projects, err := suite.repo.RecentlyCreated(suite.ctx, USER_ONE, 10)
 
 		suite.Cleanup()
 
@@ -241,9 +232,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyJoined() {
 	t := suite.T()
 
 	t.Run("should get no recently joined projects", func(t *testing.T) {
-		repo := NewProjectRepository(suite.db)
 
-		projects, err := repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
+		projects, err := suite.repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
 
 		suite.Cleanup()
 
@@ -254,9 +244,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyJoined() {
 	t.Run("should get 1 recently joined projects", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
-		repo := NewProjectRepository(suite.db)
 
-		projects, err := repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
+		projects, err := suite.repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
 
 		suite.Cleanup()
 
@@ -268,9 +257,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyJoined() {
 		p2 := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		suite.fixtures.InsertMember(fixtures.GetMemberRow(p1, USER_TWO, core.ROLE_MEMBER))
 		suite.fixtures.InsertMember(fixtures.GetMemberRow(p2, USER_TWO, core.ROLE_MEMBER))
-		repo := NewProjectRepository(suite.db)
 
-		projects, err := repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
+		projects, err := suite.repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
 
 		suite.Cleanup()
 
