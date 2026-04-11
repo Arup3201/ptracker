@@ -44,15 +44,15 @@ func (suite *projectServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	txManager := core.NewTxManager(suite.db)
-	projectRepo := NewProjectRepository(suite.db)
-	memberRepo := members.NewMemberRepository(suite.db)
-	suite.service = NewProjectService(txManager, projectRepo, memberRepo)
-
 	err = testdata.TestMigrate(suite.db)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	txManager := core.NewTxManager(suite.db)
+	projectRepo := NewProjectRepository(suite.db)
+	memberRepo := members.NewMemberRepository(suite.db)
+	suite.service = NewProjectService(txManager, projectRepo, memberRepo)
 
 	suite.fixtures = fixtures.New(suite.ctx, suite.db)
 

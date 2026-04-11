@@ -42,8 +42,14 @@ type TaskService struct {
 	assigneeRepo *assignees.AssigneeRepository
 }
 
-func NewTaskService() *TaskService {
-	return &TaskService{}
+func NewTaskService(taskRepo *TaskRepository,
+	memberRepo *members.MemberRepository,
+	assigneeRepo *assignees.AssigneeRepository) *TaskService {
+	return &TaskService{
+		taskRepo:     taskRepo,
+		memberRepo:   memberRepo,
+		assigneeRepo: assigneeRepo,
+	}
 }
 
 func (s *TaskService) Create(ctx context.Context,
@@ -87,7 +93,7 @@ func (s *TaskService) List(ctx context.Context,
 
 	err = core.NeedsToBeAMember(ctx, s.memberRepo, projectID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("needs to be an owner: %w", err)
+		return nil, fmt.Errorf("needs to be a member: %w", err)
 	}
 
 	rows, err := s.taskRepo.List(ctx, projectID)
@@ -136,7 +142,7 @@ func (s *TaskService) Get(ctx context.Context,
 
 	err = core.NeedsToBeAMember(ctx, s.memberRepo, projectID, userID)
 	if err != nil {
-		return nil, fmt.Errorf("needs to be an owner: %w", err)
+		return nil, fmt.Errorf("needs to be a member: %w", err)
 	}
 
 	row, err := s.taskRepo.Get(ctx, taskID)

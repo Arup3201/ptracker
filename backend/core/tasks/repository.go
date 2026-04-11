@@ -145,7 +145,7 @@ func (r *TaskRepository) List(ctx context.Context,
 		WHERE t.project_id=? 
 		GROUP BY t.id`
 
-	var rows []ProjectTaskItemRow
+	var rows = []ProjectTaskItemRow{}
 	err := r.db.Raw(query, projectId).Scan(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("gorm db raw scan: %w", err)
@@ -188,11 +188,11 @@ func (r *TaskRepository) RecentlyAssigned(ctx context.Context,
 	userId string,
 	n int) ([]DashboardTaskItemRow, error) {
 
-	var rows []DashboardTaskItemRow
+	var rows = []DashboardTaskItemRow{}
 	err := r.db.WithContext(ctx).
 		Table("tasks t").
-		Select(`t.id, t.project_id, t.title, t.status, t.created_at, t.updated_at,
-				p.name as project_name`).
+		Select(`t.id, t.title, t.status, t.created_at, t.updated_at,
+				p.id as project_id, p.name as project_name`).
 		Joins("INNER JOIN projects AS p ON t.project_id=p.id").
 		Joins("INNER JOIN assignees AS a ON a.task_id=t.id").
 		Where("a.user_id = ?", userId).
@@ -211,7 +211,7 @@ func (r *TaskRepository) RecentlyUnassigned(ctx context.Context,
 	userId string,
 	n int) ([]DashboardTaskItemRow, error) {
 
-	var rows []DashboardTaskItemRow
+	var rows = []DashboardTaskItemRow{}
 	err := r.db.WithContext(ctx).
 		Table("tasks t").
 		Select(`t.id, t.project_id, t.title, t.status, t.created_at, t.updated_at,
