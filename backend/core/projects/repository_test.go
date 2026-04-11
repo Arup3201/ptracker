@@ -9,7 +9,7 @@ import (
 	"github.com/ptracker/core/models"
 	"github.com/ptracker/testdata"
 	"github.com/ptracker/testhelpers"
-	"github.com/ptracker/testhelpers/repo_fixtures"
+	"github.com/ptracker/testhelpers/fixtures"
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -21,7 +21,7 @@ type projectRepositoryTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
 	db          *gorm.DB
-	fixtures    *repo_fixtures.Fixtures
+	fixtures    *fixtures.Fixtures
 	ctx         context.Context
 }
 
@@ -45,11 +45,11 @@ func (suite *projectRepositoryTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.fixtures = repo_fixtures.New(suite.ctx, suite.db)
+	suite.fixtures = fixtures.New(suite.ctx, suite.db)
 
-	USER_ONE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
-	USER_TWO = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
-	USER_THREE = suite.fixtures.InsertUser(repo_fixtures.RandomUserRow())
+	USER_ONE = suite.fixtures.InsertUser(fixtures.RandomUserRow())
+	USER_TWO = suite.fixtures.InsertUser(fixtures.RandomUserRow())
+	USER_THREE = suite.fixtures.InsertUser(fixtures.RandomUserRow())
 }
 
 func (suite *projectRepositoryTestSuite) Cleanup() {
@@ -146,8 +146,8 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 		suite.Require().Equal(USER_ONE, project.OwnerID)
 	})
 	t.Run("should get project summary with 1 ongoing task", func(t *testing.T) {
-		projectID := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
+		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
 		repo := NewProjectRepository(suite.db)
 
 		project, _ := repo.Get(suite.ctx, projectID)
@@ -157,10 +157,10 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 		suite.Require().EqualValues(1, project.OngoingTasks)
 	})
 	t.Run("should get project summary with 2 completed and 1 unassigned task", func(t *testing.T) {
-		projectID := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
-		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
-		suite.fixtures.InsertTask(repo_fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
+		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_ONGOING))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_COMPLETED))
 		repo := NewProjectRepository(suite.db)
 
 		project, _ := repo.Get(suite.ctx, projectID)
@@ -171,7 +171,7 @@ func (suite *projectRepositoryTestSuite) TestProjectGet() {
 		suite.Require().EqualValues(2, project.CompletedTasks)
 	})
 	t.Run("should not get any project with invalid id", func(t *testing.T) {
-		projectID := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		repo := NewProjectRepository(suite.db)
 
 		_, err := repo.Get(suite.ctx, projectID+"123")
@@ -196,8 +196,8 @@ func (suite *projectRepositoryTestSuite) TestProjectList() {
 		suite.Require().Equal(0, len(projects))
 	})
 	t.Run("should return 2 projects", func(t *testing.T) {
-		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 
 		repo := NewProjectRepository(suite.db)
 		projects, err := repo.List(suite.ctx, USER_ONE)
@@ -224,8 +224,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyCreated() {
 		suite.Require().Equal(0, len(projects))
 	})
 	t.Run("should get 2 recently created projects", func(t *testing.T) {
-		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
 		repo := NewProjectRepository(suite.db)
 
 		projects, err := repo.RecentlyCreated(suite.ctx, USER_ONE, 10)
@@ -252,8 +252,8 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyJoined() {
 		suite.Require().Equal(0, len(projects))
 	})
 	t.Run("should get 1 recently joined projects", func(t *testing.T) {
-		p := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(repo_fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
 		repo := NewProjectRepository(suite.db)
 
 		projects, err := repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
@@ -264,10 +264,10 @@ func (suite *projectRepositoryTestSuite) TestProjectRecentlyJoined() {
 		suite.Require().Equal(1, len(projects))
 	})
 	t.Run("should get 2 recently joined projects", func(t *testing.T) {
-		p1 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		p2 := suite.fixtures.InsertProject(repo_fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(repo_fixtures.GetMemberRow(p1, USER_TWO, core.ROLE_MEMBER))
-		suite.fixtures.InsertMember(repo_fixtures.GetMemberRow(p2, USER_TWO, core.ROLE_MEMBER))
+		p1 := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		p2 := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p1, USER_TWO, core.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p2, USER_TWO, core.ROLE_MEMBER))
 		repo := NewProjectRepository(suite.db)
 
 		projects, err := repo.RecentlyJoined(suite.ctx, USER_TWO, 10)
