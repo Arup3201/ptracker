@@ -1,4 +1,4 @@
-package repo_fixtures
+package fixtures
 
 import (
 	"github.com/google/uuid"
