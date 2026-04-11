@@ -35,8 +35,14 @@ type ProjectService struct {
 	memberRepo  *members.MemberRepository
 }
 
-func NewProjectService() *ProjectService {
-	return &ProjectService{}
+func NewProjectService(txManager *core.TxManager,
+	projectRepo *ProjectRepository,
+	memberRepo *members.MemberRepository) *ProjectService {
+	return &ProjectService{
+		txManager:   txManager,
+		projectRepo: projectRepo,
+		memberRepo:  memberRepo,
+	}
 }
 
 func (s *ProjectService) CreateProject(ctx context.Context,
@@ -76,14 +82,7 @@ func (s *ProjectService) CreateProject(ctx context.Context,
 }
 
 func (s *ProjectService) Get(ctx context.Context,
-	projectID, userID string) (*ProjectSummary, error) {
-
-	var err error
-
-	err = core.NeedsToBeAMember(ctx, s.memberRepo, projectID, userID)
-	if err != nil {
-		return nil, fmt.Errorf("needs to be a member: %w", err)
-	}
+	projectID string) (*ProjectSummary, error) {
 
 	project, err := s.projectRepo.Get(ctx, projectID)
 	if err != nil {
