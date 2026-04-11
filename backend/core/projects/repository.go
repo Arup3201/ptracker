@@ -88,13 +88,13 @@ func (r *ProjectRepository) Get(ctx context.Context, id string) (ProjectSummaryR
 func (r *ProjectRepository) List(ctx context.Context,
 	userID string) ([]ProjectSummaryRow, error) {
 
-	var rows []ProjectSummaryRow
+	var rows = []ProjectSummaryRow{}
 	err := r.db.WithContext(ctx).
 		Table("projects p").
 		Select(`p.id, p.name, p.description, p.skills, p.owner_id, 
 				ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks, 
 				p.created_at, p.updated_at`).
-		Joins("INNER JOIN memberships as m ON m.project_id=p.id").
+		Joins("INNER JOIN members as m ON m.project_id=p.id").
 		Joins("LEFT JOIN project_summary as ps ON ps.id=p.id").
 		Where("m.user_id = ?", userID).
 		Scan(&rows).
@@ -109,7 +109,7 @@ func (r *ProjectRepository) List(ctx context.Context,
 func (r *ProjectRepository) RecentlyCreated(ctx context.Context,
 	userID string, n int) ([]ProjectSummaryRow, error) {
 
-	var rows []ProjectSummaryRow
+	var rows = []ProjectSummaryRow{}
 	err := r.db.WithContext(ctx).
 		Table("projects p").
 		Select(`p.id, p.name, p.description, p.skills, p.owner_id, 
@@ -132,13 +132,13 @@ func (r *ProjectRepository) RecentlyJoined(ctx context.Context,
 	userID string,
 	n int) ([]ProjectSummaryRow, error) {
 
-	var rows []ProjectSummaryRow
+	var rows = []ProjectSummaryRow{}
 	err := r.db.WithContext(ctx).
 		Table("projects p").
 		Select(`p.id, p.name, p.description, p.skills, p.owner_id,
 				ps.unassigned_tasks, ps.ongoing_tasks, ps.completed_tasks, ps.abandoned_tasks,
 				p.created_at, p.updated_at`).
-		Joins("INNER JOIN memberships as m ON m.project_id=p.id").
+		Joins("INNER JOIN members as m ON m.project_id=p.id").
 		Joins("LEFT JOIN project_summary as ps ON ps.id=p.id").
 		Where("m.user_id = ? AND m.role = ?", userID, core.ROLE_MEMBER).
 		Order("m.created_at DESC").
