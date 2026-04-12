@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/core"
 )
 
 /*
@@ -38,10 +38,10 @@ func (r *TaskStatus) Scan(value any) error {
 // Returns error if status is not Pending/Accepted/Rejected
 func (r TaskStatus) Value() (driver.Value, error) {
 	if !slices.Contains([]string{
-		domain.TASK_STATUS_UNASSIGNED,
-		domain.TASK_STATUS_ONGOING,
-		domain.TASK_STATUS_COMPLETED,
-		domain.TASK_STATUS_ABANDONED,
+		core.TASK_STATUS_UNASSIGNED,
+		core.TASK_STATUS_ONGOING,
+		core.TASK_STATUS_COMPLETED,
+		core.TASK_STATUS_ABANDONED,
 	}, r.String) {
 		return nil, fmt.Errorf("Invalid task status %s", r.String)
 	}

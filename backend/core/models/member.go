@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/core"
 )
 
 /*
@@ -36,7 +36,7 @@ func (r *UserRole) Scan(value any) error {
 // Returns the role value of the UserRole
 // Returns error if role is not Owner/Member
 func (r UserRole) Value() (driver.Value, error) {
-	if r.String != domain.ROLE_OWNER && r.String != domain.ROLE_MEMBER {
+	if r.String != core.ROLE_OWNER && r.String != core.ROLE_MEMBER {
 		return nil, fmt.Errorf("Invalid role %s", r.String)
 	}
 

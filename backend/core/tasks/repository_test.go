@@ -7,7 +7,6 @@ import (
 
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/models"
-	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/testdata"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/fixtures"
@@ -137,8 +136,8 @@ func (suite *taskRepositoryTestSuite) TestTaskGet() {
 	})
 	t.Run("should list assignees", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, domain.ROLE_MEMBER))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
 
 		_, err := suite.repo.Get(suite.ctx, taskID)
@@ -149,9 +148,9 @@ func (suite *taskRepositoryTestSuite) TestTaskGet() {
 	})
 	t.Run("should list 2 assignees", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, domain.ROLE_MEMBER))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, domain.ROLE_MEMBER))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_THREE))
 
@@ -163,9 +162,9 @@ func (suite *taskRepositoryTestSuite) TestTaskGet() {
 	})
 	t.Run("should list 2 assignees with ID", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, domain.ROLE_MEMBER))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, domain.ROLE_MEMBER))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_THREE))
 
@@ -196,7 +195,7 @@ func (suite *taskRepositoryTestSuite) TestTaskList() {
 	})
 	t.Run("should get list of tasks", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 
 		_, err := suite.repo.List(suite.ctx, p)
 
@@ -206,8 +205,8 @@ func (suite *taskRepositoryTestSuite) TestTaskList() {
 	})
 	t.Run("should get list of 2 tasks", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
-		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 
 		tasks, _ := suite.repo.List(suite.ctx, p)
 
@@ -217,8 +216,8 @@ func (suite *taskRepositoryTestSuite) TestTaskList() {
 	})
 	t.Run("should get list of 2 tasks with IDs", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		t1 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
-		t2 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		t1 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		t2 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 
 		tasks, _ := suite.repo.List(suite.ctx, p)
 
@@ -231,9 +230,9 @@ func (suite *taskRepositoryTestSuite) TestTaskList() {
 	})
 	t.Run("should get 1 task with 2 assignees", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, domain.ROLE_MEMBER))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, domain.ROLE_MEMBER))
-		task := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, core.ROLE_MEMBER))
+		task := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, task, USER_TWO))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, task, USER_THREE))
 
@@ -253,7 +252,7 @@ func (suite *taskRepositoryTestSuite) TestTaskUpdate() {
 
 	t.Run("should update task title", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
 		newTitle := "New Title"
 
 		err := suite.repo.Update(suite.ctx, taskID, &newTitle, nil, nil)
@@ -267,7 +266,7 @@ func (suite *taskRepositoryTestSuite) TestTaskUpdate() {
 	})
 	t.Run("should update task description", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
 		newDescription := "New Description"
 
 		err := suite.repo.Update(suite.ctx, taskID, nil, &newDescription, nil)
@@ -281,7 +280,7 @@ func (suite *taskRepositoryTestSuite) TestTaskUpdate() {
 	})
 	t.Run("should update task status", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
 		newStatus := core.TASK_STATUS_COMPLETED
 
 		err := suite.repo.Update(suite.ctx, taskID, nil, nil, &newStatus)
@@ -309,8 +308,8 @@ func (suite *taskRepositoryTestSuite) TestTaskRecentlyAssigned() {
 	})
 	t.Run("should get 2 recently assigned tasks", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		t1 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
-		t2 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
+		t1 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
+		t2 := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
 		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectID, USER_TWO, core.ROLE_MEMBER))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(projectID, t1, USER_TWO))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(projectID, t2, USER_TWO))
@@ -338,8 +337,8 @@ func (suite *taskRepositoryTestSuite) TestTaskRecentlyUnassigned() {
 	})
 	t.Run("should get 2 recently unassigned tasks", func(t *testing.T) {
 		projectID := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
-		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
-		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, domain.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectID, core.TASK_STATUS_UNASSIGNED))
 
 		tasks, err := suite.repo.RecentlyUnassigned(suite.ctx, USER_ONE, 10)
 

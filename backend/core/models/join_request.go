@@ -6,7 +6,7 @@ import (
 	"slices"
 	"time"
 
-	"github.com/ptracker/internal/domain"
+	"github.com/ptracker/core"
 )
 
 /*
@@ -38,9 +38,9 @@ func (r *JoinStatus) Scan(value any) error {
 // Returns error if status is not Pending/Accepted/Rejected
 func (r JoinStatus) Value() (driver.Value, error) {
 	if !slices.Contains([]string{
-		domain.JOIN_STATUS_PENDING,
-		domain.JOIN_STATUS_ACCEPTED,
-		domain.JOIN_STATUS_REJECTED,
+		core.JOIN_STATUS_PENDING,
+		core.JOIN_STATUS_ACCEPTED,
+		core.JOIN_STATUS_REJECTED,
 	}, r.String) {
 		return nil, fmt.Errorf("Invalid join status %s", r.String)
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/ptracker/core/assignees"
 	"github.com/ptracker/core/members"
 	"github.com/ptracker/core/models"
-	"github.com/ptracker/internal/domain"
 	"github.com/ptracker/testdata"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/fixtures"
@@ -82,7 +81,7 @@ func (suite *taskServiceTestSuite) TestTaskCreate() {
 
 		_, err := suite.service.Create(suite.ctx,
 			p, USER_ONE,
-			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED)
+			sample_title, sample_description, core.TASK_STATUS_UNASSIGNED)
 
 		suite.Cleanup()
 
@@ -98,7 +97,7 @@ func (suite *taskServiceTestSuite) TestTaskCreate() {
 
 		taskId, _ := suite.service.Create(suite.ctx,
 			p, USER_ONE,
-			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED)
+			sample_title, sample_description, core.TASK_STATUS_UNASSIGNED)
 
 		var status string
 		suite.db.WithContext(suite.ctx).
@@ -109,20 +108,20 @@ func (suite *taskServiceTestSuite) TestTaskCreate() {
 
 		suite.Cleanup()
 
-		suite.Require().Equal(domain.TASK_STATUS_UNASSIGNED, status)
+		suite.Require().Equal(core.TASK_STATUS_UNASSIGNED, status)
 	})
 	t.Run("should be forbidden for non-owner", func(t *testing.T) {
 		p := suite.fixtures.InsertProject(models.Project{
 			Name:    "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
 		sample_title := "sample task"
 		sample_description := "sample description"
 
 		_, err := suite.service.Create(suite.ctx,
 			p, USER_TWO,
-			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED)
+			sample_title, sample_description, core.TASK_STATUS_UNASSIGNED)
 
 		suite.Cleanup()
 
@@ -138,7 +137,7 @@ func (suite *taskServiceTestSuite) TestTaskCreate() {
 
 		_, err := suite.service.Create(suite.ctx,
 			p, USER_ONE,
-			sample_title, sample_description, domain.TASK_STATUS_UNASSIGNED)
+			sample_title, sample_description, core.TASK_STATUS_UNASSIGNED)
 
 		suite.Cleanup()
 
@@ -373,7 +372,7 @@ func (suite *taskServiceTestSuite) TestTaskUpdate() {
 		})
 		taskId := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectId, core.TASK_STATUS_ONGOING))
 		updatedTaskDesc := "Project description updated"
-		updatedStatus := domain.TASK_STATUS_ABANDONED
+		updatedStatus := core.TASK_STATUS_ABANDONED
 
 		suite.service.Update(suite.ctx,
 			projectId, taskId, USER_ONE,
@@ -385,7 +384,7 @@ func (suite *taskServiceTestSuite) TestTaskUpdate() {
 
 		suite.Require().NotNil(task.Description)
 		suite.Require().Equal(updatedTaskDesc, *task.Description)
-		suite.Require().Equal(domain.TASK_STATUS_ABANDONED, task.Status.String)
+		suite.Require().Equal(core.TASK_STATUS_ABANDONED, task.Status.String)
 	})
 	t.Run("should be invalid to update status with invalid value", func(t *testing.T) {
 		projectId := suite.fixtures.InsertProject(models.Project{
@@ -424,7 +423,7 @@ func (suite *taskServiceTestSuite) TestTaskUpdate() {
 			OwnerID: USER_ONE,
 		})
 		taskId := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectId, core.TASK_STATUS_ONGOING))
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, core.ROLE_MEMBER))
 		updatedTaskTitle := "Project title updated"
 
 		err := suite.service.Update(suite.ctx,
@@ -440,7 +439,7 @@ func (suite *taskServiceTestSuite) TestTaskUpdate() {
 			Name:    "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, core.ROLE_MEMBER))
 		taskId := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectId, core.TASK_STATUS_ONGOING))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(projectId, taskId, USER_TWO))
 		updatedTaskTitle := "Project title updated"
@@ -463,7 +462,7 @@ func (suite *taskServiceTestSuite) TestRecentlyAssigned() {
 			Name:    "Project Fixture A",
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, core.ROLE_MEMBER))
 		suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectId, core.TASK_STATUS_ONGOING))
 
 		tasks, err := suite.service.RecentlyAssigned(suite.ctx, USER_ONE)
@@ -480,7 +479,7 @@ func (suite *taskServiceTestSuite) TestRecentlyAssigned() {
 			Name:    name,
 			OwnerID: USER_ONE,
 		})
-		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, domain.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(projectId, USER_TWO, core.ROLE_MEMBER))
 		taskId := suite.fixtures.InsertTask(fixtures.RandomTaskRow(projectId, core.TASK_STATUS_ONGOING))
 		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(projectId, taskId, USER_TWO))
 

@@ -3,7 +3,7 @@ package backend
 import (
 	"fmt"
 
-	"github.com/ptracker/internal/repositories/models"
+	"github.com/ptracker/core/models"
 	"gorm.io/gorm"
 )
 
@@ -12,12 +12,11 @@ func Migrate(db *gorm.DB) error {
 
 	err = db.AutoMigrate(
 		&models.User{},
-		&models.Session{},
 		&models.Project{},
 		&models.Task{},
 		&models.Assignee{},
 		&models.JoinRequest{},
-		&models.Membership{},
+		&models.Member{},
 		&models.Comment{},
 	)
 	if err != nil {
