@@ -2,6 +2,7 @@ package assignees
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -36,7 +37,7 @@ func (s *AssigneeService) AddAssignee(ctx context.Context,
 		return fmt.Errorf("needs to be a owner: %w", err)
 	}
 
-	if err = s.assigneeRepo.Is(ctx, projectID, taskID, userID); err != core.ErrNotFound {
+	if err = s.assigneeRepo.Is(ctx, projectID, taskID, assigneeID); err == nil {
 		return core.ErrDuplicate
 	}
 
@@ -58,7 +59,7 @@ func (s *AssigneeService) RemoveAssignee(ctx context.Context,
 		return fmt.Errorf("needs to be a owner: %w", err)
 	}
 
-	if err = s.assigneeRepo.Is(ctx, projectID, taskID, userID); err == core.ErrNotFound {
+	if err = s.assigneeRepo.Is(ctx, projectID, taskID, assigneeID); errors.Is(err, core.ErrNotFound) {
 		return core.ErrNotFound
 	}
 
