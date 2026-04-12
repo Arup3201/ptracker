@@ -59,7 +59,7 @@ func (r *JoinRepository) Create(ctx context.Context,
 
 func (r *JoinRepository) List(ctx context.Context, projectID string) ([]JoinRequestRow, error) {
 
-	var rows []JoinRequestRow
+	var rows = []JoinRequestRow{}
 	err := r.db.WithContext(ctx).
 		Table("join_requests jr").
 		Select(`jr.project_id, jr.status, jr.created_at, jr.updated_at, 
@@ -97,7 +97,9 @@ func (r *JoinRepository) Update(ctx context.Context, projectID, userID, joinStat
 	joinReq, err := gorm.G[models.JoinRequest](r.db).Where(
 		"project_id = ? AND user_id = ?",
 		projectID, userID).First(ctx)
-	if err != nil {
+	if err == gorm.ErrRecordNotFound {
+		return core.ErrNotFound
+	} else if err != nil {
 		return fmt.Errorf("join request get: %w", err)
 	}
 

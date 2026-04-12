@@ -25,6 +25,16 @@ type JoinRequestService struct {
 	memberRepo *members.MemberRepository
 }
 
+func NewJoinRequestService(txManager *core.TxManager,
+	joinRepo *JoinRepository,
+	memberRepo *members.MemberRepository) *JoinRequestService {
+	return &JoinRequestService{
+		txManager:  txManager,
+		joinRepo:   joinRepo,
+		memberRepo: memberRepo,
+	}
+}
+
 func (s *JoinRequestService) Create(ctx context.Context,
 	projectID, userID string) error {
 
