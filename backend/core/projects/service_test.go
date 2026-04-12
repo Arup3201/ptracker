@@ -75,7 +75,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		_, err := suite.service.CreateProject(suite.ctx,
+		_, err := suite.service.Create(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -91,7 +91,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		id, _ := suite.service.CreateProject(suite.ctx,
+		id, _ := suite.service.Create(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -113,7 +113,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_name := "Test Project"
 		sample_skills := "C++, Java"
 
-		_, err := suite.service.CreateProject(suite.ctx,
+		_, err := suite.service.Create(suite.ctx,
 			sample_name,
 			nil,
 			&sample_skills,
@@ -128,7 +128,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_name := "Test Project"
 		sample_description := "Test Description"
 
-		_, err := suite.service.CreateProject(suite.ctx,
+		_, err := suite.service.Create(suite.ctx,
 			sample_name,
 			&sample_description,
 			nil,
@@ -144,7 +144,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		_, err := suite.service.CreateProject(suite.ctx,
+		_, err := suite.service.Create(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,
@@ -160,7 +160,7 @@ func (suite *projectServiceTestSuite) TestProjectCreate() {
 		sample_description := "Test Description"
 		sample_skills := "C++, Java"
 
-		id, _ := suite.service.CreateProject(suite.ctx,
+		id, _ := suite.service.Create(suite.ctx,
 			sample_name,
 			&sample_description,
 			&sample_skills,

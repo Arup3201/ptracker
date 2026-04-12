@@ -45,7 +45,7 @@ func NewProjectService(txManager *core.TxManager,
 	}
 }
 
-func (s *ProjectService) CreateProject(ctx context.Context,
+func (s *ProjectService) Create(ctx context.Context,
 	name string,
 	description, skills *string,
 	ownerID string) (string, error) {
