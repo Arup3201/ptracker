@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Project struct {
+type ProjectPreview struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
 	Description *string   `json:"description"`
@@ -22,7 +22,7 @@ type Project struct {
 }
 
 type ProjectSummary struct {
-	Project
+	ProjectPreview
 	UnassignedTasks int64 `json:"unassigned_tasks"`
 	OngoingTasks    int64 `json:"ongoing_tasks"`
 	CompletedTasks  int64 `json:"completed_tasks"`
@@ -90,7 +90,7 @@ func (s *ProjectService) Get(ctx context.Context,
 	}
 
 	myProject := ProjectSummary{
-		Project: Project{
+		ProjectPreview: ProjectPreview{
 			ID:          project.ID,
 			Name:        project.Name,
 			Description: project.Description,
@@ -118,7 +118,7 @@ func (s *ProjectService) MyProjects(ctx context.Context,
 	myProjects := []ProjectSummary{}
 	for _, p := range projects {
 		myProjects = append(myProjects, ProjectSummary{
-			Project: Project{
+			ProjectPreview: ProjectPreview{
 				ID:          p.ID,
 				Name:        p.Name,
 				Description: p.Description,
@@ -137,19 +137,43 @@ func (s *ProjectService) MyProjects(ctx context.Context,
 	return myProjects, nil
 }
 
+func (s *ProjectService) ListPublic(ctx context.Context,
+	userID string) ([]ProjectPreview, error) {
+
+	rows, err := s.projectRepo.Public(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("project repository public: %w", err)
+	}
+
+	projects := []ProjectPreview{}
+	for _, r := range rows {
+		projects = append(projects, ProjectPreview{
+			ID:          r.ID,
+			Name:        r.Name,
+			Description: r.Description,
+			Skills:      r.Skills,
+			OwnerID:     r.OwnerID,
+			CreatedAt:   r.CreatedAt,
+			UpdatedAt:   r.UpdatedAt,
+		})
+	}
+
+	return projects, nil
+}
+
 func (s *ProjectService) RecentlyCreated(ctx context.Context,
 	userID string) ([]ProjectSummary, error) {
 
 	// pick last 10 recently created projects in descending order of their creation time
 	rows, err := s.projectRepo.RecentlyCreated(ctx, userID, 10)
 	if err != nil {
-		return nil, fmt.Errorf("list recently created projects: %w", err)
+		return nil, fmt.Errorf("project repository recently created projects: %w", err)
 	}
 
 	projects := []ProjectSummary{}
 	for _, p := range rows {
 		projects = append(projects, ProjectSummary{
-			Project: Project{
+			ProjectPreview: ProjectPreview{
 				ID:          p.ID,
 				Name:        p.Name,
 				Description: p.Description,
@@ -174,13 +198,13 @@ func (s *ProjectService) RecentlyJoined(ctx context.Context,
 	// pick last 10 recently joined projects in descending order of their joining time
 	rows, err := s.projectRepo.RecentlyJoined(ctx, userID, 10)
 	if err != nil {
-		return nil, fmt.Errorf("list recently joined projects: %w", err)
+		return nil, fmt.Errorf("project repository recently joined projects: %w", err)
 	}
 
 	projects := []ProjectSummary{}
 	for _, p := range rows {
 		projects = append(projects, ProjectSummary{
-			Project: Project{
+			ProjectPreview: ProjectPreview{
 				ID:          p.ID,
 				Name:        p.Name,
 				Description: p.Description,

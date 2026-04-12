@@ -35,6 +35,28 @@ func (r *JoinRepository) WithTx(tx *gorm.DB) *JoinRepository {
 	return NewJoinRepository(tx)
 }
 
+func (r *JoinRepository) Create(ctx context.Context,
+	projectID, userID, joinStatus string) error {
+
+	var err error
+
+	joinReq := models.JoinRequest{
+		ProjectID: projectID,
+		UserID:    userID,
+		Status: models.JoinStatus{
+			String: joinStatus,
+		},
+	}
+	err = gorm.G[models.JoinRequest](r.db).Create(ctx, &joinReq)
+	if err == gorm.ErrDuplicatedKey {
+		return core.ErrDuplicate
+	} else if err != nil {
+		return fmt.Errorf("gorm create: %w", err)
+	}
+
+	return nil
+}
+
 func (r *JoinRepository) List(ctx context.Context, projectID string) ([]JoinRequestRow, error) {
 
 	var rows []JoinRequestRow

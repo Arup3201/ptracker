@@ -70,6 +70,18 @@ func (r *MemberRepository) Role(ctx context.Context,
 	return member.Role.String, nil
 }
 
+func (r *MemberRepository) Count(ctx context.Context,
+	projectID string) (int64, error) {
+
+	var cnt int64
+	err := r.db.Model(&models.Member{}).Where("project_id = ?", projectID).Count(&cnt).Error
+	if err != nil {
+		return -1, fmt.Errorf("gorm db count query: %w", err)
+	}
+
+	return cnt, nil
+}
+
 func (r *MemberRepository) List(ctx context.Context,
 	projectID string) ([]MemberRow, error) {
 

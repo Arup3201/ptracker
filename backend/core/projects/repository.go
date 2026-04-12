@@ -25,6 +25,16 @@ type ProjectSummaryRow struct {
 	UpdatedAt       time.Time `gorm:"column:updated_at"`
 }
 
+type ProjectPreviewRow struct {
+	ID          string    `gorm:"column:id"`
+	Name        string    `gorm:"column:name"`
+	Description *string   `gorm:"column:description"`
+	Skills      *string   `gorm:"column:skills"`
+	OwnerID     string    `gorm:"column:owner_id"`
+	CreatedAt   time.Time `gorm:"column:created_at"`
+	UpdatedAt   time.Time `gorm:"column:updated_at"`
+}
+
 type ProjectRepository struct {
 	db *gorm.DB
 }
@@ -99,6 +109,29 @@ func (r *ProjectRepository) List(ctx context.Context,
 		Where("m.user_id = ?", userID).
 		Scan(&rows).
 		Error
+	if err != nil {
+		return nil, fmt.Errorf("gorm db scan: %w", err)
+	}
+
+	return rows, nil
+}
+
+func (r *ProjectRepository) Public(ctx context.Context,
+	userID string) ([]ProjectPreviewRow, error) {
+
+	var rows []ProjectPreviewRow
+	err := r.db.WithContext(ctx).
+		Table("projects").
+		Select(`id, name, description, skills, owner_id, 
+			created_at, updated_at`).
+		Where("owner_id != ? AND NOT EXISTS (?)",
+			userID,
+			r.db.WithContext(ctx).
+				Table("memberships").
+				Select("1").
+				Where("project_id = projects.id AND user_id = ?", userID),
+		).
+		Scan(&rows).Error
 	if err != nil {
 		return nil, fmt.Errorf("gorm db scan: %w", err)
 	}

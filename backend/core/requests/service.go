@@ -25,6 +25,28 @@ type JoinRequestService struct {
 	memberRepo *members.MemberRepository
 }
 
+func (s *JoinRequestService) Create(ctx context.Context,
+	projectID, userID string) error {
+
+	err := s.joinRepo.Create(ctx, projectID, userID, core.JOIN_STATUS_PENDING)
+	if err != nil {
+		return fmt.Errorf("join repository create: %w", err)
+	}
+
+	return nil
+}
+
+func (s *JoinRequestService) GetStatus(ctx context.Context,
+	projectID, userID string) (string, error) {
+
+	status, err := s.joinRepo.Status(ctx, projectID, userID)
+	if err != nil {
+		return "", fmt.Errorf("join repository status: %w", err)
+	}
+
+	return status, nil
+}
+
 func (s *JoinRequestService) List(ctx context.Context,
 	projectID, userID string) ([]JoinRequest, error) {
 

@@ -24,6 +24,28 @@ func NewMemberService() *MemberService {
 	return &MemberService{}
 }
 
+func (s *MemberService) GetRole(ctx context.Context,
+	projectID, userID string) (string, error) {
+
+	role, err := s.memberRepo.Role(ctx, projectID, userID)
+	if err != nil {
+		return "", fmt.Errorf("member repository role: %w", err)
+	}
+
+	return role, nil
+}
+
+func (s *MemberService) Count(ctx context.Context,
+	projectID, userID string) (int64, error) {
+
+	count, err := s.memberRepo.Count(ctx, projectID)
+	if err != nil {
+		return -1, fmt.Errorf("member repository count: %w", err)
+	}
+
+	return count, nil
+}
+
 func (s *MemberService) AllMembers(ctx context.Context,
 	projectID, userID string) ([]Member, error) {
 
