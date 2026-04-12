@@ -202,6 +202,43 @@ func (suite *projectRepositoryTestSuite) TestProjectList() {
 	})
 }
 
+func (suite *projectRepositoryTestSuite) TestProjectPublic() {
+	t := suite.T()
+
+	t.Run("should get empty list of public projects", func(t *testing.T) {
+		projects, err := suite.repo.Public(suite.ctx, USER_ONE)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().NotNil(projects)
+		suite.Require().Equal(0, len(projects))
+	})
+	t.Run("should get 2 public projects", func(t *testing.T) {
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+
+		projects, err := suite.repo.Public(suite.ctx, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(2, len(projects))
+	})
+	t.Run("should get 1 public project", func(t *testing.T) {
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		// should not be included in the result
+		suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_TWO))
+
+		projects, err := suite.repo.Public(suite.ctx, USER_TWO)
+
+		suite.Cleanup()
+
+		suite.Require().NoError(err)
+		suite.Require().Equal(1, len(projects))
+	})
+}
+
 func (suite *projectRepositoryTestSuite) TestProjectRecentlyCreated() {
 	t := suite.T()
 

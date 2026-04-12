@@ -119,7 +119,7 @@ func (r *ProjectRepository) List(ctx context.Context,
 func (r *ProjectRepository) Public(ctx context.Context,
 	userID string) ([]ProjectPreviewRow, error) {
 
-	var rows []ProjectPreviewRow
+	var rows = []ProjectPreviewRow{}
 	err := r.db.WithContext(ctx).
 		Table("projects").
 		Select(`id, name, description, skills, owner_id, 
@@ -127,7 +127,7 @@ func (r *ProjectRepository) Public(ctx context.Context,
 		Where("owner_id != ? AND NOT EXISTS (?)",
 			userID,
 			r.db.WithContext(ctx).
-				Table("memberships").
+				Table("members").
 				Select("1").
 				Where("project_id = projects.id AND user_id = ?", userID),
 		).
