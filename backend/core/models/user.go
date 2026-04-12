@@ -9,7 +9,7 @@ type User struct {
 	Email         string
 	AvatarURL     *string // nullable
 	CreatedAt     time.Time
-	UpdatedAt     time.Time // nullable
+	UpdatedAt     time.Time
 	LastLoginTime time.Time
 
 	Projects     []Project     `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
