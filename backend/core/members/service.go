@@ -20,8 +20,10 @@ type MemberService struct {
 	memberRepo *MemberRepository
 }
 
-func NewMemberService() *MemberService {
-	return &MemberService{}
+func NewMemberService(memberRepo *MemberRepository) *MemberService {
+	return &MemberService{
+		memberRepo: memberRepo,
+	}
 }
 
 func (s *MemberService) GetRole(ctx context.Context,

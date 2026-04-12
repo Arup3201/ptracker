@@ -87,7 +87,7 @@ func (r *MemberRepository) List(ctx context.Context,
 
 	var rows []MemberRow
 	err := r.db.WithContext(ctx).
-		Table("memberships m").
+		Table("members m").
 		Select(`m.project_id, m.role, m.created_at, m.updated_at, 
 				u.id as member_user_id, 
 				u.username as member_username, 
