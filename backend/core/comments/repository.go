@@ -61,12 +61,16 @@ func (r *CommentRepository) Create(ctx context.Context,
 func (r *CommentRepository) List(ctx context.Context,
 	projectId, taskId string) ([]CommentRow, error) {
 
-	var rows []CommentRow
+	var rows = []CommentRow{}
 	err := r.db.WithContext(ctx).
 		Table("comments c").
 		Select(`c.id, c.project_id, c.task_id, c.content, 
 				c.created_at, c.updated_at, 
-				u.id, u.username, u.display_name, u.email, u.avatar_url`).
+				u.id as user_id, 
+				u.username as username, 
+				u.display_name as display_name, 
+				u.email as email, 
+				u.avatar_url as avatar_url`).
 		Joins("INNER JOIN users as u ON u.id=c.user_id").
 		Where("c.project_id = ? AND c.task_id = ?", projectId, taskId).
 		Scan(&rows).Error
