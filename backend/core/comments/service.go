@@ -25,8 +25,12 @@ type CommentService struct {
 	memberRepo  *members.MemberRepository
 }
 
-func NewCommentService() *CommentService {
-	return &CommentService{}
+func NewCommentService(commentRepo *CommentRepository,
+	memberRepo *members.MemberRepository) *CommentService {
+	return &CommentService{
+		commentRepo: commentRepo,
+		memberRepo:  memberRepo,
+	}
 }
 
 func (s *CommentService) Create(ctx context.Context,

@@ -50,9 +50,9 @@ func (suite *commentServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	service := NewCommentService()
-	service.commentRepo = NewCommentRepository(suite.db)
-	service.memberRepo = members.NewMemberRepository(suite.db)
+	commentRepo := NewCommentRepository(suite.db)
+	memberRepo := members.NewMemberRepository(suite.db)
+	service := NewCommentService(commentRepo, memberRepo)
 	suite.service = service
 
 	suite.fixtures = fixtures.New(suite.ctx, suite.db)
