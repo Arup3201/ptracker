@@ -48,9 +48,9 @@ func (suite *assigneeServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	service := NewAssigneeService()
-	service.memberRepo = members.NewMemberRepository(suite.db)
-	service.assigneeRepo = NewAssigneeRepository(suite.db)
+	memberRepo := members.NewMemberRepository(suite.db)
+	assigneeRepo := NewAssigneeRepository(suite.db)
+	service := NewAssigneeService(memberRepo, assigneeRepo)
 	suite.service = service
 
 	suite.fixtures = fixtures.New(suite.ctx, suite.db)

@@ -23,8 +23,12 @@ type AssigneeService struct {
 	assigneeRepo *AssigneeRepository
 }
 
-func NewAssigneeService() *AssigneeService {
-	return &AssigneeService{}
+func NewAssigneeService(memberRepo *members.MemberRepository,
+	assigneeRepo *AssigneeRepository) *AssigneeService {
+	return &AssigneeService{
+		memberRepo:   memberRepo,
+		assigneeRepo: assigneeRepo,
+	}
 }
 
 func (s *AssigneeService) AddAssignee(ctx context.Context,
