@@ -1,0 +1,45 @@
+package app
+
+import (
+	"fmt"
+	"os"
+)
+
+type Config struct {
+	Host, Port                             string
+	DBHost, DBPort, DBPass, DBUser, DBName string
+	FrontendURL                            string
+}
+
+func (c *Config) LoadFromEnv() error {
+	c.Host = os.Getenv(ENV_HOST)
+	if c.Host == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_HOST)
+	}
+	c.Port = os.Getenv(ENV_PORT)
+	if c.Port == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_PORT)
+	}
+	c.DBHost = os.Getenv(ENV_DB_HOST)
+	if c.DBHost == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_DB_HOST)
+	}
+	c.DBUser = os.Getenv(ENV_DB_USER)
+	if c.DBUser == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_DB_USER)
+	}
+	c.DBPort = os.Getenv(ENV_DB_PORT)
+	if c.DBPort == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_DB_PORT)
+	}
+	c.DBPass = os.Getenv(ENV_DB_PASS)
+	if c.DBPass == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_DB_PASS)
+	}
+	c.DBName = os.Getenv(ENV_DB_NAME)
+	if c.DBName == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_DB_NAME)
+	}
+
+	return nil
+}
