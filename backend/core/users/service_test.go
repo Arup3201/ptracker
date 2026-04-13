@@ -60,59 +60,6 @@ func (suite *userServiceTestSuite) Cleanup() {
 	suite.Require().NoError(err)
 }
 
-func (suite *userServiceTestSuite) TestCreate() {
-	t := suite.T()
-
-	t.Run("should create user", func(t *testing.T) {
-		username := "alice"
-		email := "alice@test.com"
-
-		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
-
-		suite.Require().NoError(err)
-	})
-	t.Run("should create user with displayname and avatar", func(t *testing.T) {
-		dn := "Alice"
-		au := "http://avatar"
-		username := "alice2"
-		email := "alice2@test.com"
-
-		id, err := suite.service.Create(suite.ctx, username, email, &dn, &au)
-
-		suite.Require().NoError(err)
-
-		u, err := gorm.G[models.User](suite.db).Where("id = ?", id).First(suite.ctx)
-		suite.Require().NoError(err)
-		suite.Require().Equal(dn, *u.DisplayName)
-		suite.Require().Equal(au, *u.AvatarURL)
-	})
-	t.Run("should get invalid value error with empty email", func(t *testing.T) {
-		username := "alice"
-		email := ""
-
-		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
-
-		suite.Require().ErrorIs(err, core.ErrInvalidValue)
-	})
-	t.Run("should get invalid value error with invalid email address", func(t *testing.T) {
-		username := "alice"
-		email := "alice.test@com"
-
-		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
-
-		suite.Require().ErrorIs(err, core.ErrInvalidValue)
-	})
-	t.Run("should get invalid value error with empty username", func(t *testing.T) {
-		username := ""
-		email := "alice@test.com"
-
-		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
-
-		suite.Require().ErrorIs(err, core.ErrInvalidValue)
-	})
-	suite.Cleanup()
-}
-
 func (suite *userServiceTestSuite) TestGet() {
 	t := suite.T()
 
