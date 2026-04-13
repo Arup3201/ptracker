@@ -3,10 +3,10 @@ package models
 import "time"
 
 type User struct {
-	ID            string `gorm:"primaryKey"`
-	Username      string
+	ID            string  `gorm:"primaryKey"`
+	Username      string  `gorm:"unique"`
 	DisplayName   *string // nullable
-	Email         string
+	Email         string  `gorm:"unique"`
 	AvatarURL     *string // nullable
 	CreatedAt     time.Time
 	UpdatedAt     time.Time
