@@ -69,6 +69,18 @@ type TaskApi struct {
 	commentService  *comments.CommentService
 }
 
+func NewTaskApi(
+	taskService *tasks.TaskService,
+	assigneeService *assignees.AssigneeService,
+	commentService *comments.CommentService,
+) *TaskApi {
+	return &TaskApi{
+		taskService:     taskService,
+		assigneeService: assigneeService,
+		commentService:  commentService,
+	}
+}
+
 func (api *TaskApi) Create(w http.ResponseWriter, r *http.Request) error {
 
 	projectID := r.PathValue("project_id")

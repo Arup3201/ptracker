@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/core"
@@ -27,8 +28,23 @@ type ProjectDetail struct {
 	Owner       core.Avatar `json:"owner"`
 }
 
+type PublicProjectDetail struct {
+	projects.ProjectSummary
+	JoinStatus string `json:"join_status"`
+}
+
 type ListedProjectSummaries struct {
 	Projects []projects.ProjectSummary `json:"projects"`
+	Page     int                       `json:"page"`
+	Limit    int                       `json:"limit"`
+	HasNext  bool                      `json:"has_next"`
+}
+
+type ListedProjectPreviews struct {
+	Projects []projects.ProjectPreview `json:"projects"`
+	Page     int                       `json:"page"`
+	Limit    int                       `json:"limit"`
+	HasNext  bool                      `json:"has_next"`
 }
 
 type ListedJoinRequests struct {
@@ -49,6 +65,20 @@ type ProjectApi struct {
 	userService        *users.UserService
 	memberService      *members.MemberService
 	joinRequestService *requests.JoinRequestService
+}
+
+func NewProjectApi(
+	projectService *projects.ProjectService,
+	userService *users.UserService,
+	memberService *members.MemberService,
+	joinRequestService *requests.JoinRequestService,
+) *ProjectApi {
+	return &ProjectApi{
+		projectService:     projectService,
+		userService:        userService,
+		memberService:      memberService,
+		joinRequestService: joinRequestService,
+	}
 }
 
 func (api *ProjectApi) Create(w http.ResponseWriter, r *http.Request) error {
@@ -141,12 +171,112 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 			},
 		})
 	} else {
-		json.NewEncoder(w).Encode(HTTPSuccessResponse[projects.ProjectSummary]{
+		joinStatus, err := api.joinRequestService.GetStatus(r.Context(),
+			projectID, userID)
+		if err != nil {
+			return fmt.Errorf("join request service get status: %w", err)
+		}
+
+		json.NewEncoder(w).Encode(HTTPSuccessResponse[PublicProjectDetail]{
 			Status: RESPONSE_SUCCESS_STATUS,
-			Data:   projectSummary,
+			Data: &PublicProjectDetail{
+				ProjectSummary: *projectSummary,
+				JoinStatus:     joinStatus,
+			},
 		})
 	}
 
+	return nil
+}
+
+func (api *ProjectApi) ListMyProjects(w http.ResponseWriter, r *http.Request) error {
+	queryPage := r.URL.Query().Get("page")
+	queryLimit := r.URL.Query().Get("limit")
+
+	var page, limit int
+	if queryPage != "" {
+		var err error
+		page, err = strconv.Atoi(queryPage)
+		if err != nil {
+			return core.ErrInvalidValue
+		}
+	} else {
+		page = 1
+	}
+	if queryLimit != "" {
+		var err error
+		limit, err = strconv.Atoi(queryLimit)
+		if err != nil {
+			return core.ErrInvalidValue
+		}
+	} else {
+		limit = 10
+	}
+
+	userID, err := GetUserID(r)
+	if err != nil {
+		return fmt.Errorf("get userID: %w", err)
+	}
+
+	summaries, err := api.projectService.MyProjects(r.Context(), userID)
+	if err != nil {
+		return fmt.Errorf("project service my projects: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedProjectSummaries]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedProjectSummaries{
+			Projects: summaries,
+			Page:     page,
+			Limit:    limit,
+		},
+	})
+
+	return nil
+}
+
+func (api *ProjectApi) ListPublic(w http.ResponseWriter, r *http.Request) error {
+	queryPage := r.URL.Query().Get("page")
+	queryLimit := r.URL.Query().Get("limit")
+
+	var page, limit int
+	if queryPage != "" {
+		var err error
+		page, err = strconv.Atoi(queryPage)
+		if err != nil {
+			return core.ErrInvalidValue
+		}
+	} else {
+		page = 1
+	}
+	if queryLimit != "" {
+		var err error
+		limit, err = strconv.Atoi(queryLimit)
+		if err != nil {
+			return core.ErrInvalidValue
+		}
+	} else {
+		limit = 10
+	}
+
+	userID, err := GetUserID(r)
+	if err != nil {
+		return fmt.Errorf("get userID: %w", err)
+	}
+
+	projects, err := api.projectService.ListPublic(r.Context(), userID)
+	if err != nil {
+		return fmt.Errorf("project service list public: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[ListedProjectPreviews]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &ListedProjectPreviews{
+			Projects: projects,
+			Page:     page,
+			Limit:    limit,
+		},
+	})
 	return nil
 }
 
@@ -217,6 +347,31 @@ func (api *ProjectApi) ListMembers(w http.ResponseWriter, r *http.Request) error
 		Data: &ListedMembers{
 			Members: members,
 		},
+	})
+
+	return nil
+}
+
+func (api *ProjectApi) AddJoinRequest(w http.ResponseWriter, r *http.Request) error {
+
+	projectID := r.PathValue("id")
+	if projectID == "" {
+		return core.ErrInvalidValue
+	}
+
+	userID, err := GetUserID(r)
+	if err != nil {
+		return fmt.Errorf("get projects userID: %w", err)
+	}
+
+	err = api.joinRequestService.Create(r.Context(), projectID, userID)
+	if err != nil {
+		return fmt.Errorf("join request service create: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Join request created",
 	})
 
 	return nil
