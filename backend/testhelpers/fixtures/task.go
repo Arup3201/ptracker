@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 )
 
 func RandomTaskRow(projectId, status string) models.Task {

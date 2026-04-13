@@ -7,7 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ptracker/core"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )

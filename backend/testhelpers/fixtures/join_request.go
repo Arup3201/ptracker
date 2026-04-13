@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ptracker/core"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 )
 
 func GetJoinRequest(projectID, userID string) models.JoinRequest {

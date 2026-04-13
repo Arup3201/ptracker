@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ptracker/core"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 )
 
 func RandomProjectRow(ownerID string) models.Project {

@@ -2,7 +2,7 @@ package fixtures
 
 import (
 	"github.com/google/uuid"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 )
 
 func GetCommentRow(projectId, taskId, userId, content string) models.Comment {

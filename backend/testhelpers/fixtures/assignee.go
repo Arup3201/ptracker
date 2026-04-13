@@ -3,7 +3,7 @@ package fixtures
 import (
 	"fmt"
 
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 )
 
 func GetAssigneeRow(projectID, taskID, userID string) models.Assignee {

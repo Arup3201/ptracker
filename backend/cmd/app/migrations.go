@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 	"gorm.io/gorm"
 )
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/members"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 	"github.com/ptracker/testdata"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/fixtures"

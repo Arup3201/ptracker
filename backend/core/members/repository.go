@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ptracker/core"
-	"github.com/ptracker/core/models"
+	"github.com/ptracker/models"
 	"gorm.io/gorm"
 )
 
