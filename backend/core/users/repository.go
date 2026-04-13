@@ -20,6 +20,10 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 	}
 }
 
+func (r *UserRepository) WithTx(tx *gorm.DB) *UserRepository {
+	return NewUserRepository(tx)
+}
+
 func (r *UserRepository) Create(ctx context.Context,
 	username, email string,
 	displayName, avatarUrl *string) (string, error) {
