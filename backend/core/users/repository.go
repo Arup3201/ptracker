@@ -34,7 +34,7 @@ func (r *UserRepository) Create(ctx context.Context,
 	}
 	err := gorm.G[models.User](r.db).Create(ctx, &user)
 	if err != nil {
-		return "", fmt.Errorf("store create user: %w", err)
+		return "", fmt.Errorf("gorm create: %w", err)
 	}
 
 	return user.ID, nil

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/ptracker/core"
+	"github.com/ptracker/models"
 	"github.com/ptracker/testdata"
 	"github.com/ptracker/testhelpers"
 	"github.com/ptracker/testhelpers/fixtures"
@@ -20,7 +21,6 @@ type userServiceTestSuite struct {
 	pgContainer *testhelpers.PostgresContainer
 	db          *gorm.DB
 	fixtures    *fixtures.Fixtures
-	repo        *UserRepository
 	service     *UserService
 }
 
@@ -48,33 +48,87 @@ func (suite *userServiceTestSuite) SetupSuite() {
 		log.Fatal(err)
 	}
 
-	suite.repo = NewUserRepository(suite.db)
-	suite.service = NewUserService(suite.repo)
+	repo := NewUserRepository(suite.db)
+	suite.service = NewUserService(repo)
 
 	suite.fixtures = fixtures.New(suite.ctx, suite.db)
 }
 
 func (suite *userServiceTestSuite) Cleanup() {
 	err := suite.db.WithContext(suite.ctx).
-		Exec("DELETE FROM projects").Error
+		Exec("DELETE FROM users").Error
 	suite.Require().NoError(err)
+}
+
+func (suite *userServiceTestSuite) TestCreate() {
+	t := suite.T()
+
+	t.Run("should create user", func(t *testing.T) {
+		username := "alice"
+		email := "alice@test.com"
+
+		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
+
+		suite.Require().NoError(err)
+	})
+	t.Run("should create user with displayname and avatar", func(t *testing.T) {
+		dn := "Alice"
+		au := "http://avatar"
+		username := "alice2"
+		email := "alice2@test.com"
+
+		id, err := suite.service.Create(suite.ctx, username, email, &dn, &au)
+
+		suite.Require().NoError(err)
+
+		u, err := gorm.G[models.User](suite.db).Where("id = ?", id).First(suite.ctx)
+		suite.Require().NoError(err)
+		suite.Require().Equal(dn, *u.DisplayName)
+		suite.Require().Equal(au, *u.AvatarURL)
+	})
+	t.Run("should get invalid value error with empty email", func(t *testing.T) {
+		username := "alice"
+		email := ""
+
+		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
+
+		suite.Require().ErrorIs(err, core.ErrInvalidValue)
+	})
+	t.Run("should get invalid value error with invalid email address", func(t *testing.T) {
+		username := "alice"
+		email := "alice.test@com"
+
+		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
+
+		suite.Require().ErrorIs(err, core.ErrInvalidValue)
+	})
+	t.Run("should get invalid value error with empty username", func(t *testing.T) {
+		username := ""
+		email := "alice@test.com"
+
+		_, err := suite.service.Create(suite.ctx, username, email, nil, nil)
+
+		suite.Require().ErrorIs(err, core.ErrInvalidValue)
+	})
+	suite.Cleanup()
 }
 
 func (suite *userServiceTestSuite) TestGet() {
 	t := suite.T()
 
 	t.Run("should get existing user", func(t *testing.T) {
-		// create user with display name and avatar via repository
+		username := "alice-service"
+		email := "alice@svc.test"
 		dn := "Alice"
 		au := "http://avatar"
-		id, err := suite.repo.Create(suite.ctx, "alice-service", "alice@svc.test", &dn, &au)
-		if err != nil {
-			t.Fatalf("failed to create user fixture: %v", err)
-		}
+		id := suite.fixtures.InsertUser(models.User{
+			Username:    username,
+			Email:       email,
+			DisplayName: &dn,
+			AvatarURL:   &au,
+		})
 
 		u, err := suite.service.Get(suite.ctx, id)
-
-		suite.Cleanup()
 
 		suite.Require().NoError(err)
 		suite.Require().Equal(id, u.ID)
@@ -89,8 +143,7 @@ func (suite *userServiceTestSuite) TestGet() {
 	t.Run("should return not found for invalid id", func(t *testing.T) {
 		_, err := suite.service.Get(suite.ctx, "invalid-id")
 
-		suite.Cleanup()
-
 		suite.Require().ErrorIs(err, core.ErrNotFound)
 	})
+	suite.Cleanup()
 }

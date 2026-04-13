@@ -15,8 +15,6 @@ import (
 	"gorm.io/gorm"
 )
 
-var USER_ONE string
-
 type userRepositoryTestSuite struct {
 	suite.Suite
 	pgContainer *testhelpers.PostgresContainer
@@ -49,13 +47,11 @@ func (suite *userRepositoryTestSuite) SetupSuite() {
 	}
 
 	suite.fixtures = fixtures.New(suite.ctx, suite.db)
-
-	USER_ONE = suite.fixtures.InsertUser(fixtures.RandomUserRow())
 }
 
 func (suite *userRepositoryTestSuite) Cleanup() {
 	err := suite.db.WithContext(suite.ctx).
-		Exec("DELETE FROM projects").Error
+		Exec("DELETE FROM users").Error
 	suite.Require().NoError(err)
 }
 
@@ -69,8 +65,6 @@ func (suite *userRepositoryTestSuite) TestCreate() {
 	t.Run("should create user", func(t *testing.T) {
 		id, err := suite.repo.Create(suite.ctx, "alice", "alice@test.com", nil, nil)
 
-		suite.Cleanup()
-
 		suite.Require().NoError(err)
 		suite.Require().NotEmpty(id)
 	})
@@ -80,8 +74,6 @@ func (suite *userRepositoryTestSuite) TestCreate() {
 		au := "http://avatar"
 		id, err := suite.repo.Create(suite.ctx, "alice2", "alice2@test.com", &dn, &au)
 
-		suite.Cleanup()
-
 		suite.Require().NoError(err)
 		suite.Require().NotEmpty(id)
 
@@ -90,6 +82,19 @@ func (suite *userRepositoryTestSuite) TestCreate() {
 		suite.Require().Equal(dn, *u.DisplayName)
 		suite.Require().Equal(au, *u.AvatarURL)
 	})
+	t.Run("should get duplicate value error with same username", func(t *testing.T) {
+		suite.repo.Create(suite.ctx, "alice3", "alice3@test.com", nil, nil)
+		_, err := suite.repo.Create(suite.ctx, "alice3", "alicex@test.com", nil, nil)
+
+		suite.Require().Error(err)
+	})
+	t.Run("should get duplicate value error with same email", func(t *testing.T) {
+		suite.repo.Create(suite.ctx, "alice4", "alice4@test.com", nil, nil)
+		_, err := suite.repo.Create(suite.ctx, "alicex", "alice4@test.com", nil, nil)
+
+		suite.Require().Error(err)
+	})
+	suite.Cleanup()
 }
 
 func (suite *userRepositoryTestSuite) TestGet() {
@@ -100,8 +105,6 @@ func (suite *userRepositoryTestSuite) TestGet() {
 
 		u, err := suite.repo.Get(suite.ctx, id)
 
-		suite.Cleanup()
-
 		suite.Require().NoError(err)
 		suite.Require().Equal(id, u.ID)
 	})
@@ -109,8 +112,7 @@ func (suite *userRepositoryTestSuite) TestGet() {
 	t.Run("should return not found for invalid id", func(t *testing.T) {
 		_, err := suite.repo.Get(suite.ctx, "invalid")
 
-		suite.Cleanup()
-
 		suite.Require().ErrorIs(err, core.ErrNotFound)
 	})
+	suite.Cleanup()
 }
