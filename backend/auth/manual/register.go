@@ -31,9 +31,12 @@ type RegisterService struct {
 	PasswordGenerateCost int
 }
 
-func NewRegisterService(manualRepo *ManualAccountRepository,
+func NewRegisterService(
+	txManager *core.TxManager,
+	manualRepo *ManualAccountRepository,
 	userRepo *users.UserRepository) *RegisterService {
 	return &RegisterService{
+		txManager:            txManager,
 		manualRepo:           manualRepo,
 		userRepo:             userRepo,
 		PasswordGenerateCost: PASSWORD_GENERATION_COST_DEFAULT,
@@ -70,7 +73,7 @@ func (s *RegisterService) Register(ctx context.Context,
 	}
 
 	var userID string
-	s.txManager.WithTx(func(tx *gorm.DB) error {
+	err = s.txManager.WithTx(func(tx *gorm.DB) error {
 		userRepo := s.userRepo.WithTx(tx)
 		manualRepo := s.manualRepo.WithTx(tx)
 
@@ -86,6 +89,9 @@ func (s *RegisterService) Register(ctx context.Context,
 
 		return nil
 	})
+	if err != nil {
+		return "", fmt.Errorf("transaction: %w", err)
+	}
 
 	return userID, nil
 }

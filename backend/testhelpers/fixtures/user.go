@@ -13,7 +13,7 @@ func RandomUserRow() models.User {
 	return models.User{
 		ID:       uId,
 		Username: "user" + uId,
-		Email:    "user@test.com",
+		Email:    "user" + uId + "@test.com",
 	}
 }
 

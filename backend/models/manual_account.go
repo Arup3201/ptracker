@@ -8,11 +8,12 @@ type ManualAccount struct {
 	PasswordHash []byte
 
 	EmailVerified              bool
-	VerificationToken          string
-	VerificationTokenExpiresAt time.Time
+	VerificationToken          *string
+	VerificationTokenExpiresAt *time.Time
 
-	ResetPasswordToken          string
-	ResetPasswordTokenExpiresAt time.Time
+	ResetPasswordToken          *string
+	ResetPasswordTokenExpiresAt *time.Time
+	ResetPasswordTokenUsedAt    *time.Time
 
 	CreatedAt time.Time
 	UpdatedAt time.Time
