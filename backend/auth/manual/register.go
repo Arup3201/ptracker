@@ -43,7 +43,7 @@ func NewRegisterService(
 	}
 }
 
-func (s *RegisterService) Register(ctx context.Context,
+func (s *RegisterService) CreateAccount(ctx context.Context,
 	username, email, password string,
 	displayName *string) (string, error) {
 
@@ -94,4 +94,23 @@ func (s *RegisterService) Register(ctx context.Context,
 	}
 
 	return userID, nil
+}
+
+func (s *RegisterService) GetUserID(ctx context.Context,
+	email, password string) (string, error) {
+
+	account, err := s.manualRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("account repository get by email: %w", err)
+	}
+
+	if err := bcrypt.CompareHashAndPassword(account.PasswordHash, []byte(password)); err != nil {
+		return "", fmt.Errorf("password mismatch: %w", core.ErrInvalidValue)
+	}
+
+	if !account.EmailVerified {
+		return "", fmt.Errorf("email verification is pending: %w", core.ErrInvalidValue)
+	}
+
+	return account.UserID, nil
 }

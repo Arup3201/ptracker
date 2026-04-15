@@ -79,7 +79,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := "pw"
 		dn := "Test"
 
-		_, err := suite.service.Register(suite.ctx, username, email, password, &dn)
+		_, err := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		suite.Cleanup()
 
@@ -91,7 +91,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := "pw"
 		dn := "Test"
 
-		id, _ := suite.service.Register(suite.ctx, username, email, password, &dn)
+		id, _ := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		user, err := gorm.G[models.User](suite.db).Where("id = ?", id).First(suite.ctx)
 
@@ -108,7 +108,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := "pw"
 		dn := "Test"
 
-		id, _ := suite.service.Register(suite.ctx, username, email, password, &dn)
+		id, _ := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		account, err := gorm.G[models.ManualAccount](suite.db).Where("user_id = ?", id).First(suite.ctx)
 
@@ -128,7 +128,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := "pw"
 		dn := "Test"
 
-		_, err := suite.service.Register(suite.ctx, username, email, password, &dn)
+		_, err := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		suite.Cleanup()
 
@@ -140,7 +140,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := "pw"
 		dn := "Test"
 
-		_, err := suite.service.Register(suite.ctx, username, email, password, &dn)
+		_, err := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		suite.Cleanup()
 
@@ -158,7 +158,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 			DisplayName: &dn,
 		})
 
-		_, err := suite.service.Register(suite.ctx, username, email, password, &dn)
+		_, err := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		suite.Cleanup()
 
@@ -170,7 +170,7 @@ func (suite *registerServiceTestSuite) TestRegister() {
 		password := ""
 		dn := "Test"
 
-		_, err := suite.service.Register(suite.ctx, username, email, password, &dn)
+		_, err := suite.service.CreateAccount(suite.ctx, username, email, password, &dn)
 
 		suite.Cleanup()
 
