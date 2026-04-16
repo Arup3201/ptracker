@@ -7,6 +7,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.17.2
+	github.com/resend/resend-go/v3 v3.4.1
 	github.com/rs/cors v1.11.1
 	github.com/stillya/testcontainers-keycloak v0.3.5
 	github.com/stretchr/testify v1.11.1

@@ -1,11 +1,14 @@
 package app
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/ptracker/api"
+	"github.com/ptracker/auth"
+	"github.com/ptracker/auth/manual"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/assignees"
 	"github.com/ptracker/core/comments"
@@ -14,6 +17,8 @@ import (
 	"github.com/ptracker/core/requests"
 	"github.com/ptracker/core/tasks"
 	"github.com/ptracker/core/users"
+	"github.com/redis/go-redis/v9"
+	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
 	"gorm.io/gorm"
 )
@@ -36,17 +41,23 @@ func NewApp(
 	prefix string,
 
 	config *Config,
-	db *gorm.DB) *App {
+	db *gorm.DB,
+	redis *redis.Client,
+	privateKey *rsa.PrivateKey,
+	frontendVerifyUrl string,
+) *App {
 	handler := http.NewServeMux()
 
 	memberRepo := members.NewMemberRepository(db)
 	joinRepo := requests.NewJoinRepository(db)
+	accountRepo := manual.NewManualAccountRepository(db)
 	userRepo := users.NewUserRepository(db)
 	assigneeRepo := assignees.NewAssigneeRepository(db)
 	commentRepo := comments.NewCommentRepository(db)
 	projectRepo := projects.NewProjectRepository(db)
 	taskRepo := tasks.NewTaskRepository(db)
 	txManager := core.NewTxManager(db)
+	tokenStore := auth.NewTokenStore(redis)
 
 	memberService := members.NewMemberService(memberRepo)
 	joinService := requests.NewJoinRequestService(
@@ -70,7 +81,19 @@ func NewApp(
 		memberRepo,
 		assigneeRepo,
 	)
+	registerService := manual.NewRegisterService(txManager, accountRepo, userRepo)
+	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
+	emailService := manual.NewEmailService(accountRepo)
 
+	resendClient := resend.NewClient(config.ResendApiKey)
+	authApi := api.NewAuthApi(
+		registerService,
+		tokenService,
+		emailService,
+		userService,
+		resendClient,
+		frontendVerifyUrl,
+	)
 	projectApi := api.NewProjectApi(
 		projectService,
 		userService,
@@ -84,6 +107,28 @@ func NewApp(
 	)
 
 	patternWithHandlers := []patternWithHandler{
+		// Auth
+		{
+			method:  "POST",
+			pattern: "/auth/register",
+			handler: authApi.Register,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/login",
+			handler: authApi.Login,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/refresh",
+			handler: authApi.Refresh,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/logout",
+			handler: authApi.Logout,
+		},
+
 		// List APIs
 		{
 			method:  "GET",

@@ -8,7 +8,7 @@ import (
 type Config struct {
 	Host, Port                             string
 	DBHost, DBPort, DBPass, DBUser, DBName string
-	FrontendURL                            string
+	ResendApiKey                           string
 }
 
 func (c *Config) LoadFromEnv() error {
@@ -39,6 +39,10 @@ func (c *Config) LoadFromEnv() error {
 	c.DBName = os.Getenv(ENV_DB_NAME)
 	if c.DBName == "" {
 		return fmt.Errorf("environment variable '%s' missing", ENV_DB_NAME)
+	}
+	c.ResendApiKey = os.Getenv(ENV_RESEND_API_KEY)
+	if c.DBName == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_RESEND_API_KEY)
 	}
 
 	return nil

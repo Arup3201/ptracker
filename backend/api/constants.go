@@ -18,3 +18,7 @@ const (
 const (
 	CTX_USER_KEY = "USER_ID"
 )
+
+const (
+	REFRESH_TOKEN_COOKIE_NAME = "TOKEN"
+)

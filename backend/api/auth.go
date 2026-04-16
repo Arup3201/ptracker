@@ -1,0 +1,344 @@
+package api
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"slices"
+	"time"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/ptracker/auth"
+	"github.com/ptracker/auth/manual"
+	"github.com/ptracker/core"
+	"github.com/ptracker/core/users"
+	"github.com/resend/resend-go/v3"
+)
+
+type RegisterRequest struct {
+	Username    string  `json:"username" validate:"required"`
+	Email       string  `json:"email" validate:"required"`
+	DisplayName *string `json:"display_name"`
+	Password    string  `json:"password" validate:"required"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
+type LoginResponse struct {
+	AccessToken string      `json:"access_token"`
+	ExpiresAt   time.Time   `json:"expires_at"`
+	User        core.Avatar `json:"user"`
+}
+
+type AuthApi struct {
+	registerService *manual.RegisterService
+	tokenService    *auth.TokenService
+	emailService    *manual.EmailService
+	userService     *users.UserService
+	emailClient     *resend.Client
+
+	FrontendVerifyURL string
+}
+
+func NewAuthApi(
+	registerService *manual.RegisterService,
+	tokenService *auth.TokenService,
+	emailService *manual.EmailService,
+	userService *users.UserService,
+	emailClient *resend.Client,
+	verifyURL string,
+) *AuthApi {
+	return &AuthApi{
+		registerService:   registerService,
+		tokenService:      tokenService,
+		emailService:      emailService,
+		userService:       userService,
+		emailClient:       emailClient,
+		FrontendVerifyURL: verifyURL,
+	}
+}
+
+func (api *AuthApi) SendVerificationEmail(ctx context.Context, userID string) error {
+
+	token, err := api.emailService.GetVerificationToken(
+		ctx,
+		userID)
+	if err != nil {
+		return fmt.Errorf("email service get verification token: %w", err)
+	}
+
+	user, err := api.userService.Get(
+		ctx,
+		userID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
+	verificationLink := fmt.Sprintf("%s?token=%s", api.FrontendVerifyURL, token)
+	content := fmt.Sprintf(`
+	Hello %s, 
+	Here is your email verification link: 
+	<a href='%s'>Click to verify</a>
+	`,
+		user.Username,
+		verificationLink)
+
+	params := &resend.SendEmailRequest{
+		From:    "Arup <hello@contact.itsdeployedbyme.dpdns.org>",
+		To:      []string{user.Email},
+		Html:    content,
+		Subject: "Email verification",
+		ReplyTo: "hello@contact.itsdeployedbyme.dpdns.org",
+	}
+
+	sent, err := api.emailClient.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("email client send: %w", err)
+	}
+
+	log.Printf("[INFO] Email sent: %s\n", sent.Id)
+
+	return nil
+}
+
+func (api *AuthApi) Register(w http.ResponseWriter, r *http.Request) error {
+
+	var payload RegisterRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w: %w", err, core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w: %w", err, core.ErrInvalidValue)
+	}
+
+	userID, err := api.registerService.CreateAccount(
+		r.Context(),
+		payload.Username,
+		payload.Email,
+		payload.Password,
+		payload.DisplayName,
+	)
+	if err != nil {
+		return fmt.Errorf("register service create account: %w", err)
+	}
+
+	err = api.SendVerificationEmail(r.Context(), userID)
+	if err != nil {
+		return fmt.Errorf("send verification email: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Registration successful",
+	})
+
+	return nil
+}
+
+func (api *AuthApi) Login(w http.ResponseWriter, r *http.Request) error {
+
+	var payload LoginRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w", core.ErrInvalidValue)
+	}
+
+	userID, err := api.registerService.GetUserID(
+		r.Context(),
+		payload.Email,
+		payload.Password,
+	)
+	if err != nil {
+		return fmt.Errorf("register service get user ID: %w", err)
+	}
+
+	refreshToken, err := api.tokenService.CreateRefreshToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create refresh token: %w", err)
+	}
+
+	accessToken, err := api.tokenService.CreateAccessToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create access token: %w", err)
+	}
+
+	user, err := api.userService.Get(
+		r.Context(),
+		userID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
+	cookie := &http.Cookie{
+		Name:     REFRESH_TOKEN_COOKIE_NAME,
+		Value:    refreshToken.Value,
+		Path:     "/", // TODO: auth path only
+		Expires:  refreshToken.ExpiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[LoginResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &LoginResponse{
+			AccessToken: accessToken.Value,
+			ExpiresAt:   accessToken.ExpiresAt,
+			User: core.Avatar{
+				UserID:      user.ID,
+				Username:    user.Username,
+				Email:       user.Email,
+				DisplayName: user.DisplayName,
+				AvatarURL:   user.AvatarURL,
+			},
+		},
+	})
+
+	return nil
+}
+
+func (api *AuthApi) Refresh(w http.ResponseWriter, r *http.Request) error {
+
+	cookies := r.Cookies()
+	tInd := slices.IndexFunc(cookies, func(c *http.Cookie) bool {
+		return c.Name == REFRESH_TOKEN_COOKIE_NAME
+	})
+	if tInd == -1 {
+		return fmt.Errorf("refresh token missing: %w", core.ErrUnauthorized)
+	}
+
+	refreshTokenStr := cookies[tInd].Value
+	if refreshTokenStr == "" {
+		return fmt.Errorf("refresh token empty: %w", core.ErrUnauthorized)
+	}
+
+	userID, err := api.tokenService.GetUserID(
+		r.Context(),
+		refreshTokenStr,
+	)
+	if err != nil {
+		return fmt.Errorf("token service get user ID: %w", err)
+	}
+
+	err = api.tokenService.RevokeRefreshToken(
+		r.Context(),
+		refreshTokenStr,
+	)
+	if err != nil {
+		return fmt.Errorf("token service revoke refresh token: %w", err)
+	}
+
+	refreshToken, err := api.tokenService.CreateRefreshToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create refresh token: %w", err)
+	}
+
+	accessToken, err := api.tokenService.CreateAccessToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create access token: %w", err)
+	}
+
+	user, err := api.userService.Get(
+		r.Context(),
+		userID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
+	cookie := &http.Cookie{
+		Name:     REFRESH_TOKEN_COOKIE_NAME,
+		Value:    refreshToken.Value,
+		Path:     "/", // TODO: auth path only
+		Expires:  refreshToken.ExpiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[LoginResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &LoginResponse{
+			AccessToken: accessToken.Value,
+			ExpiresAt:   accessToken.ExpiresAt,
+			User: core.Avatar{
+				UserID:      user.ID,
+				Username:    user.Username,
+				Email:       user.Email,
+				DisplayName: user.DisplayName,
+				AvatarURL:   user.AvatarURL,
+			},
+		},
+	})
+
+	return nil
+}
+
+func (api *AuthApi) Logout(w http.ResponseWriter, r *http.Request) error {
+
+	cookies := r.Cookies()
+	tInd := slices.IndexFunc(cookies, func(c *http.Cookie) bool {
+		return c.Name == REFRESH_TOKEN_COOKIE_NAME
+	})
+	if tInd == -1 {
+		return fmt.Errorf("refresh token missing: %w", core.ErrUnauthorized)
+	}
+
+	refreshTokenStr := cookies[tInd].Value
+	if refreshTokenStr == "" {
+		return fmt.Errorf("refresh token empty: %w", core.ErrUnauthorized)
+	}
+
+	err := api.tokenService.RevokeRefreshToken(
+		r.Context(),
+		refreshTokenStr,
+	)
+	if err != nil {
+		return fmt.Errorf("token service revoke refresh token: %w", err)
+	}
+
+	cookie := &http.Cookie{
+		Name:     REFRESH_TOKEN_COOKIE_NAME,
+		Value:    "",
+		Path:     "/", // TODO: auth path only
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Message: "Log out successful",
+		Status:  RESPONSE_SUCCESS_STATUS,
+	})
+
+	return nil
+}

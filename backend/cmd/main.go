@@ -1,13 +1,38 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/ptracker/cmd/app"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+const (
+	FRONTEND_VERIFY_URL = "http://localhost:5173/verify"
+)
+
+func readRSAPrivateKey(filename string) (*rsa.PrivateKey, error) {
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+
+	block, _ := pem.Decode(bytes)
+	parseResult, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("x509 parse pkce#1 private key: %w", err)
+	}
+
+	privateKey := parseResult.(*rsa.PrivateKey)
+	return privateKey, nil
+}
 
 func main() {
 	var err error
@@ -28,7 +53,26 @@ func main() {
 
 	app.Migrate(db)
 
-	err = app.NewApp("/api/v1", config, db).Start()
+	redis := redis.NewClient(&redis.Options{
+		Addr:     "127.0.0.1:6379",
+		Password: "",
+		DB:       0,
+		Protocol: 2,
+	})
+
+	privateKey, err := readRSAPrivateKey("private.key")
+	if err != nil {
+		log.Fatalf("rsa generate key: %s\n", err)
+	}
+
+	err = app.NewApp(
+		"/api/v1",
+		config,
+		db,
+		redis,
+		privateKey,
+		FRONTEND_VERIFY_URL,
+	).Start()
 	if err != nil {
 		fmt.Printf("[ERROR] app start: %s", err)
 	}
