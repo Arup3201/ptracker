@@ -199,29 +199,35 @@ func (api *TaskApi) Update(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("get userID: %w", err)
 	}
 
-	err = api.taskService.Update(r.Context(),
-		projectID,
-		taskID,
-		userID,
-		payload.Title,
-		payload.Description,
-		payload.Status,
-	)
+	if payload.Title != nil || payload.Description != nil || payload.Status != nil {
+		err = api.taskService.Update(r.Context(),
+			projectID,
+			taskID,
+			userID,
+			payload.Title,
+			payload.Description,
+			payload.Status,
+		)
 
-	if err != nil {
-		return fmt.Errorf("service task update: %w", err)
+		if err != nil {
+			return fmt.Errorf("service task update: %w", err)
+		}
 	}
 
 	warnings := []string{}
 	for _, assignee := range payload.AssigneesToAdd {
 		err = api.assigneeService.AddAssignee(r.Context(),
 			projectID, taskID, userID, assignee)
-		warnings = append(warnings, err.Error())
+		if err != nil {
+			warnings = append(warnings, err.Error())
+		}
 	}
 	for _, assignee := range payload.AssigneesToRemove {
 		err = api.assigneeService.RemoveAssignee(r.Context(),
 			projectID, taskID, userID, assignee)
-		warnings = append(warnings, err.Error())
+		if err != nil {
+			warnings = append(warnings, err.Error())
+		}
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[UpdateTaskResponse]{
