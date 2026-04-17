@@ -1,10 +1,17 @@
-import { createContext, useCallback, useContext, useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 import { ApiFetch, getValidToken } from "../utils/api";
 import { tokenStore } from "../utils/token";
 import type { Avatar } from "../types/avatar";
 import { userStore } from "../utils/user";
 
 interface AuthContextValue {
+  loading: boolean;
   user: Avatar | null;
   logout(): Promise<void>;
 }
@@ -14,11 +21,14 @@ interface AuthProviderInterface {
 }
 
 const authContext = createContext<AuthContextValue>({
+  loading: true,
   user: null,
   logout: () => Promise.resolve(),
 });
 
 const AuthProvider: React.FC<AuthProviderInterface> = ({ children }) => {
+  const [loading, setLoading] = useState(true);
+
   const logout = useCallback(async () => {
     const response = await ApiFetch("/auth/logout", {
       method: "POST",
@@ -37,10 +47,13 @@ const AuthProvider: React.FC<AuthProviderInterface> = ({ children }) => {
   }, [logout]);
 
   async function refreshToken() {
+    setLoading(true);
     try {
       await getValidToken();
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -56,6 +69,7 @@ const AuthProvider: React.FC<AuthProviderInterface> = ({ children }) => {
   return (
     <authContext.Provider
       value={{
+        loading,
         user,
         logout,
       }}
