@@ -41,7 +41,8 @@ export function Dashboard() {
     try {
       const response = await ApiFetch("/dashboard/tasks/assigned");
       if (response.ok) {
-        const data: DashboardTasksResponse = await response.json();
+        const responseData = await response.json();
+        const data: DashboardTasksResponse = responseData.data;
         if (data) {
           setRecentAssignedTasks(data.tasks.map(MapDashboardTask));
         }
@@ -57,7 +58,8 @@ export function Dashboard() {
     try {
       const response = await ApiFetch("/dashboard/tasks/unassigned");
       if (response.ok) {
-        const data: DashboardTasksResponse = await response.json();
+        const responseData = await response.json();
+        const data: DashboardTasksResponse = responseData.data;
         if (data) {
           setRecentUnassignedTasks(data.tasks.map(MapDashboardTask));
         }
@@ -73,7 +75,8 @@ export function Dashboard() {
     try {
       const response = await ApiFetch("/dashboard/projects/created");
       if (response.ok) {
-        const data: DashboardProjectsResponse = await response.json();
+        const responseData = await response.json();
+        const data: DashboardProjectsResponse = responseData.data;
         if (data) {
           setRecentlyCreatedProjects(data.projects.map(MapDashboardProject));
         }
@@ -89,7 +92,8 @@ export function Dashboard() {
     try {
       const response = await ApiFetch("/dashboard/projects/joined");
       if (response.ok) {
-        const data: DashboardProjectsResponse = await response.json();
+        const responseData = await response.json();
+        const data: DashboardProjectsResponse = responseData.data;
         if (data) {
           setRecentlyJoinedProjects(data.projects.map(MapDashboardProject));
         }

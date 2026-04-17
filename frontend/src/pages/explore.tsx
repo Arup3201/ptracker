@@ -57,7 +57,8 @@ export default function ExploreProjectsPage() {
     try {
       const response = await ApiFetch("/public/projects");
       if (response.ok) {
-        const data: ExploreProjectsApiResponse = await response.json();
+        const respondeData = await response.json();
+        const data: ExploreProjectsApiResponse = respondeData.data;
         if (data?.projects) {
           const projects = data.projects.map(MapExploreProject);
           setProjects(projects || []);

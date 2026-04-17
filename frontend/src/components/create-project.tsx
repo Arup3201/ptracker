@@ -34,7 +34,7 @@ export const CreateProjectModal = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const projectId = await ApiFetch("/projects", {
+    const response = await ApiFetch("/projects", {
       method: "POST",
       body: JSON.stringify({
         name: name.trim(),
@@ -42,11 +42,12 @@ export const CreateProjectModal = ({
         skills: parsedSkills.join(", "),
       }),
     });
+    if (response.ok) {
+      const { data } = await response.json();
+      navigate("/projects/" + data);
+    }
 
     onClose();
-    if (projectId) {
-      navigate("/projects/" + projectId);
-    }
   }
 
   return (

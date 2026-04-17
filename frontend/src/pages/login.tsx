@@ -6,6 +6,7 @@ import { Input } from "../components/input";
 import { Logo } from "../components/logo";
 import { API_ROOT } from "../utils/api";
 import { tokenStore } from "../utils/token";
+import { userStore } from "../utils/user";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -33,9 +34,10 @@ export default function LoginPage() {
       });
       if (!res.ok) throw new Error("Login failed");
 
-      const data = await res.json();
-      if (data) {
-        tokenStore.set(data.access_token);
+      const respondData = await res.json();
+      if (respondData.data) {
+        tokenStore.set(respondData.data.access_token);
+        userStore.set(respondData.data.user);
       } else {
         throw new Error("Empty response data from login.");
       }

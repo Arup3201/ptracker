@@ -61,10 +61,14 @@ async function getValidToken() {
   })
     .then(async (res) => {
       if (!res.ok) throw new Error("refresh token failed");
-      const { access_token, user } = await res.json();
-      tokenStore.set(access_token);
-      userStore.set(user);
-      return access_token;
+      const { data } = await res.json();
+      if (data) {
+        tokenStore.set(data.access_token);
+        userStore.set(data.user);
+        return data.access_token;
+      } else {
+        throw new Error("data is empty");
+      }
     })
     .finally(() => (refreshingPromise = null));
 

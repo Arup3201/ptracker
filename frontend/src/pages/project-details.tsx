@@ -52,7 +52,8 @@ export default function ProjectDetailsPage() {
     try {
       const response = await ApiFetch(`/projects/${id}`);
       if (response.ok) {
-        const data: ProjectDetailsApi = await response.json();
+        const respondeData = await response.json();
+        const data: ProjectDetailsApi = respondeData.data;
         if (data) {
           setDetails(MapProjectDetails(data));
         }
@@ -68,7 +69,8 @@ export default function ProjectDetailsPage() {
     try {
       const response = await ApiFetch(`/projects/${id}/tasks`);
       if (response.ok) {
-        const data: TasksResponseApi = await response.json();
+        const respondeData = await response.json();
+        const data: TasksResponseApi = respondeData.data;
         if (data) {
           setTasks(data.tasks.map(MapTask));
         }
@@ -84,7 +86,8 @@ export default function ProjectDetailsPage() {
     try {
       const response = await ApiFetch(`/projects/${id}/members`);
       if (response.ok) {
-        const data: MembersResponse = await response.json();
+        const respondeData = await response.json();
+        const data: MembersResponse = respondeData.data;
         if (data) {
           setMembers(data.members.map(MapMember));
         }
@@ -100,7 +103,8 @@ export default function ProjectDetailsPage() {
     try {
       const response = await ApiFetch(`/projects/${id}/join-requests`);
       if (response.ok) {
-        const data: JoinRequestsResponseApi = await response.json();
+        const respondeData = await response.json();
+        const data: JoinRequestsResponseApi = respondeData.data;
         if (data) {
           setJoinRequests(data.join_requests.map(MapJoinRequest));
         }

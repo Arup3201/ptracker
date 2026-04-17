@@ -22,7 +22,8 @@ export default function ProjectExplorePage() {
     try {
       const response = await ApiFetch(`/public/projects/${id}`);
       if (response.ok) {
-        const data: ExploredProjectDetailsApi = await response.json();
+        const respondeData = await response.json();
+        const data: ExploredProjectDetailsApi = respondeData.data;
         if (data) {
           setDetails(MapExploredProjectDetails(data));
           setJoinStatus(data.join_status);

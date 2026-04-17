@@ -32,7 +32,8 @@ export function ProjectsPage() {
     try {
       const response = await ApiFetch("/projects");
       if (response.ok) {
-        const data: ProjectsApiResponse = await response.json();
+        const respondeData = await response.json();
+        const data: ProjectsApiResponse = respondeData.data;
         if (data?.projects) {
           setProjects(data.projects.map(MapProject) || []);
         }

@@ -57,7 +57,8 @@ export function TaskDrawer({
     try {
       const response = await ApiFetch(`/projects/${projectId}/tasks/${taskId}`);
       if (response.ok) {
-        const task: TaskDetailApi = await response.json();
+        const { data } = await response.json();
+        const task: TaskDetailApi = data;
         if (task) {
           const taskDetails = MapTaskDetails(task);
           setTitle(taskDetails.title || "");
@@ -84,7 +85,8 @@ export function TaskDrawer({
         `/projects/${projectId}/tasks/${taskId}/comments`,
       );
       if (response.ok) {
-        const data: TaskCommentsResponseApi = await response.json();
+        const responseData = await response.json();
+        const data: TaskCommentsResponseApi = responseData.data;
         if (data) {
           setComments(data.comments.map(MapTaskComment));
         }
