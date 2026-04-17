@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/button";
 import { Card, CardContent } from "../components/card";
 import { Input } from "../components/input";
 import { Logo } from "../components/logo";
-import { Link } from "react-router";
-import { useAuth } from "../context/auth";
+import { API_ROOT } from "../utils/api";
+import { tokenStore } from "../utils/token";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,7 +20,27 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login({ email: email, password: password });
+      const res = await fetch(API_ROOT + "/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include", // for refresh token cookie
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
+      });
+      if (!res.ok) throw new Error("Login failed");
+
+      const data = await res.json();
+      if (data) {
+        tokenStore.set(data.access_token);
+      } else {
+        throw new Error("Empty response data from login.");
+      }
+
+      navigate("/");
     } catch (err: any) {
       setError(err.message ?? "Something went wrong.");
     } finally {

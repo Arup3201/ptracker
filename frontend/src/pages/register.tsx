@@ -1,10 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router";
 import { Button } from "../components/button";
 import { Card, CardContent } from "../components/card";
 import { Input } from "../components/input";
 import { Logo } from "../components/logo";
-import { Link } from "react-router";
-import { useAuth } from "../context/auth";
+import { API_ROOT } from "../utils/api";
 
 function PasswordStrength({ password }: { password: string }) {
   const checks = [
@@ -43,7 +43,8 @@ function PasswordStrength({ password }: { password: string }) {
 }
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,7 +68,24 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register({ email, username, displayName, password });
+      const res = await fetch(API_ROOT + "/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email,
+          username: username,
+          display_name: displayName,
+          password: password,
+        }),
+      });
+      if (res.status === 201) {
+        console.log("User created!");
+        navigate(`/verify`);
+      } else {
+        throw new Error("User registration failed.");
+      }
     } catch (err: any) {
       setError(err.message ?? "Something went wrong.");
     } finally {
