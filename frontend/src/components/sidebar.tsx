@@ -55,6 +55,7 @@ export function Sidebar() {
   async function handleLogout() {
     try {
       await logout();
+      navigate("/login");
     } catch (err) {
       console.error(err);
     }
