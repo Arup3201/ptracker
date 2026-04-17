@@ -128,6 +128,16 @@ func NewApp(
 			pattern: "/auth/logout",
 			handler: authApi.Logout,
 		},
+		{
+			method:  "POST",
+			pattern: "/auth/verify-email",
+			handler: authApi.VerifyEmail,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/resend-verification",
+			handler: authApi.ResendVerificationEmail,
+		},
 
 		// List APIs
 		{

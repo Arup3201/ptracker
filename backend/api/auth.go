@@ -24,6 +24,14 @@ type RegisterRequest struct {
 	Password    string  `json:"password" validate:"required"`
 }
 
+type VerifyEmailRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type ResendVerificationRequest struct {
+	Email string `json:"email" validate:"required"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
@@ -63,21 +71,7 @@ func NewAuthApi(
 	}
 }
 
-func (api *AuthApi) SendVerificationEmail(ctx context.Context, userID string) error {
-
-	token, err := api.emailService.GetVerificationToken(
-		ctx,
-		userID)
-	if err != nil {
-		return fmt.Errorf("email service get verification token: %w", err)
-	}
-
-	user, err := api.userService.Get(
-		ctx,
-		userID)
-	if err != nil {
-		return fmt.Errorf("user service get: %w", err)
-	}
+func (api *AuthApi) SendVerificationEmail(ctx context.Context, token, email string) error {
 
 	verificationLink := fmt.Sprintf("%s?token=%s", api.FrontendVerifyURL, token)
 	content := fmt.Sprintf(`
@@ -85,12 +79,12 @@ func (api *AuthApi) SendVerificationEmail(ctx context.Context, userID string) er
 	Here is your email verification link: 
 	<a href='%s'>Click to verify</a>
 	`,
-		user.Username,
+		email,
 		verificationLink)
 
 	params := &resend.SendEmailRequest{
 		From:    "Arup <hello@contact.itsdeployedbyme.dpdns.org>",
-		To:      []string{user.Email},
+		To:      []string{email},
 		Html:    content,
 		Subject: "Email verification",
 		ReplyTo: "hello@contact.itsdeployedbyme.dpdns.org",
@@ -130,7 +124,14 @@ func (api *AuthApi) Register(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("register service create account: %w", err)
 	}
 
-	err = api.SendVerificationEmail(r.Context(), userID)
+	token, err := api.emailService.GetVerificationToken(
+		r.Context(),
+		userID)
+	if err != nil {
+		return fmt.Errorf("email service get verification token: %w", err)
+	}
+
+	err = api.SendVerificationEmail(r.Context(), token, payload.Email)
 	if err != nil {
 		return fmt.Errorf("send verification email: %w", err)
 	}
@@ -139,6 +140,69 @@ func (api *AuthApi) Register(w http.ResponseWriter, r *http.Request) error {
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Registration successful",
+	})
+
+	return nil
+}
+
+func (api *AuthApi) VerifyEmail(w http.ResponseWriter, r *http.Request) error {
+
+	var payload VerifyEmailRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w", core.ErrInvalidValue)
+	}
+
+	err := api.emailService.Verify(
+		r.Context(),
+		payload.Token,
+	)
+	if err != nil {
+		return fmt.Errorf("email service verify: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Email verification successful",
+	})
+
+	return nil
+}
+
+func (api *AuthApi) ResendVerificationEmail(w http.ResponseWriter, r *http.Request) error {
+
+	var payload ResendVerificationRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w", core.ErrInvalidValue)
+	}
+
+	token, err := api.emailService.GetVerificationTokenForEmail(
+		r.Context(),
+		payload.Email,
+	)
+	if err != nil {
+		return fmt.Errorf("email service get verify token for email: %w", err)
+	}
+
+	err = api.SendVerificationEmail(r.Context(), token, payload.Email)
+	if err != nil {
+		return fmt.Errorf("send verification email: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Email verification token sent again.",
 	})
 
 	return nil

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/ptracker/core"
+	"github.com/ptracker/models"
 )
 
 const (
@@ -53,6 +54,42 @@ func (s *EmailService) GetVerificationToken(ctx context.Context,
 	if acc.EmailVerified {
 		return "", fmt.Errorf("email is already verified: %w", core.ErrInvalidValue)
 	}
+
+	token, err := s.generateToken(ctx, acc)
+	if err != nil {
+		return "", fmt.Errorf("generate token: %w", err)
+	}
+
+	return token, nil
+}
+
+/*
+Get verification token when you only have email
+
+Mainly used when resending the email verification token.
+*/
+func (s *EmailService) GetVerificationTokenForEmail(ctx context.Context,
+	email string) (string, error) {
+
+	acc, err := s.accountRepo.GetByEmail(ctx, email)
+	if err != nil {
+		return "", fmt.Errorf("manual account repository get: %w", err)
+	}
+
+	if acc.EmailVerified {
+		return "", fmt.Errorf("email is already verified: %w", core.ErrInvalidValue)
+	}
+
+	token, err := s.generateToken(ctx, acc)
+	if err != nil {
+		return "", fmt.Errorf("generate token: %w", err)
+	}
+
+	return token, nil
+}
+
+func (s *EmailService) generateToken(ctx context.Context,
+	acc models.ManualAccount) (string, error) {
 
 	token, err := GetRandomToken(32)
 	if err != nil {

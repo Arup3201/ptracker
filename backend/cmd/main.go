@@ -15,7 +15,10 @@ import (
 )
 
 const (
-	FRONTEND_VERIFY_URL = "http://localhost:5173/verify"
+	REDIS_ADDR           = "127.0.0.1:6379"
+	API_ROOT             = "/api/v1"
+	FRONTEND_URL         = "http://localhost:5173"
+	FRONTEND_VERIFY_PATH = "/verify-email"
 )
 
 func readRSAPrivateKey(filename string) (*rsa.PrivateKey, error) {
@@ -54,7 +57,7 @@ func main() {
 	app.Migrate(db)
 
 	redis := redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
+		Addr:     REDIS_ADDR,
 		Password: "",
 		DB:       0,
 		Protocol: 2,
@@ -66,14 +69,14 @@ func main() {
 	}
 
 	app := app.NewApp(
-		"/api/v1",
+		API_ROOT,
 		config,
 		db,
 		redis,
 		privateKey,
-		FRONTEND_VERIFY_URL,
+		FRONTEND_URL+FRONTEND_VERIFY_PATH,
 	)
-	app.AllowedCrossOrigins = []string{"http://localhost:5173"}
+	app.AllowedCrossOrigins = []string{FRONTEND_URL}
 	err = app.Start()
 	if err != nil {
 		fmt.Printf("[ERROR] app start: %s", err)
