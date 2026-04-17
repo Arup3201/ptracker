@@ -135,6 +135,7 @@ func (api *AuthApi) Register(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("send verification email: %w", err)
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Registration successful",

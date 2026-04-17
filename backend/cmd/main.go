@@ -65,14 +65,16 @@ func main() {
 		log.Fatalf("rsa generate key: %s\n", err)
 	}
 
-	err = app.NewApp(
+	app := app.NewApp(
 		"/api/v1",
 		config,
 		db,
 		redis,
 		privateKey,
 		FRONTEND_VERIFY_URL,
-	).Start()
+	)
+	app.AllowedCrossOrigins = []string{"http://localhost:5173"}
+	err = app.Start()
 	if err != nil {
 		fmt.Printf("[ERROR] app start: %s", err)
 	}
