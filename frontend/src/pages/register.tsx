@@ -82,7 +82,7 @@ export default function RegisterPage() {
       });
       if (res.status === 201) {
         console.log("User created!");
-        navigate(`/verify`);
+        navigate(`/check-email?email=` + email);
       } else {
         throw new Error("User registration failed.");
       }

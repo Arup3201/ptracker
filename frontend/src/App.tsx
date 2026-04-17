@@ -9,7 +9,10 @@ import { ProjectsPage } from "./pages/projects";
 import ExploreProjectsPage from "./pages/explore";
 import ProjectDetailsPage from "./pages/project-details";
 import ProjectExplorePage from "./pages/explore-project";
+import CheckEmailPage from "./pages/check-email";
+import VerifyEmailPage from "./pages/verify-email";
 import { AuthProvider } from "./context/auth";
+import ProtectedRoute from "./components/protected-route";
 
 function App() {
   return (
@@ -25,12 +28,17 @@ function App() {
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="/projects" element={<ProjectsPage />} />
-              <Route path="/projects/:id" element={<ProjectDetailsPage />} />
-              <Route path="/explore" element={<ExploreProjectsPage />} />
-              <Route path="/explore/:id" element={<ProjectExplorePage />} />
+            <Route path="/check-email" element={<CheckEmailPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+            <Route element={<ProtectedRoute />}>
+              <Route element={<AppLayout />}>
+                <Route index element={<Dashboard />} />
+                <Route path="/projects" element={<ProjectsPage />} />
+                <Route path="/projects/:id" element={<ProjectDetailsPage />} />
+                <Route path="/explore" element={<ExploreProjectsPage />} />
+                <Route path="/explore/:id" element={<ProjectExplorePage />} />
+              </Route>
             </Route>
           </Routes>
         </AuthProvider>
