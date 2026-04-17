@@ -2,7 +2,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Modal } from "./modal";
 import { Button } from "./button";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import AssigneeSelector from "./assignee-selector";
 import type { Member } from "../types/project";
 import { StatusSelector } from "./status-selector";
@@ -46,9 +46,20 @@ export const AddTaskModal = ({
       assignees: assignees,
       status: status,
     };
-    await ApiRequest(`/projects/${projectId}/tasks`, "POST", data);
+    try {
+      const response = await ApiFetch(`/projects/${projectId}/tasks`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
 
-    onClose();
+      if (!response.ok) {
+        throw new Error("Failed to add task to the project.");
+      }
+
+      onClose();
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   return (

@@ -26,7 +26,7 @@ import {
   type ProjectDetailsApi,
 } from "../types/project";
 import { MapTask, type Task, type TasksResponseApi } from "../types/task";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import { AddTaskModal } from "../components/add-task";
 import { TaskDrawer } from "./task-drawer";
 import { JOIN_STATUS } from "../types/explore";
@@ -46,17 +46,18 @@ export default function ProjectDetailsPage() {
   const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
 
   const [addTask, setAddTask] = useState<boolean>(false);
-  const [editProject, setEditProject] = useState<boolean>(false);
+  const [_editProject, setEditProject] = useState<boolean>(false);
 
   async function getProjectDetails(id: string) {
     try {
-      const data = await ApiRequest<ProjectDetailsApi>(
-        `/projects/${id}`,
-        "GET",
-        null,
-      );
-      if (data) {
-        setDetails(MapProjectDetails(data));
+      const response = await ApiFetch(`/projects/${id}`);
+      if (response.ok) {
+        const data: ProjectDetailsApi = await response.json();
+        if (data) {
+          setDetails(MapProjectDetails(data));
+        }
+      } else {
+        throw new Error("Failed to get project details.");
       }
     } catch (err) {
       console.error(err);
@@ -65,13 +66,14 @@ export default function ProjectDetailsPage() {
 
   async function getProjectTasks(id: string) {
     try {
-      const data = await ApiRequest<TasksResponseApi>(
-        `/projects/${id}/tasks`,
-        "GET",
-        null,
-      );
-      if (data) {
-        setTasks(data.tasks.map(MapTask));
+      const response = await ApiFetch(`/projects/${id}/tasks`);
+      if (response.ok) {
+        const data: TasksResponseApi = await response.json();
+        if (data) {
+          setTasks(data.tasks.map(MapTask));
+        }
+      } else {
+        throw new Error("Failed to get project tasks.");
       }
     } catch (err) {
       console.error(err);
@@ -80,13 +82,14 @@ export default function ProjectDetailsPage() {
 
   async function getProjectMembers(id: string) {
     try {
-      const data = await ApiRequest<MembersResponse>(
-        `/projects/${id}/members`,
-        "GET",
-        null,
-      );
-      if (data) {
-        setMembers(data.members.map(MapMember));
+      const response = await ApiFetch(`/projects/${id}/members`);
+      if (response.ok) {
+        const data: MembersResponse = await response.json();
+        if (data) {
+          setMembers(data.members.map(MapMember));
+        }
+      } else {
+        throw new Error("Failed to get project members.");
       }
     } catch (err) {
       console.error(err);
@@ -95,13 +98,14 @@ export default function ProjectDetailsPage() {
 
   async function getJoinRequests(id: string) {
     try {
-      const data = await ApiRequest<JoinRequestsResponseApi>(
-        `/projects/${id}/join-requests`,
-        "GET",
-        null,
-      );
-      if (data) {
-        setJoinRequests(data.join_requests.map(MapJoinRequest));
+      const response = await ApiFetch(`/projects/${id}/join-requests`);
+      if (response.ok) {
+        const data: JoinRequestsResponseApi = await response.json();
+        if (data) {
+          setJoinRequests(data.join_requests.map(MapJoinRequest));
+        }
+      } else {
+        throw new Error("Failed to get project join requests.");
       }
     } catch (err) {
       console.error(err);
@@ -346,10 +350,13 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
     joinStatus: string,
   ) => {
     try {
-      await ApiRequest<null>(`/projects/${projectId}/join-requests`, "PUT", {
-        user_id: userId,
-        join_status: joinStatus,
+      const response = await ApiFetch(`/projects/${projectId}/join-requests`, {
+        method: "PUT",
+        body: JSON.stringify({ user_id: userId, join_status: joinStatus }),
       });
+      if (!response.ok) {
+        throw new Error("Failed to respond to the join request.");
+      }
     } catch (err) {
       console.error(err);
     }

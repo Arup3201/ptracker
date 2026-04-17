@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { Button } from "../components/button";
 import { TopBar } from "../components/topbar";
 import { Input } from "../components/input";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import {
   MapExploreProject,
   type ExploreProject,
@@ -55,14 +55,15 @@ export default function ExploreProjectsPage() {
 
   const getProjects = async () => {
     try {
-      const data = await ApiRequest<ExploreProjectsApiResponse>(
-        "/public/projects",
-        "GET",
-        null,
-      );
-      if (data?.projects) {
-        const projects = data.projects.map(MapExploreProject);
-        setProjects(projects || []);
+      const response = await ApiFetch("/public/projects");
+      if (response.ok) {
+        const data: ExploreProjectsApiResponse = await response.json();
+        if (data?.projects) {
+          const projects = data.projects.map(MapExploreProject);
+          setProjects(projects || []);
+        }
+      } else {
+        throw new Error("Failed to get public projects.");
       }
     } catch (err) {
       console.error(err);
@@ -91,7 +92,7 @@ export default function ExploreProjectsPage() {
           <div className="w-72">
             <Input
               placeholder="Search projects..."
-              onChange={(text) => setQuery(text)}
+              onChange={(e) => setQuery(e.target.value)}
             />
           </div>
         </div>

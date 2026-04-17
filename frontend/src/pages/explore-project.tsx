@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import { TopBar } from "../components/topbar";
 import { Button } from "../components/button";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import {
   JOIN_STATUS,
   MapExploredProjectDetails,
@@ -20,14 +20,15 @@ export default function ProjectExplorePage() {
 
   async function getProjectDetails(id: string) {
     try {
-      const data = await ApiRequest<ExploredProjectDetailsApi>(
-        `/public/projects/${id}`,
-        "GET",
-        null,
-      );
-      if (data) {
-        setDetails(MapExploredProjectDetails(data));
-        setJoinStatus(data.join_status);
+      const response = await ApiFetch(`/public/projects/${id}`);
+      if (response.ok) {
+        const data: ExploredProjectDetailsApi = await response.json();
+        if (data) {
+          setDetails(MapExploredProjectDetails(data));
+          setJoinStatus(data.join_status);
+        }
+      } else {
+        throw new Error("Failed to fetch public project.");
       }
     } catch (err) {
       console.error(err);
@@ -42,12 +43,14 @@ export default function ProjectExplorePage() {
 
   const handleJoin = async () => {
     try {
-      await ApiRequest<null>(
-        `/projects/${projectId}/join-requests`,
-        "POST",
-        null,
-      );
-      setJoinStatus(() => JOIN_STATUS.PENDING);
+      const response = await ApiFetch(`/projects/${projectId}/join-requests`, {
+        method: "POST",
+      });
+      if (response.ok) {
+        setJoinStatus(() => JOIN_STATUS.PENDING);
+      } else {
+        throw new Error("Failed to create a request.");
+      }
     } catch (err) {
       console.error(err);
     }

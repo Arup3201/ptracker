@@ -1,14 +1,27 @@
+import { cn } from "../utils/cn";
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "danger";
+  /**
+   * "md" (default) — h-8, used throughout the app
+   * "lg"           — h-9, better proportion next to Input fields (auth pages)
+   */
+  size?: "md" | "lg";
 }
 
 export function Button({
   variant = "primary",
-  className = "",
+  size = "md",
+  className,
   ...props
 }: ButtonProps) {
   const base =
-    "inline-flex items-center justify-center h-8 px-3 text-xs font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none";
+    "inline-flex items-center justify-center px-3 text-xs font-medium rounded-lg transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 focus-visible:ring-offset-zinc-950 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed select-none";
+
+  const sizes = {
+    md: "h-8",
+    lg: "h-9",
+  };
 
   const variants = {
     primary:
@@ -21,7 +34,7 @@ export function Button({
 
   return (
     <button
-      className={`${base} ${variants[variant]} ${className}`}
+      className={cn(base, sizes[size], variants[variant], className)}
       {...props}
     />
   );

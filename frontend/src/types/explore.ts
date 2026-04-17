@@ -1,4 +1,4 @@
-import { MapAvatar, type Avatar, type AvatarApi } from "./project";
+import { MapAvatar, type Avatar, type AvatarApi } from "./avatar";
 
 export type JoinStatus = "Not Requested" | "Pending" | "Accepted";
 
