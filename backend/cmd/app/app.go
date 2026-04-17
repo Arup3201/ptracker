@@ -17,6 +17,7 @@ import (
 	"github.com/ptracker/core/requests"
 	"github.com/ptracker/core/tasks"
 	"github.com/ptracker/core/users"
+	"github.com/ptracker/middlewares"
 	"github.com/redis/go-redis/v9"
 	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
@@ -85,6 +86,8 @@ func NewApp(
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
 
+	authenticator := middlewares.NewAuthenticator(tokenService)
+
 	resendClient := resend.NewClient(config.ResendApiKey)
 	authApi := api.NewAuthApi(
 		registerService,
@@ -143,95 +146,95 @@ func NewApp(
 		{
 			method:  "GET",
 			pattern: "/projects",
-			handler: projectApi.ListMyProjects,
+			handler: authenticator.IsAuthenticated(projectApi.ListMyProjects),
 		},
 		{
 			method:  "GET",
 			pattern: "/dashboard/projects/created",
-			handler: projectApi.ListRecentlyCreated,
+			handler: authenticator.IsAuthenticated(projectApi.ListRecentlyCreated),
 		},
 		{
 			method:  "GET",
 			pattern: "/dashboard/projects/joined",
-			handler: projectApi.ListRecentlyJoined,
+			handler: authenticator.IsAuthenticated(projectApi.ListRecentlyJoined),
 		},
 		{
 			method:  "GET",
 			pattern: "/projects/{project_id}/tasks",
-			handler: taskApi.List,
+			handler: authenticator.IsAuthenticated(taskApi.List),
 		},
 		{
 			method:  "GET",
 			pattern: "/dashboard/tasks/assigned",
-			handler: taskApi.ListAssignedTasks,
+			handler: authenticator.IsAuthenticated(taskApi.ListAssignedTasks),
 		},
 		{
 			method:  "GET",
 			pattern: "/dashboard/tasks/unassigned",
-			handler: taskApi.ListUnassignedTasks,
+			handler: authenticator.IsAuthenticated(taskApi.ListUnassignedTasks),
 		},
 		{
 			method:  "GET",
 			pattern: "/projects/{id}/members",
-			handler: projectApi.ListMembers,
+			handler: authenticator.IsAuthenticated(projectApi.ListMembers),
 		},
 		{
 			method:  "GET",
 			pattern: "/projects/{id}/join-requests",
-			handler: projectApi.ListJoinRequests,
+			handler: authenticator.IsAuthenticated(projectApi.ListJoinRequests),
 		},
 		{
 			method:  "GET",
 			pattern: "/projects/{project_id}/tasks/{task_id}/comments",
-			handler: taskApi.ListComments,
+			handler: authenticator.IsAuthenticated(taskApi.ListComments),
 		},
 		{
 			method:  "GET",
 			pattern: "/public/projects",
-			handler: projectApi.ListPublic,
+			handler: authenticator.IsAuthenticated(projectApi.ListPublic),
 		},
 		// Get Single Instance APIs
 		{
 			method:  "GET",
 			pattern: "/projects/{id}",
-			handler: projectApi.Get,
+			handler: authenticator.IsAuthenticated(projectApi.Get),
 		},
 		{
 			method:  "GET",
 			pattern: "/projects/{project_id}/tasks/{task_id}",
-			handler: taskApi.Get,
+			handler: authenticator.IsAuthenticated(taskApi.Get),
 		},
 		// Create APIs
 		{
 			method:  "POST",
 			pattern: "/projects",
-			handler: projectApi.Create,
+			handler: authenticator.IsAuthenticated(projectApi.Create),
 		},
 		{
 			method:  "POST",
 			pattern: "/projects/{project_id}/tasks",
-			handler: taskApi.Create,
+			handler: authenticator.IsAuthenticated(taskApi.Create),
 		},
 		{
 			method:  "POST",
 			pattern: "/projects/{id}/join-requests",
-			handler: projectApi.AddJoinRequest,
+			handler: authenticator.IsAuthenticated(projectApi.AddJoinRequest),
 		},
 		{
 			method:  "POST",
 			pattern: "/projects/{project_id}/tasks/{task_id}/comments",
-			handler: taskApi.AddComment,
+			handler: authenticator.IsAuthenticated(taskApi.AddComment),
 		},
 		// Update Instance APIs
 		{
 			method:  "PUT",
 			pattern: "/projects/{project_id}/tasks/{task_id}",
-			handler: taskApi.Update,
+			handler: authenticator.IsAuthenticated(taskApi.Update),
 		},
 		{
 			method:  "PUT",
 			pattern: "/projects/{id}/join-requests",
-			handler: projectApi.RespondToJoinRequest,
+			handler: authenticator.IsAuthenticated(projectApi.RespondToJoinRequest),
 		},
 	}
 
@@ -254,6 +257,7 @@ func (app *App) Start() error {
 		AllowedOrigins:   app.AllowedCrossOrigins,
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
 		AllowCredentials: true,
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
 	})
 
 	// server
