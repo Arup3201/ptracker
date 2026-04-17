@@ -88,20 +88,10 @@ func (api *ProjectApi) Create(w http.ResponseWriter, r *http.Request) error {
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&payload); err != nil {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Project can only have 'name', 'description' and 'skills' fields.",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("decode payload: %w", err),
-		}
+		return fmt.Errorf("payload decode: %w", core.ErrInvalidValue)
 	}
 	if err := validator.New().Struct(payload); err != nil {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Project 'name' is required.",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("validate payload: %w", err),
-		}
+		return fmt.Errorf("payload validation: %w", core.ErrInvalidValue)
 	}
 
 	userID, err := GetUserID(r)
@@ -381,12 +371,7 @@ func (api *ProjectApi) ListJoinRequests(w http.ResponseWriter, r *http.Request) 
 
 	projectID := r.PathValue("id")
 	if projectID == "" {
-		return &HTTPError{
-			Code:    http.StatusBadRequest,
-			Message: "Project 'id' can't be empty",
-			ErrId:   ERR_INVALID_BODY,
-			Err:     fmt.Errorf("empty 'id' provided"),
-		}
+		return fmt.Errorf("project ID is missing: %w", core.ErrInvalidValue)
 	}
 
 	userID, err := GetUserID(r)
