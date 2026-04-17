@@ -151,6 +151,7 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 			Data: &ProjectDetail{
 				ProjectSummary: *projectSummary,
 				MemberCount:    memberCount,
+				Role:           role,
 				Owner: core.Avatar{
 					UserID:      owner.ID,
 					Username:    owner.Username,
