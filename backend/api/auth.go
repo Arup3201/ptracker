@@ -32,6 +32,15 @@ type ResendVerificationRequest struct {
 	Email string `json:"email" validate:"required"`
 }
 
+type PasswordResetEmailRequest struct {
+	Email string `json:"email" validate:"required"`
+}
+
+type PasswordResetRequest struct {
+	Token    string `json:"token" validate:"required"`
+	Password string `json:"password" validate:"required"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required"`
 	Password string `json:"password" validate:"required"`
@@ -47,27 +56,33 @@ type AuthApi struct {
 	registerService *manual.RegisterService
 	tokenService    *auth.TokenService
 	emailService    *manual.EmailService
+	passwordService *manual.PasswordService
 	userService     *users.UserService
 	emailClient     *resend.Client
 
-	FrontendVerifyURL string
+	FrontendVerifyURL        string
+	FrontendPasswordResetURL string
 }
 
 func NewAuthApi(
 	registerService *manual.RegisterService,
 	tokenService *auth.TokenService,
 	emailService *manual.EmailService,
+	passwordService *manual.PasswordService,
 	userService *users.UserService,
 	emailClient *resend.Client,
 	verifyURL string,
+	resetURL string,
 ) *AuthApi {
 	return &AuthApi{
-		registerService:   registerService,
-		tokenService:      tokenService,
-		emailService:      emailService,
-		userService:       userService,
-		emailClient:       emailClient,
-		FrontendVerifyURL: verifyURL,
+		registerService:          registerService,
+		tokenService:             tokenService,
+		passwordService:          passwordService,
+		emailService:             emailService,
+		userService:              userService,
+		emailClient:              emailClient,
+		FrontendVerifyURL:        verifyURL,
+		FrontendPasswordResetURL: resetURL,
 	}
 }
 
@@ -203,6 +218,89 @@ func (api *AuthApi) ResendVerificationEmail(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Email verification token sent again.",
+	})
+
+	return nil
+}
+
+func (api *AuthApi) SendPasswordResetEmail(w http.ResponseWriter, r *http.Request) error {
+
+	var payload PasswordResetEmailRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w", core.ErrInvalidValue)
+	}
+
+	token, err := api.passwordService.GetResetToken(
+		r.Context(),
+		payload.Email,
+	)
+	if err != nil {
+		return fmt.Errorf("password service get reset token: %w", err)
+	}
+
+	verificationLink := fmt.Sprintf("%s?token=%s", api.FrontendPasswordResetURL, token)
+	content := fmt.Sprintf(`
+	Hello %s, 
+	Here is your password reset link: 
+	<a href='%s'>Click to verify</a>
+	`,
+		payload.Email,
+		verificationLink)
+
+	params := &resend.SendEmailRequest{
+		From:    "Arup <hello@contact.itsdeployedbyme.dpdns.org>",
+		To:      []string{payload.Email},
+		Html:    content,
+		Subject: "Reset Password",
+		ReplyTo: "hello@contact.itsdeployedbyme.dpdns.org",
+	}
+
+	sent, err := api.emailClient.Emails.Send(params)
+	if err != nil {
+		return fmt.Errorf("email client send: %w", err)
+	}
+
+	log.Printf("[INFO] Email sent: %s\n", sent.Id)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Reset password email sent successfully.",
+	})
+
+	return nil
+}
+
+func (api *AuthApi) ResetPassword(w http.ResponseWriter, r *http.Request) error {
+
+	var payload PasswordResetRequest
+
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decoder decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validator new: %w", core.ErrInvalidValue)
+	}
+
+	err := api.passwordService.Reset(
+		r.Context(),
+		payload.Token,
+		payload.Password,
+	)
+	if err != nil {
+		return fmt.Errorf("password service reset: %w", err)
+	}
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
+		Status:  RESPONSE_SUCCESS_STATUS,
+		Message: "Password reset is successful.",
 	})
 
 	return nil

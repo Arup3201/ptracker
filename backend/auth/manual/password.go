@@ -47,6 +47,10 @@ func (s *PasswordService) GetResetToken(ctx context.Context,
 		return "", fmt.Errorf("manual account repository get by email: %w", err)
 	}
 
+	if !acc.EmailVerified {
+		return "", fmt.Errorf("email not yet verified: %w", core.ErrInvalidValue)
+	}
+
 	token, err := GetRandomToken(32)
 	if err != nil {
 		return "", fmt.Errorf("get random token: %w", err)

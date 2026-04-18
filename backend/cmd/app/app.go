@@ -46,6 +46,7 @@ func NewApp(
 	redis *redis.Client,
 	privateKey *rsa.PrivateKey,
 	frontendVerifyUrl string,
+	frontendResetUrl string,
 ) *App {
 	handler := http.NewServeMux()
 
@@ -85,6 +86,7 @@ func NewApp(
 	registerService := manual.NewRegisterService(txManager, accountRepo, userRepo)
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
+	passwordService := manual.NewPasswordService(accountRepo)
 
 	authenticator := middlewares.NewAuthenticator(tokenService)
 
@@ -93,9 +95,11 @@ func NewApp(
 		registerService,
 		tokenService,
 		emailService,
+		passwordService,
 		userService,
 		resendClient,
 		frontendVerifyUrl,
+		frontendResetUrl,
 	)
 	projectApi := api.NewProjectApi(
 		projectService,
@@ -140,6 +144,16 @@ func NewApp(
 			method:  "POST",
 			pattern: "/auth/resend-verification",
 			handler: authApi.ResendVerificationEmail,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/password-reset-email",
+			handler: authApi.SendPasswordResetEmail,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/password-reset",
+			handler: authApi.ResetPassword,
 		},
 
 		// List APIs

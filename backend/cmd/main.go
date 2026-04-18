@@ -19,6 +19,7 @@ const (
 	API_ROOT             = "/api/v1"
 	FRONTEND_URL         = "http://localhost:5173"
 	FRONTEND_VERIFY_PATH = "/verify-email"
+	FRONTEND_RESET_PATH  = "/reset-password"
 )
 
 func readRSAPrivateKey(filename string) (*rsa.PrivateKey, error) {
@@ -75,6 +76,7 @@ func main() {
 		redis,
 		privateKey,
 		FRONTEND_URL+FRONTEND_VERIFY_PATH,
+		FRONTEND_URL+FRONTEND_RESET_PATH,
 	)
 	app.AllowedCrossOrigins = []string{FRONTEND_URL}
 	err = app.Start()
