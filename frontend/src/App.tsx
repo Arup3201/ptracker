@@ -13,6 +13,8 @@ import CheckEmailPage from "./pages/check-email";
 import VerifyEmailPage from "./pages/verify-email";
 import { AuthProvider } from "./context/auth";
 import ProtectedRoute from "./components/protected-route";
+import ForgotPasswordPage from "./pages/forgot-password";
+import ResetPasswordPage from "./pages/reset-password";
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/check-email" element={<CheckEmailPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />

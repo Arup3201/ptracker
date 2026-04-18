@@ -6,7 +6,7 @@ import { Input } from "../components/input";
 import { Logo } from "../components/logo";
 import { API_ROOT } from "../utils/api";
 
-function PasswordStrength({ password }: { password: string }) {
+export function PasswordStrength({ password }: { password: string }) {
   const checks = [
     password.length >= 8,
     /[A-Z]/.test(password),
