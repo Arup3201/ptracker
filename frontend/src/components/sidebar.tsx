@@ -2,8 +2,6 @@ import clsx from "clsx";
 import { useNavigate } from "react-router";
 import { Logo } from "./logo";
 import { Button } from "./button";
-import { useCurrentUser } from "../hooks/current_user";
-import { ApiRequest } from "../api/request";
 
 import type { LucideIcon } from "lucide-react";
 import {
@@ -15,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../context/auth";
 
 const NavItems = [
   {
@@ -36,6 +35,7 @@ const NavItems = [
 
 export function Sidebar() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -46,15 +46,15 @@ export function Sidebar() {
     }
   });
 
-  const currentUser = useCurrentUser();
-
-  const initials = currentUser
-    ? currentUser?.displayName[0].toUpperCase()
+  const initials = user
+    ? user.displayName
+      ? user.displayName[0].toUpperCase()
+      : user.username[0].toUpperCase()
     : "U";
 
   async function handleLogout() {
     try {
-      await ApiRequest("/auth/logout", "POST", null);
+      await logout();
       navigate("/login");
     } catch (err) {
       console.error(err);
@@ -92,10 +92,10 @@ export function Sidebar() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-text-primary truncate leading-tight">
-                {currentUser?.displayName}
+                {user?.displayName}
               </p>
               <p className="text-xs text-text-muted truncate leading-tight">
-                {currentUser?.email}
+                {user?.email}
               </p>
             </div>
             <ChevronsUpDown size={13} className="text-text-muted shrink-0" />
@@ -165,10 +165,10 @@ export function Sidebar() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-text-primary truncate">
-                  {currentUser?.displayName}
+                  {user?.displayName}
                 </p>
                 <p className="text-xs text-text-muted truncate">
-                  {currentUser?.email}
+                  {user?.email}
                 </p>
               </div>
             </div>

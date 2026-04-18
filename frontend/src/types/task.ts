@@ -1,11 +1,5 @@
-import {
-  MapAvatar,
-  MapMember,
-  type Avatar,
-  type AvatarApi,
-  type Member,
-  type MemberApi,
-} from "./project";
+import { MapMember, type Member, type MemberApi } from "./project";
+import { MapAvatar, type Avatar, type AvatarApi } from "./avatar";
 
 export const TASK_STATUS: Record<string, TaskStatus> = {
   UNASSIGNED: "Unassigned",

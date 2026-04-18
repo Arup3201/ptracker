@@ -6,7 +6,7 @@ import {
   type ProjectsApiResponse,
   type ProjectSummary,
 } from "../types/project.ts";
-import { ApiRequest } from "../api/request.ts";
+import { ApiFetch } from "../utils/api";
 import { TopBar } from "../components/topbar.tsx";
 import {
   Table,
@@ -30,13 +30,15 @@ export function ProjectsPage() {
 
   const getProjects = async () => {
     try {
-      const data = await ApiRequest<ProjectsApiResponse>(
-        "/projects",
-        "GET",
-        null,
-      );
-      if (data?.projects) {
-        setProjects(data.projects.map(MapProject) || []);
+      const response = await ApiFetch("/projects");
+      if (response.ok) {
+        const respondeData = await response.json();
+        const data: ProjectsApiResponse = respondeData.data;
+        if (data?.projects) {
+          setProjects(data.projects.map(MapProject) || []);
+        }
+      } else {
+        throw new Error("Failed to get projects.");
       }
     } catch (err) {
       console.log(err);
@@ -68,7 +70,7 @@ export function ProjectsPage() {
         <div className="w-72">
           <Input
             placeholder="Search projects..."
-            onChange={(text) => setQuery(text)}
+            onChange={(e) => setQuery(e.target.value)}
           />
         </div>
 

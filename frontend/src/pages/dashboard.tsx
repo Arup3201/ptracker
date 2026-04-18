@@ -19,7 +19,7 @@ import {
   type DashboardTask,
   type DashboardTasksResponse,
 } from "../types/dashboard.ts";
-import { ApiRequest } from "../api/request.ts";
+import { ApiFetch } from "../utils/api.ts";
 
 export function Dashboard() {
   const [showModal, setShowModal] = useState(false);
@@ -39,13 +39,15 @@ export function Dashboard() {
 
   async function getRecentAssignedTasks() {
     try {
-      const data = await ApiRequest<DashboardTasksResponse>(
-        "/dashboard/tasks/assigned",
-        "GET",
-        null,
-      );
-      if (data) {
-        setRecentAssignedTasks(data.tasks.map(MapDashboardTask));
+      const response = await ApiFetch("/dashboard/tasks/assigned");
+      if (response.ok) {
+        const responseData = await response.json();
+        const data: DashboardTasksResponse = responseData.data;
+        if (data) {
+          setRecentAssignedTasks(data.tasks.map(MapDashboardTask));
+        }
+      } else {
+        throw new Error("Failed to fetch dashboard assigned tasks");
       }
     } catch (err) {
       console.error(err);
@@ -54,13 +56,15 @@ export function Dashboard() {
 
   async function getRecentUnassignedTasks() {
     try {
-      const data = await ApiRequest<DashboardTasksResponse>(
-        "/dashboard/tasks/unassigned",
-        "GET",
-        null,
-      );
-      if (data) {
-        setRecentUnassignedTasks(data.tasks.map(MapDashboardTask));
+      const response = await ApiFetch("/dashboard/tasks/unassigned");
+      if (response.ok) {
+        const responseData = await response.json();
+        const data: DashboardTasksResponse = responseData.data;
+        if (data) {
+          setRecentUnassignedTasks(data.tasks.map(MapDashboardTask));
+        }
+      } else {
+        throw new Error("Failed to fetch dashboard assigned tasks");
       }
     } catch (err) {
       console.error(err);
@@ -69,13 +73,15 @@ export function Dashboard() {
 
   async function getRecentlyCreatedTasks() {
     try {
-      const data = await ApiRequest<DashboardProjectsResponse>(
-        "/dashboard/projects/created",
-        "GET",
-        null,
-      );
-      if (data) {
-        setRecentlyCreatedProjects(data.projects.map(MapDashboardProject));
+      const response = await ApiFetch("/dashboard/projects/created");
+      if (response.ok) {
+        const responseData = await response.json();
+        const data: DashboardProjectsResponse = responseData.data;
+        if (data) {
+          setRecentlyCreatedProjects(data.projects.map(MapDashboardProject));
+        }
+      } else {
+        throw new Error("Failed to fetch dashboard assigned tasks");
       }
     } catch (err) {
       console.error(err);
@@ -84,13 +90,15 @@ export function Dashboard() {
 
   async function getRecentlyJoinedTasks() {
     try {
-      const data = await ApiRequest<DashboardProjectsResponse>(
-        "/dashboard/projects/joined",
-        "GET",
-        null,
-      );
-      if (data) {
-        setRecentlyJoinedProjects(data.projects.map(MapDashboardProject));
+      const response = await ApiFetch("/dashboard/projects/joined");
+      if (response.ok) {
+        const responseData = await response.json();
+        const data: DashboardProjectsResponse = responseData.data;
+        if (data) {
+          setRecentlyJoinedProjects(data.projects.map(MapDashboardProject));
+        }
+      } else {
+        throw new Error("Failed to fetch dashboard assigned tasks");
       }
     } catch (err) {
       console.error(err);

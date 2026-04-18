@@ -1,54 +1,86 @@
 package main
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"log"
+	"os"
 
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	backend "github.com/ptracker"
-	"github.com/ptracker/internal"
-	"github.com/ptracker/internal/infra"
+	"github.com/ptracker/cmd/app"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
+
+const (
+	REDIS_ADDR           = "127.0.0.1:6379"
+	API_ROOT             = "/api/v1"
+	FRONTEND_URL         = "http://localhost:5173"
+	FRONTEND_VERIFY_PATH = "/verify-email"
+	FRONTEND_RESET_PATH  = "/reset-password"
+)
+
+func readRSAPrivateKey(filename string) (*rsa.PrivateKey, error) {
+	bytes, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+
+	block, _ := pem.Decode(bytes)
+	parseResult, err := x509.ParsePKCS8PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("x509 parse pkce#1 private key: %w", err)
+	}
+
+	privateKey := parseResult.(*rsa.PrivateKey)
+	return privateKey, nil
+}
 
 func main() {
 	var err error
 
-	config := &internal.Config{}
-	err = config.Load()
+	config := &app.Config{}
+	err = config.LoadFromEnv()
 	if err != nil {
-		log.Fatalf("[ERROR] configuration load: %s", err)
+		log.Fatalf("[ERROR] config load from env: %s", err)
 	}
 
-	// DB connection
-	database, err := infra.NewDatabase(fmt.Sprintf("host=%s port=%s user=%s "+
-		"password=%s dbname=%s sslmode=disable", config.DbHost, config.DbPort,
-		config.DbUser, config.DbPass, config.DbName),
+	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=%s "+
+		"password=%s dbname=%s sslmode=disable", config.DBHost, config.DBPort,
+		config.DBUser, config.DBPass, config.DBName)),
 		&gorm.Config{})
 	if err != nil {
-		log.Fatalf("[ERROR] server failed to connect to postgres: %s", err)
+		log.Fatalf("[ERROR] gorm open: %s", err)
 	}
 
-	backend.Migrate(database)
+	app.Migrate(db)
 
-	// Redis
 	redis := redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379",
+		Addr:     REDIS_ADDR,
 		Password: "",
 		DB:       0,
 		Protocol: 2,
 	})
 
-	inMemory := infra.NewInMemory(redis)
-	rateLimiter := infra.NewRateLimiter(redis, 5, 2)
-	notifier := infra.NewWsNotifier()
-	go notifier.Run()
-
-	err = internal.NewApp(config, database, inMemory, rateLimiter, notifier).
-		AttachRoutes("/api/v1").
-		Start()
+	privateKey, err := readRSAPrivateKey("private.key")
 	if err != nil {
-		fmt.Printf("[ERROR] app start failed: %s", err)
+		log.Fatalf("rsa generate key: %s\n", err)
+	}
+
+	app := app.NewApp(
+		API_ROOT,
+		config,
+		db,
+		redis,
+		privateKey,
+		FRONTEND_URL+FRONTEND_VERIFY_PATH,
+		FRONTEND_URL+FRONTEND_RESET_PATH,
+	)
+	app.AllowedCrossOrigins = []string{FRONTEND_URL}
+	err = app.Start()
+	if err != nil {
+		fmt.Printf("[ERROR] app start: %s", err)
 	}
 }

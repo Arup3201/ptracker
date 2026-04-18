@@ -11,10 +11,10 @@ import {
 } from "../types/task";
 import { Drawer } from "../components/drawer";
 import { Button } from "../components/button";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import AssigneeSelector from "../components/assignee-selector";
 import { StatusSelector } from "../components/status-selector";
-import { useCurrentUser } from "../hooks/current_user";
+import { useAuth } from "../context/auth";
 
 export function TaskDrawer({
   open,
@@ -36,7 +36,7 @@ export function TaskDrawer({
   const [editMode, setEditMode] = useState(false);
   const [dirty, setDirty] = useState(false);
 
-  const currentUser = useCurrentUser();
+  const { user } = useAuth();
 
   const [title, setTitle] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -55,31 +55,43 @@ export function TaskDrawer({
 
   async function getProjectTask(projectId: string, taskId: string) {
     try {
-      const taskDetailsResponse = await ApiRequest<TaskDetailApi>(
-        `/projects/${projectId}/tasks/${taskId}`,
-        "GET",
-        null,
-      );
-      if (taskDetailsResponse) {
-        const taskDetails = MapTaskDetails(taskDetailsResponse);
-        setTitle(taskDetails.title || "");
-        setEditedTitle(taskDetails.title || "");
-        setDescription(taskDetails.description || "");
-        setEditedDescription(taskDetails.description || "");
-        setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
-        setEditedStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
+      const response = await ApiFetch(`/projects/${projectId}/tasks/${taskId}`);
+      if (response.ok) {
+        const { data } = await response.json();
+        const task: TaskDetailApi = data;
+        if (task) {
+          const taskDetails = MapTaskDetails(task);
+          setTitle(taskDetails.title || "");
+          setEditedTitle(taskDetails.title || "");
+          setDescription(taskDetails.description || "");
+          setEditedDescription(taskDetails.description || "");
+          setStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
+          setEditedStatus(taskDetails.status || TASK_STATUS.UNASSIGNED);
 
-        setInitialAssignees(taskDetails.assignees || []);
-        setCurrentAssignees(taskDetails.assignees || []);
+          setInitialAssignees(taskDetails.assignees || []);
+          setCurrentAssignees(taskDetails.assignees || []);
+        }
+      } else {
+        throw new Error("Failed to get task details.");
       }
+    } catch (err) {
+      console.error(err);
+    }
+  }
 
-      const commentsResponse = await ApiRequest<TaskCommentsResponseApi>(
+  async function getTaskComment(projectId: string, taskId: string) {
+    try {
+      const response = await ApiFetch(
         `/projects/${projectId}/tasks/${taskId}/comments`,
-        "GET",
-        null,
       );
-      if (commentsResponse) {
-        setComments(commentsResponse.comments.map(MapTaskComment));
+      if (response.ok) {
+        const responseData = await response.json();
+        const data: TaskCommentsResponseApi = responseData.data;
+        if (data) {
+          setComments(data.comments.map(MapTaskComment));
+        }
+      } else {
+        throw new Error("Failed to get task comments.");
       }
     } catch (err) {
       console.error(err);
@@ -89,6 +101,7 @@ export function TaskDrawer({
   useEffect(() => {
     if (projectId && taskId) {
       getProjectTask(projectId, taskId);
+      getTaskComment(projectId, taskId);
     }
   }, [projectId, taskId]);
 
@@ -131,7 +144,16 @@ export function TaskDrawer({
     };
 
     try {
-      await ApiRequest(`/projects/${projectId}/tasks/${taskId}`, "PUT", data);
+      const response = await ApiFetch(
+        `/projects/${projectId}/tasks/${taskId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(data),
+        },
+      );
+      if (!response.ok) {
+        throw new Error("Failed to update the task.");
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -151,14 +173,19 @@ export function TaskDrawer({
   async function handleAddComment() {
     const data = {
       comment: comment,
-      user_id: currentUser?.id,
+      user_id: user?.userId,
     };
     try {
-      await ApiRequest(
+      const response = await ApiFetch(
         `/projects/${projectId}/tasks/${taskId}/comments`,
-        "POST",
-        data,
+        {
+          method: "POST",
+          body: JSON.stringify(data),
+        },
       );
+      if (!response.ok) {
+        throw new Error("Failed to update the task.");
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -171,8 +198,7 @@ export function TaskDrawer({
   }
 
   const isAssignee =
-    initialAssignees.findIndex((a) => a.avatar.userId === currentUser?.id) !==
-    -1;
+    initialAssignees.findIndex((a) => a.avatar.userId === user?.userId) !== -1;
 
   return (
     <Drawer

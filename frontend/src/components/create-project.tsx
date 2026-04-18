@@ -2,7 +2,7 @@ import { useState } from "react";
 import clsx from "clsx";
 import { Modal } from "./modal";
 import { Button } from "./button";
-import { ApiRequest } from "../api/request";
+import { ApiFetch } from "../utils/api";
 import { useNavigate } from "react-router";
 
 type CreateProjectModalProps = {
@@ -34,16 +34,20 @@ export const CreateProjectModal = ({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const projectId = await ApiRequest<string>("/projects", "POST", {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      skills: parsedSkills.join(", "),
+    const response = await ApiFetch("/projects", {
+      method: "POST",
+      body: JSON.stringify({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        skills: parsedSkills.join(", "),
+      }),
     });
+    if (response.ok) {
+      const { data } = await response.json();
+      navigate("/projects/" + data);
+    }
 
     onClose();
-    if (projectId) {
-      navigate("/projects/" + projectId);
-    }
   }
 
   return (
