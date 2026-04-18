@@ -15,6 +15,10 @@ import { AuthProvider } from "./context/auth";
 import ProtectedRoute from "./components/protected-route";
 import ForgotPasswordPage from "./pages/forgot-password";
 import ResetPasswordPage from "./pages/reset-password";
+import TermsPage from "./pages/terms";
+import PrivacyPage from "./pages/privacy";
+import CookiePage from "./pages/cookie";
+import GDPRPage from "./pages/gdpr";
 
 function App() {
   return (
@@ -34,6 +38,11 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/check-email" element={<CheckEmailPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/cookies" element={<CookiePage />} />
+            <Route path="/gdpr" element={<GDPRPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route element={<AppLayout />}>
