@@ -9,6 +9,7 @@ import (
 	"github.com/ptracker/api"
 	"github.com/ptracker/auth"
 	"github.com/ptracker/auth/manual"
+	"github.com/ptracker/auth/openid"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/assignees"
 	"github.com/ptracker/core/comments"
@@ -53,6 +54,7 @@ func NewApp(
 	memberRepo := members.NewMemberRepository(db)
 	joinRepo := requests.NewJoinRepository(db)
 	accountRepo := manual.NewManualAccountRepository(db)
+	oauthRepo := openid.NewOauthRepository(db)
 	userRepo := users.NewUserRepository(db)
 	assigneeRepo := assignees.NewAssigneeRepository(db)
 	commentRepo := comments.NewCommentRepository(db)
@@ -87,6 +89,7 @@ func NewApp(
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
 	passwordService := manual.NewPasswordService(accountRepo)
+	googleService := openid.NewGoogleService(config.GoogleClientID, config.GoogleClientSecret, config.GoogleRedirectURI, txManager, userRepo, oauthRepo)
 
 	authenticator := middlewares.NewAuthenticator(tokenService)
 
@@ -101,6 +104,7 @@ func NewApp(
 		frontendVerifyUrl,
 		frontendResetUrl,
 	)
+	googleApi := api.NewGoogleApi(googleService, tokenService, userService)
 	projectApi := api.NewProjectApi(
 		projectService,
 		userService,
@@ -154,6 +158,16 @@ func NewApp(
 			method:  "POST",
 			pattern: "/auth/password-reset",
 			handler: authApi.ResetPassword,
+		},
+		{
+			method:  "GET",
+			pattern: "/auth/google/redirect",
+			handler: googleApi.Redirect,
+		},
+		{
+			method:  "GET",
+			pattern: "/auth/google/callback",
+			handler: googleApi.Callback,
 		},
 
 		// List APIs
