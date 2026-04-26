@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"github.com/ptracker/models"
 	"github.com/ptracker/testdata"
@@ -116,7 +117,7 @@ func (suite *emailServiceTestSuite) TestVerify() {
 		uid := UID_ONE
 		em := uid + "@example.com"
 		raw := "rawtok123"
-		hash := GetTokenSHA(raw)
+		hash := auth.GetTokenSHA(raw)
 		expires := time.Now().UTC().Add(1 * time.Hour)
 		acc := models.ManualAccount{UserID: uid, Email: em, PasswordHash: []byte("pw"), VerificationToken: &hash, VerificationTokenExpiresAt: &expires}
 		suite.fixtures.InsertManualAccount(acc)
@@ -132,7 +133,7 @@ func (suite *emailServiceTestSuite) TestVerify() {
 		uid := UID_ONE
 		em := uid + "@example.com"
 		raw := "rawtok-exp"
-		hash := GetTokenSHA(raw)
+		hash := auth.GetTokenSHA(raw)
 		expires := time.Now().UTC().Add(-1 * time.Minute)
 
 		acc := models.ManualAccount{UserID: uid, Email: em, PasswordHash: []byte("pw"), VerificationToken: &hash, VerificationTokenExpiresAt: &expires}
