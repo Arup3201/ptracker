@@ -122,7 +122,9 @@ func (api *TaskApi) Create(w http.ResponseWriter, r *http.Request) error {
 			taskID,
 			userID,
 			assignee)
-		warnings = append(warnings, err.Error())
+		if err != nil {
+			warnings = append(warnings, err.Error())
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
