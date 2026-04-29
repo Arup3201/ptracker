@@ -32,7 +32,8 @@ type ProjectDetail struct {
 
 type PublicProjectDetail struct {
 	projects.ProjectSummary
-	JoinStatus string `json:"join_status"`
+	Owner      core.Avatar `json:"owner"`
+	JoinStatus string      `json:"join_status"`
 }
 
 type ListedProjectSummaries struct {
@@ -130,6 +131,11 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("database get project details: %w", err)
 	}
 
+	owner, err := api.userService.Get(r.Context(), projectSummary.OwnerID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
 	userID, err := GetUserID(r)
 	if err != nil {
 		return fmt.Errorf("get context user: %w", err)
@@ -144,11 +150,6 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 		memberCount, err := api.memberService.Count(r.Context(), projectID, userID)
 		if err != nil {
 			return fmt.Errorf("member service count: %w", err)
-		}
-
-		owner, err := api.userService.Get(r.Context(), userID)
-		if err != nil {
-			return fmt.Errorf("user service get: %w", err)
 		}
 
 		json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectDetail]{
@@ -177,7 +178,14 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 			Status: RESPONSE_SUCCESS_STATUS,
 			Data: &PublicProjectDetail{
 				ProjectSummary: *projectSummary,
-				JoinStatus:     joinStatus,
+				Owner: core.Avatar{
+					UserID:      owner.ID,
+					Username:    owner.Username,
+					Email:       owner.Email,
+					DisplayName: owner.DisplayName,
+					AvatarURL:   owner.AvatarURL,
+				},
+				JoinStatus: joinStatus,
 			},
 		})
 	}
