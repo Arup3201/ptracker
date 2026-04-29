@@ -10,6 +10,7 @@ import (
 	"github.com/ptracker/core/projects"
 	"github.com/ptracker/core/tasks"
 	"github.com/ptracker/core/users"
+	"github.com/ptracker/models"
 )
 
 const (
@@ -73,10 +74,10 @@ type CommentAdded struct {
 }
 
 type Notification struct {
-	ID     string `json:"id"`
-	UserID string `json:"user_id"`
-	Type   string `json:"type"`
-	Body   any    `json:"body"`
+	ID     string      `json:"id"`
+	UserID string      `json:"user_id"`
+	Type   string      `json:"type"`
+	Body   models.JSON `json:"body"`
 }
 
 type NotificationService struct {
@@ -435,4 +436,26 @@ func (s *NotificationService) CommentAdded(ctx context.Context,
 	}
 
 	return nil
+}
+
+func (s *NotificationService) List(ctx context.Context,
+	userID string) ([]Notification, error) {
+
+	rows, err := s.notificationRepo.List(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("notification repository List: %w", err)
+	}
+
+	notifications := []Notification{}
+	for _, r := range rows {
+
+		notifications = append(notifications, Notification{
+			ID:     r.ID,
+			UserID: r.UserID,
+			Type:   r.Type,
+			Body:   r.Body,
+		})
+	}
+
+	return notifications, nil
 }

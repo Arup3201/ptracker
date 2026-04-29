@@ -372,3 +372,33 @@ func (suite *notificationServiceTestSuite) TestCommentAdded() {
 		suite.Require().Equal(USER_TWO, body.Commenter.UserID)
 	})
 }
+
+func (suite *notificationServiceTestSuite) TestList() {
+	t := suite.T()
+
+	t.Run("should list notifications", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertNotification(fixtures.GetNotificationRow(USER_ONE, NT_JOIN_REQUESTED, JoinRequested{
+			Project: ProjectBody{
+				ID: p,
+			},
+			Requestor: core.Avatar{
+				UserID: USER_TWO,
+			},
+		}))
+		suite.fixtures.InsertNotification(fixtures.GetNotificationRow(USER_ONE, NT_JOIN_REQUESTED, JoinRequested{
+			Project: ProjectBody{
+				ID: p,
+			},
+			Requestor: core.Avatar{
+				UserID: USER_THREE,
+			},
+		}))
+
+		notifications, err := suite.service.List(suite.ctx, USER_ONE)
+
+		suite.Cleanup()
+		suite.Require().NoError(err)
+		suite.Require().Equal(2, len(notifications))
+	})
+}
