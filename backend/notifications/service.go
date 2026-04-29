@@ -148,7 +148,7 @@ func (s *NotificationService) TaskAdded(ctx context.Context,
 func (s *NotificationService) TaskUpdated(ctx context.Context,
 	projectID, taskID string,
 	title, description, status *string,
-	updater string) error {
+	updaterID string) error {
 
 	project, err := s.projectRepo.Get(ctx, projectID)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *NotificationService) TaskUpdated(ctx context.Context,
 		return fmt.Errorf("task repository Get: %w", err)
 	}
 
-	updaterInfo, err := s.userRepo.Get(ctx, updater)
+	updater, err := s.userRepo.Get(ctx, updaterID)
 	if err != nil {
 		return fmt.Errorf("user repository Get: %w", err)
 	}
@@ -196,15 +196,15 @@ func (s *NotificationService) TaskUpdated(ctx context.Context,
 		},
 		Updates: updates,
 		Updater: core.Avatar{
-			UserID:      updaterInfo.ID,
-			Username:    updaterInfo.Username,
-			DisplayName: updaterInfo.DisplayName,
-			Email:       updaterInfo.Email,
-			AvatarURL:   updaterInfo.AvatarURL,
+			UserID:      updater.ID,
+			Username:    updater.Username,
+			DisplayName: updater.DisplayName,
+			Email:       updater.Email,
+			AvatarURL:   updater.AvatarURL,
 		},
 	})
 
-	if project.OwnerID != updater {
+	if project.OwnerID != updaterID {
 		_, err := s.notificationRepo.Create(
 			ctx,
 			project.OwnerID,
@@ -218,7 +218,7 @@ func (s *NotificationService) TaskUpdated(ctx context.Context,
 	}
 
 	for _, assignee := range task.Assignees {
-		if assignee.AssigneeID == updater {
+		if assignee.AssigneeID == updaterID {
 			continue
 		}
 
@@ -226,6 +226,206 @@ func (s *NotificationService) TaskUpdated(ctx context.Context,
 			ctx,
 			assignee.AssigneeID,
 			NT_TASK_UPDATED,
+			body,
+			false,
+		)
+		if err != nil {
+			return fmt.Errorf("notification repository Create: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *NotificationService) AssigneeUpdated(ctx context.Context,
+	projectID, taskID string,
+	assigneeID string,
+	isAdded bool) error {
+
+	project, err := s.projectRepo.Get(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("project repository Get: %w", err)
+	}
+
+	task, err := s.taskRepo.Get(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("task repository Get: %w", err)
+	}
+
+	assignee, err := s.userRepo.Get(ctx, assigneeID)
+	if err != nil {
+		return fmt.Errorf("user repository Get: %w", err)
+	}
+
+	body, _ := json.Marshal(AssigneeUpdated{
+		Project: ProjectBody{
+			ID:   projectID,
+			Name: project.Name,
+		},
+		Task: TaskBody{
+			ID:    taskID,
+			Title: task.Title,
+		},
+		Assignee: core.Avatar{
+			UserID:      assignee.ID,
+			Username:    assignee.Username,
+			DisplayName: assignee.DisplayName,
+			Email:       assignee.Email,
+			AvatarURL:   assignee.AvatarURL,
+		},
+	})
+
+	var notificationType string
+	if isAdded {
+		notificationType = NT_ASSIGNEE_ADDED
+	} else {
+		notificationType = NT_ASSIGNEE_REMOVED
+	}
+
+	for _, assignee := range task.Assignees {
+		_, err := s.notificationRepo.Create(
+			ctx,
+			assignee.AssigneeID,
+			notificationType,
+			body,
+			false,
+		)
+		if err != nil {
+			return fmt.Errorf("notification repository Create: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (s *NotificationService) JoinRequested(ctx context.Context,
+	projectID string,
+	requestorID string) error {
+
+	project, err := s.projectRepo.Get(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("project repository Get: %w", err)
+	}
+
+	requestor, err := s.userRepo.Get(ctx, requestorID)
+	if err != nil {
+		return fmt.Errorf("user repository Get: %w", err)
+	}
+
+	body, _ := json.Marshal(JoinRequested{
+		Project: ProjectBody{
+			ID:   projectID,
+			Name: project.Name,
+		},
+		Requestor: core.Avatar{
+			UserID:      requestor.ID,
+			Username:    requestor.Username,
+			DisplayName: requestor.DisplayName,
+			Email:       requestor.Email,
+			AvatarURL:   requestor.AvatarURL,
+		},
+	})
+
+	_, err = s.notificationRepo.Create(
+		ctx,
+		project.OwnerID,
+		NT_JOIN_REQUESTED,
+		body,
+		false,
+	)
+	if err != nil {
+		return fmt.Errorf("notification repository Create: %w", err)
+	}
+
+	return nil
+}
+
+func (s *NotificationService) JoinResponded(ctx context.Context,
+	projectID string,
+	requestorID string,
+	status string) error {
+
+	project, err := s.projectRepo.Get(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("project repository Get: %w", err)
+	}
+
+	responder, err := s.userRepo.Get(ctx, project.OwnerID)
+	if err != nil {
+		return fmt.Errorf("user repository Get: %w", err)
+	}
+
+	body, _ := json.Marshal(JoinResponded{
+		Project: ProjectBody{
+			ID:   projectID,
+			Name: project.Name,
+		},
+		Responder: core.Avatar{
+			UserID:      responder.ID,
+			Username:    responder.Username,
+			DisplayName: responder.DisplayName,
+			Email:       responder.Email,
+			AvatarURL:   responder.AvatarURL,
+		},
+		Status: status,
+	})
+
+	_, err = s.notificationRepo.Create(
+		ctx,
+		requestorID,
+		NT_JOIN_RESPONDED,
+		body,
+		false,
+	)
+	if err != nil {
+		return fmt.Errorf("notification repository Create: %w", err)
+	}
+
+	return nil
+}
+
+func (s *NotificationService) CommentAdded(ctx context.Context,
+	projectID, taskID string,
+	commenterID string) error {
+
+	project, err := s.projectRepo.Get(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("project repository Get: %w", err)
+	}
+
+	task, err := s.taskRepo.Get(ctx, taskID)
+	if err != nil {
+		return fmt.Errorf("task repository Get: %w", err)
+	}
+
+	commenter, err := s.userRepo.Get(ctx, commenterID)
+	if err != nil {
+		return fmt.Errorf("user repository Get: %w", err)
+	}
+
+	body, _ := json.Marshal(CommentAdded{
+		Project: ProjectBody{
+			ID:   projectID,
+			Name: project.Name,
+		},
+		Task: TaskBody{
+			ID:    taskID,
+			Title: task.Title,
+		},
+		Commenter: core.Avatar{
+			UserID:      commenter.ID,
+			Username:    commenter.Username,
+			DisplayName: commenter.DisplayName,
+			Email:       commenter.Email,
+			AvatarURL:   commenter.AvatarURL,
+		},
+	})
+
+	for _, assignee := range task.Assignees {
+		_, err = s.notificationRepo.Create(
+			ctx,
+			assignee.AssigneeID,
+			NT_COMMENT_ADDED,
 			body,
 			false,
 		)

@@ -219,3 +219,156 @@ func (suite *notificationServiceTestSuite) TestTaskUpdated() {
 		suite.Require().Equal(2, len(body.Updates))
 	})
 }
+
+func (suite *notificationServiceTestSuite) TestAssigneeUpdated() {
+	t := suite.T()
+
+	t.Run("should create assignee_added notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+
+		err := suite.service.AssigneeUpdated(suite.ctx, p, taskID, USER_TWO, true)
+
+		suite.Cleanup()
+		suite.Require().NoError(err)
+	})
+	t.Run("should be assignee_added type of notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		suite.service.AssigneeUpdated(suite.ctx, p, taskID, USER_TWO, true)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_TWO).
+				First(suite.ctx)
+
+		suite.Cleanup()
+		suite.Require().Equal(NT_ASSIGNEE_ADDED, n.Type)
+	})
+	t.Run("should be assignee_removed type of notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_THREE, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_THREE))
+		suite.fixtures.RemoveAssignee(p, taskID, USER_TWO)
+		suite.service.AssigneeUpdated(suite.ctx, p, taskID, USER_TWO, false)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_THREE).
+				First(suite.ctx)
+
+		suite.Cleanup()
+		suite.Require().Equal(NT_ASSIGNEE_REMOVED, n.Type)
+	})
+	t.Run("should match notification body", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+		suite.service.AssigneeUpdated(suite.ctx, p, taskID, USER_TWO, true)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_TWO).
+				First(suite.ctx)
+
+		suite.Cleanup()
+		var body AssigneeUpdated
+		err := json.Unmarshal(n.Body, &body)
+		suite.Require().NoError(err)
+		suite.Require().Equal(p, body.Project.ID)
+		suite.Require().Equal(taskID, body.Task.ID)
+		suite.Require().Equal(USER_TWO, body.Assignee.UserID)
+	})
+}
+
+func (suite *notificationServiceTestSuite) TestJoinRequested() {
+	t := suite.T()
+
+	t.Run("should create join_requested notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+
+		err := suite.service.JoinRequested(suite.ctx, p, USER_TWO)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_ONE).
+				First(suite.ctx)
+		suite.Cleanup()
+		suite.Require().NoError(err)
+		suite.Require().Equal(NT_JOIN_REQUESTED, n.Type)
+
+		var body JoinRequested
+		err = json.Unmarshal(n.Body, &body)
+		suite.Require().NoError(err)
+		suite.Require().Equal(p, body.Project.ID)
+		suite.Require().Equal(USER_TWO, body.Requestor.UserID)
+	})
+}
+
+func (suite *notificationServiceTestSuite) TestJoinResponded() {
+	t := suite.T()
+
+	t.Run("should create join_responded notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertJoinRequest(models.JoinRequest{
+			ProjectID: p,
+			UserID:    USER_TWO,
+			Status: models.JoinStatus{
+				String: core.JOIN_STATUS_ACCEPTED,
+			},
+		})
+
+		err := suite.service.JoinResponded(suite.ctx, p, USER_TWO, core.JOIN_STATUS_ACCEPTED)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_TWO).
+				First(suite.ctx)
+		suite.Cleanup()
+		suite.Require().NoError(err)
+		suite.Require().Equal(NT_JOIN_RESPONDED, n.Type)
+
+		var body JoinResponded
+		err = json.Unmarshal(n.Body, &body)
+		suite.Require().NoError(err)
+		suite.Require().Equal(p, body.Project.ID)
+		suite.Require().Equal(USER_ONE, body.Responder.UserID)
+		suite.Require().Equal(core.JOIN_STATUS_ACCEPTED, body.Status)
+	})
+}
+
+func (suite *notificationServiceTestSuite) TestCommentAdded() {
+	t := suite.T()
+
+	t.Run("should create comment_added notification", func(t *testing.T) {
+		p := suite.fixtures.InsertProject(fixtures.RandomProjectRow(USER_ONE))
+		suite.fixtures.InsertMember(fixtures.GetMemberRow(p, USER_TWO, core.ROLE_MEMBER))
+		taskID := suite.fixtures.InsertTask(fixtures.RandomTaskRow(p, core.TASK_STATUS_UNASSIGNED))
+		suite.fixtures.InsertAssignee(fixtures.GetAssigneeRow(p, taskID, USER_TWO))
+
+		err := suite.service.CommentAdded(suite.ctx, p, taskID, USER_TWO)
+
+		n, _ :=
+			gorm.G[models.Notification](suite.db).
+				Where("user_id = ?", USER_TWO).
+				First(suite.ctx)
+		suite.Cleanup()
+		suite.Require().NoError(err)
+		suite.Require().Equal(NT_COMMENT_ADDED, n.Type)
+
+		var body CommentAdded
+		err = json.Unmarshal(n.Body, &body)
+		suite.Require().NoError(err)
+		suite.Require().Equal(p, body.Project.ID)
+		suite.Require().Equal(taskID, body.Task.ID)
+		suite.Require().Equal(USER_TWO, body.Commenter.UserID)
+	})
+}

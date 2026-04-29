@@ -22,3 +22,12 @@ func (f *Fixtures) InsertAssignee(a models.Assignee) {
 		return
 	}
 }
+
+func (f *Fixtures) RemoveAssignee(projectID, taskID, userID string) {
+	if f.db != nil {
+		if err := f.db.WithContext(f.ctx).Delete(&models.Assignee{}, "project_id = ? AND task_id = ? AND user_id = ?", projectID, taskID, userID).Error; err != nil {
+			panic(fmt.Sprintf("remove assignee fixture failed: %v", err))
+		}
+		return
+	}
+}

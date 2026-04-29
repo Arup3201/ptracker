@@ -170,4 +170,22 @@ Example 4: join accepted/rejected
 		"status": "Accepted" / "Rejected"
 	}
 
+Example 5: comment added
+	Type: comment_added
+	Body: {
+		"project": {
+			"id": "...",
+			"name": "..."
+		},
+		"task": {
+			"id": "...",
+			"title": "..."
+		},
+		"commenter": {
+			"user_id": "...",
+			"username": "...",
+			"email": "...",
+			...
+		}
+	}
 */
