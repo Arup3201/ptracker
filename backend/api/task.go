@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/ptracker/core/assignees"
 	"github.com/ptracker/core/comments"
 	"github.com/ptracker/core/tasks"
+	"github.com/ptracker/notifications"
 )
 
 type CreateTaskRequest struct {
@@ -64,20 +66,23 @@ type ListedComments struct {
 }
 
 type TaskApi struct {
-	taskService     *tasks.TaskService
-	assigneeService *assignees.AssigneeService
-	commentService  *comments.CommentService
+	taskService         *tasks.TaskService
+	assigneeService     *assignees.AssigneeService
+	commentService      *comments.CommentService
+	notificationService *notifications.NotificationService
 }
 
 func NewTaskApi(
 	taskService *tasks.TaskService,
 	assigneeService *assignees.AssigneeService,
 	commentService *comments.CommentService,
+	notificationService *notifications.NotificationService,
 ) *TaskApi {
 	return &TaskApi{
-		taskService:     taskService,
-		assigneeService: assigneeService,
-		commentService:  commentService,
+		taskService:         taskService,
+		assigneeService:     assigneeService,
+		commentService:      commentService,
+		notificationService: notificationService,
 	}
 }
 
@@ -115,6 +120,15 @@ func (api *TaskApi) Create(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("service create task: %w", err)
 	}
 
+	err = api.notificationService.TaskAdded(
+		r.Context(),
+		projectID,
+		taskID,
+	)
+	if err != nil {
+		log.Printf("[ERROR] notification service TaskAdded: %s", err)
+	}
+
 	warnings := []string{}
 	for _, assignee := range payload.Assignees {
 		err = api.assigneeService.AddAssignee(r.Context(),
@@ -124,6 +138,17 @@ func (api *TaskApi) Create(w http.ResponseWriter, r *http.Request) error {
 			assignee)
 		if err != nil {
 			warnings = append(warnings, err.Error())
+		} else {
+			err = api.notificationService.AssigneeUpdated(
+				r.Context(),
+				projectID,
+				taskID,
+				assignee,
+				true,
+			)
+			if err != nil {
+				log.Printf("[ERROR] notification service AssigneeUpdated: %s", err)
+			}
 		}
 	}
 
@@ -213,6 +238,19 @@ func (api *TaskApi) Update(w http.ResponseWriter, r *http.Request) error {
 
 		if err != nil {
 			return fmt.Errorf("service task update: %w", err)
+		} else {
+			err = api.notificationService.TaskUpdated(
+				r.Context(),
+				projectID,
+				taskID,
+				payload.Title,
+				payload.Description,
+				payload.Status,
+				userID,
+			)
+			if err != nil {
+				log.Printf("[ERROR] notification service TaskUpdated: %s", err)
+			}
 		}
 	}
 
@@ -222,6 +260,17 @@ func (api *TaskApi) Update(w http.ResponseWriter, r *http.Request) error {
 			projectID, taskID, userID, assignee)
 		if err != nil {
 			warnings = append(warnings, err.Error())
+		} else {
+			err = api.notificationService.AssigneeUpdated(
+				r.Context(),
+				projectID,
+				taskID,
+				assignee,
+				true,
+			)
+			if err != nil {
+				log.Printf("[ERROR] notification service AssigneeUpdated: %s", err)
+			}
 		}
 	}
 	for _, assignee := range payload.AssigneesToRemove {
@@ -229,6 +278,17 @@ func (api *TaskApi) Update(w http.ResponseWriter, r *http.Request) error {
 			projectID, taskID, userID, assignee)
 		if err != nil {
 			warnings = append(warnings, err.Error())
+		} else {
+			err = api.notificationService.AssigneeUpdated(
+				r.Context(),
+				projectID,
+				taskID,
+				assignee,
+				false,
+			)
+			if err != nil {
+				log.Printf("[ERROR] notification service AssigneeUpdated: %s", err)
+			}
 		}
 	}
 
@@ -336,6 +396,16 @@ func (api *TaskApi) AddComment(w http.ResponseWriter, r *http.Request) error {
 	)
 	if err != nil {
 		return fmt.Errorf("comment service create: %w", err)
+	}
+
+	err = api.notificationService.CommentAdded(
+		r.Context(),
+		projectID,
+		taskID,
+		userID,
+	)
+	if err != nil {
+		log.Printf("[ERROR] notification service CommentAdded: %s", err)
 	}
 
 	w.WriteHeader(http.StatusCreated)
