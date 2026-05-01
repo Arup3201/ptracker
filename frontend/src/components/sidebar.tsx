@@ -11,6 +11,7 @@ import {
   SquareCheckBig,
   Telescope,
   X,
+  BellRing,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "../context/auth";
@@ -30,6 +31,11 @@ const NavItems = [
     name: "Explore",
     path: "/explore",
     icon: Telescope,
+  },
+  {
+    name: "Messages",
+    path: "/messages",
+    icon: BellRing,
   },
 ];
 

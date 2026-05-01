@@ -147,7 +147,7 @@ export function TaskDrawer({
       const response = await ApiFetch(
         `/projects/${projectId}/tasks/${taskId}`,
         {
-          method: "PUT",
+          method: "PATCH",
           body: JSON.stringify(data),
         },
       );
