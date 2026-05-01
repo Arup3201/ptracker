@@ -125,6 +125,10 @@ export default function ProjectDetailsPage() {
     }
   }, [projectId]);
 
+  if (!projectId) {
+    return "";
+  }
+
   const taskId = searchParams.get("task"); // string | null
   const closeTaskDrawer = () => {
     searchParams.delete("task");
@@ -218,7 +222,12 @@ export default function ProjectDetailsPage() {
         )}
         {activeTab === "members" && <MembersSection members={members} />}
         {activeTab === "requests" && (
-          <JoinRequestsSection requests={joinRequests} />
+          <JoinRequestsSection
+            requests={joinRequests}
+            onResponse={async () => {
+              await getJoinRequests(projectId);
+            }}
+          />
         )}
       </div>
 
@@ -226,7 +235,10 @@ export default function ProjectDetailsPage() {
         projectId={projectId}
         members={members}
         open={addTask}
-        onClose={() => setAddTask(false)}
+        onClose={async () => {
+          await getProjectTasks(projectId);
+          setAddTask(false);
+        }}
       />
       <TaskDrawer
         open={Boolean(taskId)}
@@ -347,7 +359,13 @@ function MembersSection({ members }: { members: Member[] }) {
   );
 }
 
-function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
+function JoinRequestsSection({
+  requests,
+  onResponse,
+}: {
+  requests: JoinRequest[];
+  onResponse: () => Promise<void>;
+}) {
   const handleUpdate = async (
     projectId: string,
     userId: string,
@@ -361,6 +379,7 @@ function JoinRequestsSection({ requests }: { requests: JoinRequest[] }) {
       if (!response.ok) {
         throw new Error("Failed to respond to the join request.");
       }
+      await onResponse();
     } catch (err) {
       console.error(err);
     }
