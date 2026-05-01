@@ -249,6 +249,7 @@ export function MessagesPage() {
                 >
                   {!notification.read && (
                     <Button
+                      variant="secondary"
                       onClick={() => handleMarkAsRead(notification.id)}
                       className="absolute top-3 right-3 p-1"
                       title="Mark as read"
