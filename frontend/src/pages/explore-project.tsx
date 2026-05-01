@@ -20,7 +20,7 @@ export default function ProjectExplorePage() {
 
   async function getProjectDetails(id: string) {
     try {
-      const response = await ApiFetch(`/public/projects/${id}`);
+      const response = await ApiFetch(`/projects/${id}`);
       if (response.ok) {
         const respondeData = await response.json();
         const data: ExploredProjectDetailsApi = respondeData.data;

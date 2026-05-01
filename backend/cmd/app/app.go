@@ -18,6 +18,7 @@ import (
 	"github.com/ptracker/core/tasks"
 	"github.com/ptracker/core/users"
 	"github.com/ptracker/middlewares"
+	"github.com/ptracker/notifications"
 	"github.com/redis/go-redis/v9"
 	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
@@ -58,6 +59,7 @@ func NewApp(
 	commentRepo := comments.NewCommentRepository(db)
 	projectRepo := projects.NewProjectRepository(db)
 	taskRepo := tasks.NewTaskRepository(db)
+	notificationRepo := notifications.NewNotificationRepository(db)
 	txManager := core.NewTxManager(db)
 	tokenStore := auth.NewTokenStore(redis)
 
@@ -83,6 +85,13 @@ func NewApp(
 		memberRepo,
 		assigneeRepo,
 	)
+	notificationService := notifications.NewNotificationService(
+		projectRepo,
+		taskRepo,
+		memberRepo,
+		userRepo,
+		notificationRepo,
+	)
 	registerService := manual.NewRegisterService(txManager, accountRepo, userRepo)
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
@@ -106,12 +115,15 @@ func NewApp(
 		userService,
 		memberService,
 		joinService,
+		notificationService,
 	)
 	taskApi := api.NewTaskApi(
 		taskService,
 		assigneeService,
 		commentService,
+		notificationService,
 	)
+	messageApi := api.NewMessageApi(notificationService)
 
 	patternWithHandlers := []patternWithHandler{
 		// Auth
@@ -207,6 +219,11 @@ func NewApp(
 			pattern: "/public/projects",
 			handler: authenticator.IsAuthenticated(projectApi.ListPublic),
 		},
+		{
+			method:  "GET",
+			pattern: "/messages",
+			handler: authenticator.IsAuthenticated(messageApi.List),
+		},
 		// Get Single Instance APIs
 		{
 			method:  "GET",
@@ -241,14 +258,19 @@ func NewApp(
 		},
 		// Update Instance APIs
 		{
-			method:  "PUT",
+			method:  "PATCH",
+			pattern: "/projects/{id}/join-requests",
+			handler: authenticator.IsAuthenticated(projectApi.RespondToJoinRequest),
+		},
+		{
+			method:  "PATCH",
 			pattern: "/projects/{project_id}/tasks/{task_id}",
 			handler: authenticator.IsAuthenticated(taskApi.Update),
 		},
 		{
-			method:  "PUT",
-			pattern: "/projects/{id}/join-requests",
-			handler: authenticator.IsAuthenticated(projectApi.RespondToJoinRequest),
+			method:  "PATCH",
+			pattern: "/messages/{id}",
+			handler: authenticator.IsAuthenticated(messageApi.MarkAsRead),
 		},
 	}
 

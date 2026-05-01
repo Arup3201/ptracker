@@ -18,4 +18,5 @@ type User struct {
 	JoinRequests   []JoinRequest   `gorm:"constraint:OnDelete:CASCADE"`
 	Comments       []Comment       `gorm:"constraint:OnDelete:CASCADE"`
 	Assignees      []Assignee      `gorm:"constraint:OnDelete:CASCADE"`
+	Notifications  []Notification  `gorm:"constraint:OnDelete:CASCADE"`
 }

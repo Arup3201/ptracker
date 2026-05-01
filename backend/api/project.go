@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -13,6 +14,7 @@ import (
 	"github.com/ptracker/core/projects"
 	"github.com/ptracker/core/requests"
 	"github.com/ptracker/core/users"
+	"github.com/ptracker/notifications"
 )
 
 type CreateProjectRequest struct {
@@ -30,7 +32,8 @@ type ProjectDetail struct {
 
 type PublicProjectDetail struct {
 	projects.ProjectSummary
-	JoinStatus string `json:"join_status"`
+	Owner      core.Avatar `json:"owner"`
+	JoinStatus string      `json:"join_status"`
 }
 
 type ListedProjectSummaries struct {
@@ -61,10 +64,11 @@ type UpdateJoinRequest struct {
 }
 
 type ProjectApi struct {
-	projectService     *projects.ProjectService
-	userService        *users.UserService
-	memberService      *members.MemberService
-	joinRequestService *requests.JoinRequestService
+	projectService      *projects.ProjectService
+	userService         *users.UserService
+	memberService       *members.MemberService
+	joinRequestService  *requests.JoinRequestService
+	notificationService *notifications.NotificationService
 }
 
 func NewProjectApi(
@@ -72,12 +76,14 @@ func NewProjectApi(
 	userService *users.UserService,
 	memberService *members.MemberService,
 	joinRequestService *requests.JoinRequestService,
+	notificationService *notifications.NotificationService,
 ) *ProjectApi {
 	return &ProjectApi{
-		projectService:     projectService,
-		userService:        userService,
-		memberService:      memberService,
-		joinRequestService: joinRequestService,
+		projectService:      projectService,
+		userService:         userService,
+		memberService:       memberService,
+		joinRequestService:  joinRequestService,
+		notificationService: notificationService,
 	}
 }
 
@@ -125,6 +131,11 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 		return fmt.Errorf("database get project details: %w", err)
 	}
 
+	owner, err := api.userService.Get(r.Context(), projectSummary.OwnerID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
 	userID, err := GetUserID(r)
 	if err != nil {
 		return fmt.Errorf("get context user: %w", err)
@@ -139,11 +150,6 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 		memberCount, err := api.memberService.Count(r.Context(), projectID, userID)
 		if err != nil {
 			return fmt.Errorf("member service count: %w", err)
-		}
-
-		owner, err := api.userService.Get(r.Context(), userID)
-		if err != nil {
-			return fmt.Errorf("user service get: %w", err)
 		}
 
 		json.NewEncoder(w).Encode(HTTPSuccessResponse[ProjectDetail]{
@@ -172,7 +178,14 @@ func (api *ProjectApi) Get(w http.ResponseWriter, r *http.Request) error {
 			Status: RESPONSE_SUCCESS_STATUS,
 			Data: &PublicProjectDetail{
 				ProjectSummary: *projectSummary,
-				JoinStatus:     joinStatus,
+				Owner: core.Avatar{
+					UserID:      owner.ID,
+					Username:    owner.Username,
+					Email:       owner.Email,
+					DisplayName: owner.DisplayName,
+					AvatarURL:   owner.AvatarURL,
+				},
+				JoinStatus: joinStatus,
 			},
 		})
 	}
@@ -360,6 +373,15 @@ func (api *ProjectApi) AddJoinRequest(w http.ResponseWriter, r *http.Request) er
 		return fmt.Errorf("join request service create: %w", err)
 	}
 
+	err = api.notificationService.JoinRequested(
+		r.Context(),
+		projectID,
+		userID,
+	)
+	if err != nil {
+		log.Printf("[ERROR] notification service JoinRequested: %s", err)
+	}
+
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{
 		Status:  RESPONSE_SUCCESS_STATUS,
 		Message: "Join request created",
@@ -399,8 +421,8 @@ func (api *ProjectApi) ListJoinRequests(w http.ResponseWriter, r *http.Request) 
 
 func (api *ProjectApi) RespondToJoinRequest(w http.ResponseWriter, r *http.Request) error {
 
-	projectId := r.PathValue("id")
-	if projectId == "" {
+	projectID := r.PathValue("id")
+	if projectID == "" {
 		return core.ErrInvalidValue
 	}
 
@@ -429,13 +451,23 @@ func (api *ProjectApi) RespondToJoinRequest(w http.ResponseWriter, r *http.Reque
 
 	err = api.joinRequestService.Respond(
 		r.Context(),
-		projectId,
+		projectID,
 		userID,
 		payload.UserID,
 		payload.JoinStatus,
 	)
 	if err != nil {
 		return fmt.Errorf("join request service respond: %w", err)
+	}
+
+	err = api.notificationService.JoinResponded(
+		r.Context(),
+		projectID,
+		payload.UserID,
+		payload.JoinStatus,
+	)
+	if err != nil {
+		log.Printf("[ERROR] notification service JoinResponded: %s", err)
 	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[any]{

@@ -2,6 +2,7 @@ package requests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"time"
@@ -50,7 +51,9 @@ func (s *JoinRequestService) GetStatus(ctx context.Context,
 	projectID, userID string) (string, error) {
 
 	status, err := s.joinRepo.Status(ctx, projectID, userID)
-	if err != nil {
+	if errors.Is(err, core.ErrNotFound) {
+		status = "Not Requested"
+	} else if err != nil {
 		return "", fmt.Errorf("join repository status: %w", err)
 	}
 

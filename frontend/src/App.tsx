@@ -19,6 +19,7 @@ import TermsPage from "./pages/terms";
 import PrivacyPage from "./pages/privacy";
 import CookiePage from "./pages/cookie";
 import GDPRPage from "./pages/gdpr";
+import { MessagesPage } from "./pages/messages";
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
                 <Route path="/projects/:id" element={<ProjectDetailsPage />} />
                 <Route path="/explore" element={<ExploreProjectsPage />} />
                 <Route path="/explore/:id" element={<ProjectExplorePage />} />
+                <Route path="/messages" element={<MessagesPage />} />
               </Route>
             </Route>
           </Routes>
