@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/members"
 	"github.com/ptracker/core/projects"
 	"github.com/ptracker/core/tasks"
 	"github.com/ptracker/core/users"
-	"github.com/ptracker/models"
 )
 
 const (
@@ -74,10 +74,12 @@ type CommentAdded struct {
 }
 
 type Notification struct {
-	ID     string      `json:"id"`
-	UserID string      `json:"user_id"`
-	Type   string      `json:"type"`
-	Body   models.JSON `json:"body"`
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Type      string    `json:"type"`
+	Body      any       `json:"body"`
+	Read      bool      `json:"read"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type NotificationService struct {
@@ -447,13 +449,16 @@ func (s *NotificationService) List(ctx context.Context,
 	}
 
 	notifications := []Notification{}
+	var body any
 	for _, r := range rows {
-
+		json.Unmarshal(r.Body, &body)
 		notifications = append(notifications, Notification{
-			ID:     r.ID,
-			UserID: r.UserID,
-			Type:   r.Type,
-			Body:   r.Body,
+			ID:        r.ID,
+			UserID:    r.UserID,
+			Type:      r.Type,
+			Body:      body,
+			Read:      r.Read,
+			CreatedAt: r.CreatedAt,
 		})
 	}
 

@@ -9,7 +9,7 @@ import (
 )
 
 type ListedMessages struct {
-	Messages []notifications.Notification
+	Messages []notifications.Notification `json:"messages"`
 }
 
 type MessageApi struct {
