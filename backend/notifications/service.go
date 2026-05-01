@@ -464,3 +464,14 @@ func (s *NotificationService) List(ctx context.Context,
 
 	return notifications, nil
 }
+
+func (s *NotificationService) MarkAsRead(ctx context.Context,
+	userID, notificationID string) error {
+
+	err := s.notificationRepo.Update(ctx, notificationID, true)
+	if err != nil {
+		return fmt.Errorf("notification repository Update: %w", err)
+	}
+
+	return nil
+}

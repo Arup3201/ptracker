@@ -258,14 +258,19 @@ func NewApp(
 		},
 		// Update Instance APIs
 		{
-			method:  "PUT",
+			method:  "PATCH",
+			pattern: "/projects/{id}/join-requests",
+			handler: authenticator.IsAuthenticated(projectApi.RespondToJoinRequest),
+		},
+		{
+			method:  "PATCH",
 			pattern: "/projects/{project_id}/tasks/{task_id}",
 			handler: authenticator.IsAuthenticated(taskApi.Update),
 		},
 		{
-			method:  "PUT",
-			pattern: "/projects/{id}/join-requests",
-			handler: authenticator.IsAuthenticated(projectApi.RespondToJoinRequest),
+			method:  "PATCH",
+			pattern: "/messages/{id}",
+			handler: authenticator.IsAuthenticated(messageApi.MarkAsRead),
 		},
 	}
 
