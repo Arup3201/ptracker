@@ -373,7 +373,7 @@ function JoinRequestsSection({
   ) => {
     try {
       const response = await ApiFetch(`/projects/${projectId}/join-requests`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify({ user_id: userId, join_status: joinStatus }),
       });
       if (!response.ok) {

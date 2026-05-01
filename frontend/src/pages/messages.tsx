@@ -204,23 +204,16 @@ export function MessagesPage() {
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 
-  const handleMarkAsRead = async (
-    notificationId: string,
-    currentReadStatus: boolean,
-  ) => {
+  const handleMarkAsRead = async (notificationId: string) => {
     try {
       const response = await ApiFetch(`/messages/${notificationId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ read: !currentReadStatus }),
       });
 
       if (response.ok) {
         setNotifications((prevNotifications) =>
           prevNotifications.map((n) =>
-            n.id === notificationId ? { ...n, read: !n.read } : n,
+            n.id === notificationId ? { ...n, read: true } : n,
           ),
         );
       }
@@ -256,9 +249,7 @@ export function MessagesPage() {
                 >
                   {!notification.read && (
                     <Button
-                      onClick={() =>
-                        handleMarkAsRead(notification.id, notification.read)
-                      }
+                      onClick={() => handleMarkAsRead(notification.id)}
                       className="absolute top-3 right-3 p-1"
                       title="Mark as read"
                     >
