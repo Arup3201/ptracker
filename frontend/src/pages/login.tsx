@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { Button } from "../components/button";
 import { Card, CardContent } from "../components/card";
 import { Input } from "../components/input";
@@ -11,10 +11,73 @@ import { userStore } from "../utils/user";
 export default function LoginPage() {
   const navigate = useNavigate();
 
+  const [searchParams] = useSearchParams();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const userID = searchParams.get("user_id");
+    const token = searchParams.get("token");
+    if (!userID && !token) return;
+
+    if (userID && token) {
+      try {
+        loginFromGoogle(userID, token);
+      } catch (err) {}
+    } else {
+      setError("User ID and token missing. Malformed URI.");
+    }
+
+    const errorCode = searchParams.get("error");
+    if (!errorCode) return;
+
+    if (errorCode === "access_denied") {
+      setError("We need your consent to login with Google");
+    } else if (
+      errorCode === "missing_state" ||
+      errorCode === "invalid_state_or_code"
+    ) {
+      setError("Malformed request");
+    } else if (errorCode === "missing_auth_code") {
+      setError("We did not receive any authorization code from Google");
+    } else if (errorCode === "account_exist") {
+      setError(
+        "You already have an account with another method. Please connect with Google after logging in to enable Google login.",
+      );
+    } else {
+      setError(
+        "We encountered a problem on our end, thank you for your patience.",
+      );
+    }
+  }, [searchParams]);
+
+  async function loginFromGoogle(userID: string, token: string) {
+    const res = await fetch(API_ROOT + "/auth/google/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include", // for refresh token cookie
+      body: JSON.stringify({
+        user_id: userID,
+        token: token,
+      }),
+    });
+    if (!res.ok) throw new Error("Google login failed");
+
+    const respondData = await res.json();
+    if (respondData.data) {
+      tokenStore.set(respondData.data.access_token);
+      userStore.set(respondData.data.user);
+    } else {
+      throw new Error("Incorrect response data. Try again.");
+    }
+
+    navigate("/");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
