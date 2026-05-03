@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "../components/button";
 import { Card, CardContent } from "../components/card";
@@ -10,8 +10,6 @@ import { userStore } from "../utils/user";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-
-  const authWindow = useRef<Window | null>(null);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,8 +55,7 @@ export default function LoginPage() {
       const response = await fetch(API_ROOT + "/auth/google/redirect");
       const json = await response.json();
       if (json.data) {
-        const newWindow = window.open(json.data);
-        authWindow.current = newWindow;
+        window.open(json.data, "_parent");
       } else {
         throw new Error("No redirect URL in the response!");
       }
@@ -66,28 +63,6 @@ export default function LoginPage() {
       console.error(err);
     }
   }
-
-  useEffect(() => {
-    if (authWindow.current) {
-      const fn = function (ev: MessageEvent) {
-        const { success } = ev.data;
-        if (success) {
-          const { user, access_token } = ev.data;
-          tokenStore.set(access_token);
-          userStore.set(user);
-          navigate("/");
-        } else {
-          setError(
-            "Google login failed. Possible reasons could be: you are already registered with another account or your email address associated with the provider is not verified.",
-          );
-        }
-      };
-      window.addEventListener("message", fn);
-      return () => {
-        window.removeEventListener("message", fn);
-      };
-    }
-  }, [authWindow]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-(--bg-root) text-(--text-primary) px-4">
