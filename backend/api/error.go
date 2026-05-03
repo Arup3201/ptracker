@@ -50,7 +50,7 @@ func (fn HTTPErrorHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				Message: "Request payload is incorrect",
 			})
 		} else if errors.Is(err, core.ErrDuplicate) {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusConflict)
 			json.NewEncoder(w).Encode(HTTPErrorResponse{
 				Status:  RESPONSE_ERROR_STATUS,
 				Message: "Duplicate resource found while processing the request",
