@@ -33,10 +33,10 @@ func (s *StringStore) Store(ctx context.Context,
 func (s *StringStore) Get(ctx context.Context,
 	key string) (string, error) {
 
-	err := s.client.Get(ctx, key).Err()
+	res, err := s.client.Get(ctx, key).Result()
 	if err != nil {
 		return "", fmt.Errorf("redis get: %w", err)
 	}
 
-	return s.client.Get(ctx, key).String(), nil
+	return res, nil
 }

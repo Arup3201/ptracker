@@ -74,8 +74,17 @@ func (api *GoogleApi) Callback(w http.ResponseWriter, r *http.Request) error {
 		state,
 		code,
 	)
+	switch err {
+	case core.ErrInvalidValue:
+		http.Redirect(w, r, api.frontendLoginURL+"?error=invalid_state_or_code", http.StatusSeeOther)
+		return nil
+	case core.ErrDuplicate:
+		http.Redirect(w, r, api.frontendLoginURL+"?error=account_exist", http.StatusSeeOther)
+		return nil
+	}
 	if err != nil {
-		return err
+		http.Redirect(w, r, api.frontendLoginURL+"?error=server_error", http.StatusSeeOther)
+		return nil
 	}
 
 	http.Redirect(w, r,
