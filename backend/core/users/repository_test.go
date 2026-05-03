@@ -86,13 +86,13 @@ func (suite *userRepositoryTestSuite) TestCreate() {
 		suite.repo.Create(suite.ctx, "alice3", "alice3@test.com", nil, nil)
 		_, err := suite.repo.Create(suite.ctx, "alice3", "alicex@test.com", nil, nil)
 
-		suite.Require().Error(err)
+		suite.Require().ErrorIs(err, core.ErrDuplicate)
 	})
 	t.Run("should get duplicate value error with same email", func(t *testing.T) {
 		suite.repo.Create(suite.ctx, "alice4", "alice4@test.com", nil, nil)
 		_, err := suite.repo.Create(suite.ctx, "alicex", "alice4@test.com", nil, nil)
 
-		suite.Require().Error(err)
+		suite.Require().ErrorIs(err, core.ErrDuplicate)
 	})
 	suite.Cleanup()
 }
