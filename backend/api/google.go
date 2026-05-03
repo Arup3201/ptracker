@@ -5,11 +5,17 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/auth"
 	"github.com/ptracker/auth/openid"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/users"
 )
+
+type GoogleLoginRequest struct {
+	Token  string `json:"token" validate:"required"`
+	UserID string `json:"user_id" validate:"required"`
+}
 
 type GoogleApi struct {
 	googleService                     *openid.GoogleService
@@ -96,15 +102,19 @@ func (api *GoogleApi) Callback(w http.ResponseWriter, r *http.Request) error {
 
 func (api *GoogleApi) Login(w http.ResponseWriter, r *http.Request) error {
 
-	userID := r.URL.Query().Get("user_id")
-	token := r.URL.Query().Get("token")
-	if userID == "" || token == "" {
-		return core.ErrInvalidValue
+	var payload GoogleLoginRequest
+	dec := json.NewDecoder(r.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&payload); err != nil {
+		return fmt.Errorf("decode request body: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(payload); err != nil {
+		return fmt.Errorf("validate request body: %w", core.ErrInvalidValue)
 	}
 
 	err := api.googleService.ValidToken(
 		r.Context(),
-		token,
+		payload.Token,
 	)
 	if err != nil {
 		return err
@@ -112,7 +122,7 @@ func (api *GoogleApi) Login(w http.ResponseWriter, r *http.Request) error {
 
 	refreshToken, err := api.tokenService.CreateRefreshToken(
 		r.Context(),
-		userID,
+		payload.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("token service create refresh token: %w", err)
@@ -120,7 +130,7 @@ func (api *GoogleApi) Login(w http.ResponseWriter, r *http.Request) error {
 
 	accessToken, err := api.tokenService.CreateAccessToken(
 		r.Context(),
-		userID,
+		payload.UserID,
 	)
 	if err != nil {
 		return fmt.Errorf("token service create access token: %w", err)
@@ -128,7 +138,7 @@ func (api *GoogleApi) Login(w http.ResponseWriter, r *http.Request) error {
 
 	user, err := api.userService.Get(
 		r.Context(),
-		userID)
+		payload.UserID)
 	if err != nil {
 		return fmt.Errorf("user service get: %w", err)
 	}
