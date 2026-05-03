@@ -2,10 +2,8 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
-	"log"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/ptracker/auth"
 	"github.com/ptracker/auth/openid"
@@ -14,26 +12,33 @@ import (
 )
 
 type GoogleApi struct {
-	googleService *openid.GoogleService
-	tokenService  *auth.TokenService
-	userService   *users.UserService
+	googleService                     *openid.GoogleService
+	tokenService                      *auth.TokenService
+	userService                       *users.UserService
+	frontendHomeURL, frontendLoginURL string
 }
 
 func NewGoogleApi(
 	googleService *openid.GoogleService,
 	tokenService *auth.TokenService,
 	userService *users.UserService,
+	homeURL, loginURL string,
 ) *GoogleApi {
 	return &GoogleApi{
-		googleService: googleService,
-		tokenService:  tokenService,
-		userService:   userService,
+		googleService:    googleService,
+		tokenService:     tokenService,
+		userService:      userService,
+		frontendHomeURL:  homeURL,
+		frontendLoginURL: loginURL,
 	}
 }
 
 func (api *GoogleApi) Redirect(w http.ResponseWriter, r *http.Request) error {
 
-	url := api.googleService.GetAuthCodeURL(r.Context())
+	url, err := api.googleService.GetAuthCodeURL(r.Context())
+	if err != nil {
+		return fmt.Errorf("google service GetAuthCodeURL: %w", err)
+	}
 
 	json.NewEncoder(w).Encode(HTTPSuccessResponse[string]{
 		Status: RESPONSE_SUCCESS_STATUS,
@@ -46,151 +51,104 @@ func (api *GoogleApi) Redirect(w http.ResponseWriter, r *http.Request) error {
 func (api *GoogleApi) Callback(w http.ResponseWriter, r *http.Request) error {
 
 	errParam := r.URL.Query().Get("error")
-
-	var responseScript, userID string
-	var userInfo *openid.GoogleUserInfo
-	var accessToken, refreshToken *auth.Token
-	var user *users.User
-	var err error
-	if errParam == "" {
-		code := r.FormValue("code")
-		state := r.FormValue("state")
-
-		userInfo, err = api.googleService.GetUserInfoFromAuthCode(
-			r.Context(),
-			state,
-			code,
-		)
-		if err == nil {
-			userID, err = api.googleService.GetUserID(
-				r.Context(),
-				userInfo.Subject,
-				openid.OAUTH_PROVIDER_GOOGLE,
-			)
-			if errors.Is(err, core.ErrNotFound) {
-				userID, err = api.googleService.CreateAccount(
-					r.Context(),
-					*userInfo,
-				)
-				if err != nil {
-					log.Printf("[ERROR] google service create account: %s", err)
-
-					responseScript = `
-					window.opener.postMessage(
-						{ success: false, error: "Email may not be verified or user already exist with another method" }
-					);
-					`
-				}
-			}
-			if err == nil {
-				// nil err for GetUserID and CreateAccount
-
-				refreshToken, err = api.tokenService.CreateRefreshToken(
-					r.Context(),
-					userID,
-				)
-				if err == nil {
-					accessToken, err = api.tokenService.CreateAccessToken(
-						r.Context(),
-						userID,
-					)
-					if err == nil {
-						user, err = api.userService.Get(
-							r.Context(),
-							userID)
-						if err == nil {
-							cookie := &http.Cookie{
-								Name:     REFRESH_TOKEN_COOKIE_NAME,
-								Value:    refreshToken.Value,
-								Path:     "/", // TODO: auth path only
-								Expires:  refreshToken.ExpiresAt,
-								HttpOnly: true,
-								Secure:   true,
-								SameSite: http.SameSiteLaxMode,
-							}
-							http.SetCookie(w, cookie)
-
-							data, _ := json.Marshal(core.Avatar{
-								UserID:      user.ID,
-								Username:    user.Username,
-								Email:       user.Email,
-								DisplayName: user.DisplayName,
-								AvatarURL:   user.AvatarURL,
-							})
-
-							responseScript = `
-								window.opener.postMessage(
-									{ success: true,
-									access_token: "` + accessToken.Value + `",
-									expires_at: "` + accessToken.ExpiresAt.Format(time.RFC3339) + `",
-									user: "` + string(data) + `"
-									}
-								);
-							`
-						} else {
-							log.Printf("[ERROR] user service get: %s", err)
-
-							responseScript = `
-							window.opener.postMessage(
-								{ success: false, error: "Failed to get user data" }
-							);
-							`
-						}
-					} else {
-						log.Printf("[ERROR] token service create access token: %s", err)
-
-						responseScript = `
-							window.opener.postMessage(
-								{ success: false, error: "Failed to create access token" }
-							);
-							`
-					}
-				} else {
-					log.Printf("[ERROR] token service create refresh token: %s", err)
-
-					responseScript = `
-							window.opener.postMessage(
-								{ success: false, error: "Failed to create refresh token" }
-							);
-							`
-				}
-			} else if !errors.Is(err, core.ErrNotFound) {
-				log.Printf("[ERROR] google service get user ID: %s", err)
-
-				// GetUserID failed for some reason
-				responseScript = `
-					window.opener.postMessage(
-						{ success: false, error: "Server error" }
-					);
-					`
-			}
-		} else {
-			log.Printf("[ERROR] google service get user info from AuthCode: %s", err)
-			responseScript = `
-					window.opener.postMessage(
-						{ success: false, error: "Failed to get user profile information" }
-					);
-					`
-		}
-	} else {
-		responseScript = `
-		window.opener.postMessage(
-			{ success: false, error: "` + errParam + `" }
-		);
-		`
+	if errParam != "" {
+		http.Redirect(w, r, api.frontendLoginURL+"?error="+errParam, http.StatusSeeOther)
+		return nil
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(`
-		<html>
-            <body>
-                <script>
-                    ` + responseScript + `
-					window.close();
-                </script>
-            </body>
-        </html>
-	`))
+	state := r.URL.Query().Get("state")
+	code := r.URL.Query().Get("code")
+
+	if state == "" {
+		http.Redirect(w, r, api.frontendLoginURL+"?error=missing_state", http.StatusSeeOther)
+		return nil
+	}
+
+	if code == "" {
+		http.Redirect(w, r, api.frontendLoginURL+"?error=missing_auth_code", http.StatusSeeOther)
+		return nil
+	}
+
+	userID, token, err := api.googleService.Callback(
+		r.Context(),
+		state,
+		code,
+	)
+	if err != nil {
+		return err
+	}
+
+	http.Redirect(w, r,
+		api.frontendLoginURL+"?user_id="+userID+"&token="+token,
+		http.StatusSeeOther)
+
+	return nil
+}
+
+func (api *GoogleApi) Login(w http.ResponseWriter, r *http.Request) error {
+
+	userID := r.URL.Query().Get("user_id")
+	token := r.URL.Query().Get("token")
+	if userID == "" || token == "" {
+		return core.ErrInvalidValue
+	}
+
+	err := api.googleService.ValidToken(
+		r.Context(),
+		token,
+	)
+	if err != nil {
+		return err
+	}
+
+	refreshToken, err := api.tokenService.CreateRefreshToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create refresh token: %w", err)
+	}
+
+	accessToken, err := api.tokenService.CreateAccessToken(
+		r.Context(),
+		userID,
+	)
+	if err != nil {
+		return fmt.Errorf("token service create access token: %w", err)
+	}
+
+	user, err := api.userService.Get(
+		r.Context(),
+		userID)
+	if err != nil {
+		return fmt.Errorf("user service get: %w", err)
+	}
+
+	cookie := &http.Cookie{
+		Name:     REFRESH_TOKEN_COOKIE_NAME,
+		Value:    refreshToken.Value,
+		Path:     "/", // TODO: auth path only
+		Expires:  refreshToken.ExpiresAt,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	}
+	http.SetCookie(w, cookie)
+
+	json.NewEncoder(w).Encode(HTTPSuccessResponse[LoginResponse]{
+		Status: RESPONSE_SUCCESS_STATUS,
+		Data: &LoginResponse{
+			AccessToken: accessToken.Value,
+			ExpiresAt:   accessToken.ExpiresAt,
+			User: core.Avatar{
+				UserID:      user.ID,
+				Username:    user.Username,
+				Email:       user.Email,
+				DisplayName: user.DisplayName,
+				AvatarURL:   user.AvatarURL,
+			},
+		},
+	})
 
 	return nil
 }

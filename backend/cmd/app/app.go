@@ -47,8 +47,10 @@ func NewApp(
 	db *gorm.DB,
 	redis *redis.Client,
 	privateKey *rsa.PrivateKey,
+	frontendLoginUrl string,
 	frontendVerifyUrl string,
 	frontendResetUrl string,
+	frontendHomeUrl string,
 ) *App {
 	handler := http.NewServeMux()
 
@@ -64,6 +66,7 @@ func NewApp(
 	notificationRepo := notifications.NewNotificationRepository(db)
 	txManager := core.NewTxManager(db)
 	tokenStore := auth.NewTokenStore(redis)
+	stringStore := openid.NewStringStore(redis)
 
 	memberService := members.NewMemberService(memberRepo)
 	joinService := requests.NewJoinRequestService(
@@ -98,7 +101,15 @@ func NewApp(
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
 	passwordService := manual.NewPasswordService(accountRepo)
-	googleService := openid.NewGoogleService(config.GoogleClientID, config.GoogleClientSecret, config.GoogleRedirectURI, txManager, userRepo, oauthRepo)
+	googleService := openid.NewGoogleService(
+		config.GoogleClientID,
+		config.GoogleClientSecret,
+		config.GoogleRedirectURI,
+		txManager,
+		userRepo,
+		oauthRepo,
+		stringStore,
+	)
 
 	authenticator := middlewares.NewAuthenticator(tokenService)
 
@@ -113,7 +124,13 @@ func NewApp(
 		frontendVerifyUrl,
 		frontendResetUrl,
 	)
-	googleApi := api.NewGoogleApi(googleService, tokenService, userService)
+	googleApi := api.NewGoogleApi(
+		googleService,
+		tokenService,
+		userService,
+		frontendHomeUrl,
+		frontendLoginUrl,
+	)
 	projectApi := api.NewProjectApi(
 		projectService,
 		userService,
@@ -180,6 +197,11 @@ func NewApp(
 			method:  "GET",
 			pattern: "/auth/google/callback",
 			handler: googleApi.Callback,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/google/login",
+			handler: googleApi.Login,
 		},
 
 		// List APIs

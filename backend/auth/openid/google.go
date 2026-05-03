@@ -10,6 +10,7 @@ import (
 	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/users"
+	"github.com/ptracker/models"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gorm.io/gorm"
@@ -25,6 +26,10 @@ func getStateKey(s string) string {
 
 func getVerifierKey(s string) string {
 	return "PKCE_VERIFIER:" + s
+}
+
+func getTokenKey(s string) string {
+	return "TOKEN:" + s
 }
 
 // https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/UserInfo
@@ -84,17 +89,82 @@ func (s *GoogleService) GetAuthCodeURL(ctx context.Context) (string, error) {
 	return url, nil
 }
 
+func (s *GoogleService) Callback(ctx context.Context,
+	state, code string) (string, string, error) {
+
+	var userID string
+	var acc models.OauthAccount
+
+	userInfo, err := s.getUserInfo(ctx, state, code)
+	if err != nil {
+		return "", "", fmt.Errorf("getUserInfo: %w", err)
+	}
+
+	acc, err = s.oauthRepo.Get(ctx, userInfo.Subject, OAUTH_PROVIDER_GOOGLE)
+	if err == core.ErrNotFound {
+		var username = strings.Split(userInfo.Email, "@")[0]
+
+		err = s.txManager.WithTx(func(tx *gorm.DB) error {
+			userRepo := s.userRepo.WithTx(tx)
+			oauthRepo := s.oauthRepo.WithTx(tx)
+
+			userID, err = userRepo.Create(
+				ctx,
+				username,
+				userInfo.Email,
+				&userInfo.Name,
+				nil,
+			)
+			if err != nil {
+				return fmt.Errorf("user repository create: %w", err)
+			}
+
+			err = oauthRepo.Create(
+				ctx,
+				userInfo.Subject,
+				OAUTH_PROVIDER_GOOGLE,
+				userID,
+				userInfo.Email,
+			)
+			if err != nil {
+				return fmt.Errorf("oauth account repository create: %w", err)
+			}
+
+			return nil
+		})
+		if err != nil {
+			return "", "", err
+		}
+
+		acc, err = s.oauthRepo.Get(ctx, userInfo.Subject, OAUTH_PROVIDER_GOOGLE)
+		if err != nil {
+			return "", "", fmt.Errorf("oauth repository Get: %w", err)
+		}
+
+	} else if err != nil {
+		return "", "", fmt.Errorf("oauth repository Get: %w", err)
+	}
+
+	token, _ := auth.GetRandomToken(32)
+	err = s.stringStore.Store(ctx, getTokenKey(token), token, 1*time.Minute)
+	if err != nil {
+		return "", "", fmt.Errorf("string store Store: %w", err)
+	}
+
+	return acc.UserID, token, nil
+}
+
 func (s *GoogleService) getUserInfo(ctx context.Context,
 	state, code string) (*GoogleUserInfo, error) {
 
 	_, err := s.stringStore.Get(ctx, getStateKey(state))
 	if err != nil {
-		return nil, fmt.Errorf("stringStore Get state: %w", err)
+		return nil, core.ErrInvalidValue
 	}
 
 	verifier, err := s.stringStore.Get(ctx, getVerifierKey(state))
 	if err != nil {
-		return nil, fmt.Errorf("stringStore Get PKCE verifier: %w", err)
+		return nil, core.ErrInvalidValue
 	}
 
 	tok, err := s.config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
@@ -117,61 +187,13 @@ func (s *GoogleService) getUserInfo(ctx context.Context,
 	return &userInfo, nil
 }
 
-func (s *GoogleService) GetUser(ctx context.Context,
-	subject, provider string) (string, error) {
+func (s *GoogleService) ValidToken(ctx context.Context,
+	token string) error {
 
-	acc, err := s.oauthRepo.Get(ctx, subject, provider)
+	_, err := s.stringStore.Get(ctx, getTokenKey(token))
 	if err != nil {
-		return "", fmt.Errorf("oauth repository get: %w", err)
+		return core.ErrInvalidValue
 	}
 
-	return acc.UserID, nil
-}
-
-func (s *GoogleService) CreateAccount(ctx context.Context,
-	state, code string) (string, error) {
-
-	var err error
-	var userID string
-
-	userInfo, err := s.getUserInfo(ctx, state, code)
-	if err != nil {
-		return "", fmt.Errorf("getUserInfo: %w", err)
-	}
-
-	var username = strings.Split(userInfo.Email, "@")[0]
-
-	err = s.txManager.WithTx(func(tx *gorm.DB) error {
-		userRepo := s.userRepo.WithTx(tx)
-		oauthRepo := s.oauthRepo.WithTx(tx)
-
-		userID, err = userRepo.Create(
-			ctx,
-			username,
-			userInfo.Email,
-			&userInfo.Name,
-			nil,
-		)
-		if err != nil {
-			return fmt.Errorf("user repository create: %w", err)
-		}
-
-		err = oauthRepo.Create(
-			ctx,
-			userInfo.Subject,
-			OAUTH_PROVIDER_GOOGLE,
-			userID,
-			userInfo.Email,
-		)
-		if err != nil {
-			return fmt.Errorf("oauth account repository create: %w", err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return "", fmt.Errorf("transaction: %w", err)
-	}
-
-	return userID, nil
+	return nil
 }
