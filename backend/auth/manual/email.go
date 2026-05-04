@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"github.com/ptracker/models"
 )
@@ -91,12 +92,12 @@ func (s *EmailService) GetVerificationTokenForEmail(ctx context.Context,
 func (s *EmailService) generateToken(ctx context.Context,
 	acc models.ManualAccount) (string, error) {
 
-	token, err := GetRandomToken(32)
+	token, err := auth.GetRandomToken(32)
 	if err != nil {
 		return "", fmt.Errorf("get random token: %w", err)
 	}
 
-	tokenSHA := GetTokenSHA(token)
+	tokenSHA := auth.GetTokenSHA(token)
 	tokenExpiresAt := time.Now().UTC().Add(s.VerificationTokenDuration)
 	err = s.accountRepo.UpdateVerificationToken(ctx,
 		acc,
@@ -123,7 +124,7 @@ set the email_verified to true.
 func (s *EmailService) Verify(ctx context.Context,
 	token string) error {
 
-	tokenSHA := GetTokenSHA(token)
+	tokenSHA := auth.GetTokenSHA(token)
 
 	acc, err := s.accountRepo.GetByVerificationToken(ctx, tokenSHA)
 	if err != nil {

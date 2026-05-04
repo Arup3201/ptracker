@@ -9,6 +9,7 @@ import (
 	"github.com/ptracker/api"
 	"github.com/ptracker/auth"
 	"github.com/ptracker/auth/manual"
+	"github.com/ptracker/auth/openid"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/assignees"
 	"github.com/ptracker/core/comments"
@@ -46,14 +47,17 @@ func NewApp(
 	db *gorm.DB,
 	redis *redis.Client,
 	privateKey *rsa.PrivateKey,
+	frontendLoginUrl string,
 	frontendVerifyUrl string,
 	frontendResetUrl string,
+	frontendHomeUrl string,
 ) *App {
 	handler := http.NewServeMux()
 
 	memberRepo := members.NewMemberRepository(db)
 	joinRepo := requests.NewJoinRepository(db)
 	accountRepo := manual.NewManualAccountRepository(db)
+	oauthRepo := openid.NewOauthRepository(db)
 	userRepo := users.NewUserRepository(db)
 	assigneeRepo := assignees.NewAssigneeRepository(db)
 	commentRepo := comments.NewCommentRepository(db)
@@ -62,6 +66,7 @@ func NewApp(
 	notificationRepo := notifications.NewNotificationRepository(db)
 	txManager := core.NewTxManager(db)
 	tokenStore := auth.NewTokenStore(redis)
+	stringStore := openid.NewStringStore(redis)
 
 	memberService := members.NewMemberService(memberRepo)
 	joinService := requests.NewJoinRequestService(
@@ -96,6 +101,15 @@ func NewApp(
 	tokenService := auth.NewTokenService(tokenStore, TOKEN_ISSUER, privateKey)
 	emailService := manual.NewEmailService(accountRepo)
 	passwordService := manual.NewPasswordService(accountRepo)
+	googleService := openid.NewGoogleService(
+		config.GoogleClientID,
+		config.GoogleClientSecret,
+		config.GoogleRedirectURI,
+		txManager,
+		userRepo,
+		oauthRepo,
+		stringStore,
+	)
 
 	authenticator := middlewares.NewAuthenticator(tokenService)
 
@@ -109,6 +123,13 @@ func NewApp(
 		resendClient,
 		frontendVerifyUrl,
 		frontendResetUrl,
+	)
+	googleApi := api.NewGoogleApi(
+		googleService,
+		tokenService,
+		userService,
+		frontendHomeUrl,
+		frontendLoginUrl,
 	)
 	projectApi := api.NewProjectApi(
 		projectService,
@@ -166,6 +187,21 @@ func NewApp(
 			method:  "POST",
 			pattern: "/auth/password-reset",
 			handler: authApi.ResetPassword,
+		},
+		{
+			method:  "GET",
+			pattern: "/auth/google/redirect",
+			handler: googleApi.Redirect,
+		},
+		{
+			method:  "GET",
+			pattern: "/auth/google/callback",
+			handler: googleApi.Callback,
+		},
+		{
+			method:  "POST",
+			pattern: "/auth/google/login",
+			handler: googleApi.Login,
 		},
 
 		// List APIs

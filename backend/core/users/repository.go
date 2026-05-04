@@ -3,6 +3,7 @@ package users
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/ptracker/core"
@@ -36,8 +37,13 @@ func (r *UserRepository) Create(ctx context.Context,
 		DisplayName: displayName,
 		AvatarURL:   avatarUrl,
 	}
+
 	err := gorm.G[models.User](r.db).Create(ctx, &user)
+
 	if err != nil {
+		if strings.Contains(err.Error(), `duplicate key value violates unique constraint`) {
+			return "", core.ErrDuplicate
+		}
 		return "", fmt.Errorf("gorm create: %w", err)
 	}
 

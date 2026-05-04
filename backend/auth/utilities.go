@@ -1,4 +1,4 @@
-package manual
+package auth
 
 import (
 	"crypto/rand"

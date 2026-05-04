@@ -13,6 +13,7 @@ type User struct {
 	LastLoginTime time.Time
 
 	ManualAccounts []ManualAccount `gorm:"constraint:OnDelete:CASCADE"`
+	OauthAccounts  []OauthAccount  `gorm:"constraint:OnDelete:CASCADE"`
 	Projects       []Project       `gorm:"foreignKey:OwnerID;constraint:OnDelete:CASCADE"`
 	Members        []Member        `gorm:"constraint:OnDelete:CASCADE"`
 	JoinRequests   []JoinRequest   `gorm:"constraint:OnDelete:CASCADE"`

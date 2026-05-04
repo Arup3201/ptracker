@@ -6,9 +6,10 @@ import (
 )
 
 type Config struct {
-	Host, Port                             string
-	DBHost, DBPort, DBPass, DBUser, DBName string
-	ResendApiKey                           string
+	Host, Port                                            string
+	DBHost, DBPort, DBPass, DBUser, DBName                string
+	ResendApiKey                                          string
+	GoogleClientID, GoogleClientSecret, GoogleRedirectURI string
 }
 
 func (c *Config) LoadFromEnv() error {
@@ -41,8 +42,21 @@ func (c *Config) LoadFromEnv() error {
 		return fmt.Errorf("environment variable '%s' missing", ENV_DB_NAME)
 	}
 	c.ResendApiKey = os.Getenv(ENV_RESEND_API_KEY)
-	if c.DBName == "" {
+	if c.ResendApiKey == "" {
 		return fmt.Errorf("environment variable '%s' missing", ENV_RESEND_API_KEY)
+	}
+
+	c.GoogleClientID = os.Getenv(ENV_GOOGLE_CLIENT_ID)
+	if c.GoogleClientID == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_GOOGLE_CLIENT_ID)
+	}
+	c.GoogleClientSecret = os.Getenv(ENV_GOOGLE_CLIENT_SECRET)
+	if c.GoogleClientSecret == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_GOOGLE_CLIENT_SECRET)
+	}
+	c.GoogleRedirectURI = os.Getenv(ENV_GOOGLE_REDIRECT_URI)
+	if c.GoogleRedirectURI == "" {
+		return fmt.Errorf("environment variable '%s' missing", ENV_GOOGLE_REDIRECT_URI)
 	}
 
 	return nil

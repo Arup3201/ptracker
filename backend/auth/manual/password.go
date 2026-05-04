@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -51,12 +52,12 @@ func (s *PasswordService) GetResetToken(ctx context.Context,
 		return "", fmt.Errorf("email not yet verified: %w", core.ErrInvalidValue)
 	}
 
-	token, err := GetRandomToken(32)
+	token, err := auth.GetRandomToken(32)
 	if err != nil {
 		return "", fmt.Errorf("get random token: %w", err)
 	}
 
-	tokenSHA := GetTokenSHA(token)
+	tokenSHA := auth.GetTokenSHA(token)
 	tokenExpiresAt := time.Now().UTC().Add(s.ResetTokenDuration)
 	err = s.accountRepo.UpdateResetPasswordToken(ctx,
 		acc,
@@ -91,7 +92,7 @@ password generated with bcrypt.
 func (s *PasswordService) Reset(ctx context.Context,
 	token, password string) error {
 
-	tokenSHA := GetTokenSHA(token)
+	tokenSHA := auth.GetTokenSHA(token)
 	acc, err := s.accountRepo.GetByResetToken(ctx, tokenSHA)
 	if err != nil {
 		return fmt.Errorf("manual account repository get by verification token: %w", err)

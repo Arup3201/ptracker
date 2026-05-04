@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"github.com/ptracker/models"
 	"github.com/ptracker/testdata"
@@ -105,7 +106,7 @@ func (suite *passwordServiceTestSuite) TestReset() {
 		acc := fixtures.GetManualAccount(uid, email, "oldpw")
 		// prepare reset token and expiry
 		rawToken := "resettok123"
-		sha := GetTokenSHA(rawToken)
+		sha := auth.GetTokenSHA(rawToken)
 		exp := time.Now().UTC().Add(1 * time.Hour)
 		acc.ResetPasswordToken = &sha
 		acc.ResetPasswordTokenExpiresAt = &exp
@@ -122,7 +123,7 @@ func (suite *passwordServiceTestSuite) TestReset() {
 		email := "user" + uid + "@test.com"
 		acc := fixtures.GetManualAccount(uid, email, "oldpw")
 		rawToken := "expiredtok"
-		sha := GetTokenSHA(rawToken)
+		sha := auth.GetTokenSHA(rawToken)
 		exp := time.Now().UTC().Add(-1 * time.Hour) // already expired
 		acc.ResetPasswordToken = &sha
 		acc.ResetPasswordTokenExpiresAt = &exp
@@ -140,7 +141,7 @@ func (suite *passwordServiceTestSuite) TestReset() {
 		email := "user" + uid + "@test.com"
 		acc := fixtures.GetManualAccount(uid, email, "oldpw")
 		rawToken := "expiredtok"
-		sha := GetTokenSHA(rawToken)
+		sha := auth.GetTokenSHA(rawToken)
 		exp := time.Now().UTC().Add(2 * time.Hour)
 		acc.ResetPasswordToken = &sha
 		acc.ResetPasswordTokenExpiresAt = &exp
