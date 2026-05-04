@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	USERINFO_ENDPOINT = "https://www.googleapis.com/oauth2/v3/userinfo"
+	USERINFO_ENDPOINT = "https://openidconnect.googleapis.com/v1/userinfo"
 )
 
 func getStateKey(s string) string {
@@ -33,7 +33,7 @@ func getTokenKey(s string) string {
 	return "TOKEN:" + s
 }
 
-// https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/UserInfo
+// https://developers.google.com/identity/openid-connect/openid-connect#discovery
 type GoogleUserInfo struct {
 	Subject string `json:"sub" validate:"required"`
 	Name    string `json:"name" validate:"required"`
@@ -181,9 +181,7 @@ func (s *GoogleService) getUserInfo(ctx context.Context,
 	defer res.Body.Close()
 
 	var userInfo GoogleUserInfo
-	dec := json.NewDecoder(res.Body)
-	dec.DisallowUnknownFields()
-	if err := dec.Decode(&userInfo); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
 		return nil, fmt.Errorf("userInfo decode: %w", core.ErrInvalidValue)
 	}
 	if err := validator.New().Struct(userInfo); err != nil {

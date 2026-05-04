@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
@@ -82,13 +83,16 @@ func (api *GoogleApi) Callback(w http.ResponseWriter, r *http.Request) error {
 		code,
 	)
 	if errors.Is(err, core.ErrInvalidValue) {
+		log.Printf("[ERROR] google service Callback: %s\n", err)
 		http.Redirect(w, r, api.frontendLoginURL+"?error=invalid_state_or_code", http.StatusSeeOther)
 		return nil
 	} else if errors.Is(err, core.ErrDuplicate) {
+		log.Printf("[ERROR] google service Callback: %s\n", err)
 		http.Redirect(w, r, api.frontendLoginURL+"?error=account_exist", http.StatusSeeOther)
 		return nil
 	}
 	if err != nil {
+		log.Printf("[ERROR] google service Callback: %s\n", err)
 		http.Redirect(w, r, api.frontendLoginURL+"?error=server_error", http.StatusSeeOther)
 		return nil
 	}
