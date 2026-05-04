@@ -7,31 +7,38 @@ import { Logo } from "../components/logo";
 import { API_ROOT } from "../utils/api";
 import { tokenStore } from "../utils/token";
 import { userStore } from "../utils/user";
+import { useAuth } from "../context/auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { setLoading } = useAuth();
 
   const [searchParams] = useSearchParams();
 
+  const userID = searchParams.get("user_id");
+  const token = searchParams.get("token");
+  const errorCode = searchParams.get("error");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [signing, setSigning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userID = searchParams.get("user_id");
-    const token = searchParams.get("token");
     if (!userID && !token) return;
 
     if (userID && token) {
-      try {
-        loginFromGoogle(userID, token);
-      } catch (err) {}
+      setLoading(true);
+      loginFromGoogle(userID, token)
+        .catch((err) => setError((err as Error).message ?? "Login failed"))
+        .finally(() => setLoading(false));
+      navigate("/");
     } else {
       setError("User ID and token missing. Malformed URI.");
     }
+  }, [userID, token]);
 
-    const errorCode = searchParams.get("error");
+  useEffect(() => {
     if (!errorCode) return;
 
     if (errorCode === "access_denied") {
@@ -52,7 +59,7 @@ export default function LoginPage() {
         "We encountered a problem on our end, thank you for your patience.",
       );
     }
-  }, [searchParams]);
+  }, [errorCode]);
 
   async function loginFromGoogle(userID: string, token: string) {
     const res = await fetch(API_ROOT + "/auth/google/login", {
@@ -75,14 +82,12 @@ export default function LoginPage() {
     } else {
       throw new Error("Incorrect response data. Try again.");
     }
-
-    navigate("/");
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setLoading(true);
+    setSigning(true);
     try {
       const res = await fetch(API_ROOT + "/auth/login", {
         method: "POST",
@@ -109,7 +114,7 @@ export default function LoginPage() {
     } catch (err: any) {
       setError(err.message ?? "Something went wrong.");
     } finally {
-      setLoading(false);
+      setSigning(false);
     }
   }
 
@@ -191,8 +196,8 @@ export default function LoginPage() {
               </div>
 
               {/* Submit */}
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Signing in…" : "Sign in"}
+              <Button type="submit" disabled={signing} className="w-full">
+                {signing ? "Signing in…" : "Sign in"}
               </Button>
 
               {/* Divider */}

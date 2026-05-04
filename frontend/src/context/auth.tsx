@@ -4,6 +4,8 @@ import {
   useContext,
   useEffect,
   useState,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 import { ApiFetch, getValidToken } from "../utils/api";
 import { tokenStore } from "../utils/token";
@@ -12,6 +14,8 @@ import { userStore } from "../utils/user";
 
 interface AuthContextValue {
   loading: boolean;
+  setLoading: Dispatch<SetStateAction<boolean>>;
+  refreshToken(): Promise<void>;
   user: Avatar | null;
   logout(): Promise<void>;
 }
@@ -22,6 +26,8 @@ interface AuthProviderInterface {
 
 const authContext = createContext<AuthContextValue>({
   loading: true,
+  setLoading: () => {},
+  refreshToken: () => Promise.resolve(),
   user: null,
   logout: () => Promise.resolve(),
 });
@@ -47,22 +53,19 @@ const AuthProvider: React.FC<AuthProviderInterface> = ({ children }) => {
   }, [logout]);
 
   async function refreshToken() {
-    setLoading(true);
-    try {
-      await getValidToken();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
     const token = tokenStore.get();
     if (token === null) {
-      refreshToken();
+      setLoading(true);
+      try {
+        await getValidToken();
+      } catch (err) {
+        console.error(err);
+        throw new Error("Token refresh failed");
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
+  }
 
   const user = userStore.get();
 
@@ -70,6 +73,8 @@ const AuthProvider: React.FC<AuthProviderInterface> = ({ children }) => {
     <authContext.Provider
       value={{
         loading,
+        setLoading,
+        refreshToken,
         user,
         logout,
       }}
