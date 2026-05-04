@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -80,11 +81,10 @@ func (api *GoogleApi) Callback(w http.ResponseWriter, r *http.Request) error {
 		state,
 		code,
 	)
-	switch err {
-	case core.ErrInvalidValue:
+	if errors.Is(err, core.ErrInvalidValue) {
 		http.Redirect(w, r, api.frontendLoginURL+"?error=invalid_state_or_code", http.StatusSeeOther)
 		return nil
-	case core.ErrDuplicate:
+	} else if errors.Is(err, core.ErrDuplicate) {
 		http.Redirect(w, r, api.frontendLoginURL+"?error=account_exist", http.StatusSeeOther)
 		return nil
 	}

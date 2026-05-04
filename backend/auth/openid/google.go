@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/ptracker/auth"
 	"github.com/ptracker/core"
 	"github.com/ptracker/core/users"
@@ -34,9 +35,9 @@ func getTokenKey(s string) string {
 
 // https://docs.cloud.google.com/identity-platform/docs/reference/rest/v1/UserInfo
 type GoogleUserInfo struct {
-	Subject string `json:"sub"`
-	Name    string `json:"name"`
-	Email   string `json:"email"`
+	Subject string `json:"sub" validate:"required"`
+	Name    string `json:"name" validate:"required"`
+	Email   string `json:"email" validate:"required"`
 }
 
 type GoogleService struct {
@@ -59,7 +60,7 @@ func NewGoogleService(
 	conf := &oauth2.Config{
 		ClientID:     clientID,
 		ClientSecret: clientSecret,
-		Scopes:       []string{"openid", "email"},
+		Scopes:       []string{"openid", "profile", "email"},
 		Endpoint:     google.Endpoint,
 		RedirectURL:  redirectURI,
 	}
@@ -180,8 +181,13 @@ func (s *GoogleService) getUserInfo(ctx context.Context,
 	defer res.Body.Close()
 
 	var userInfo GoogleUserInfo
-	if err := json.NewDecoder(res.Body).Decode(&userInfo); err != nil {
-		return nil, fmt.Errorf("decode userinfo: %w", err)
+	dec := json.NewDecoder(res.Body)
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&userInfo); err != nil {
+		return nil, fmt.Errorf("userInfo decode: %w", core.ErrInvalidValue)
+	}
+	if err := validator.New().Struct(userInfo); err != nil {
+		return nil, fmt.Errorf("userInfo validate: %w", core.ErrInvalidValue)
 	}
 
 	return &userInfo, nil
